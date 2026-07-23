@@ -1,0 +1,17 @@
+// Billy — RUNTIME frontend config (bind-mounted; NOT built into the bundle).
+//
+// index.html loads this before the app bundle; the SPA reads window.__APP_CONFIG__
+// (apps/web/src/config.ts). Edit these values + `docker compose restart web`
+// (or just reload — nginx serves it no-cache) to repoint the app WITHOUT a
+// rebuild. This is what keeps the frontend re-configurable in the bind-mount
+// model. Copy/adjust per deployment; keep it in sync with ./.env (APP_URL/API_URL).
+window.__APP_CONFIG__ = {
+  // Public origin the SPA is served from.
+  APP_URL: "http://localhost:3480",
+  // Base URL of the REST API (behind the proxy at /api).
+  API_URL: "http://localhost:3480/api",
+  // Web Push VAPID public key (public — safe to expose). Empty disables push.
+  // Generate a keypair: node -e "console.log(require('web-push').generateVAPIDKeys())"
+  // then put the public key here and the private key in .env (VAPID_PRIVATE_KEY).
+  VAPID_PUBLIC_KEY: "",
+};

@@ -1,0 +1,1354 @@
+{
+  "app": {
+    "subtitle": "Invoicing"
+  },
+  "tables": {
+    "search_placeholder": "Search…",
+    "no_results": "No results found",
+    "configure_columns": "Configure columns",
+    "show": "Show",
+    "entries": "entries",
+    "showing_items": "Showing {from}–{to} of {total}"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "invoices": "Invoices",
+    "quotes": "Quotes",
+    "expenses": "Expenses",
+    "contracts": "Contracts",
+    "timeEntries": "Time entries",
+    "subscriptions": "Subscriptions",
+    "recurring": "Recurring",
+    "creditNotes": "Credit Notes",
+    "proforma": "Proforma",
+    "settings": "Settings",
+    "documents": "Documents",
+    "accounts": "Accounts",
+    "projects": "Projects"
+  },
+  "shell": {
+    "collapseNav": "Collapse navigation",
+    "expandNav": "Expand navigation",
+    "primaryNav": "Primary navigation",
+    "mainContent": "Main content",
+    "signOut": "Sign out",
+    "theme": "Theme: {mode}. Activate to change."
+  },
+  "account": {
+    "label": "Account",
+    "switch": "Switch account",
+    "switchError": "Could not switch account"
+  },
+  "period": {
+    "year": "Year {year}",
+    "selectAll": "All year",
+    "clear": "Clear",
+    "allMonths": "All months",
+    "docCount": "{count} doc | {count} doc | {count} docs",
+    "loadError": "Couldn't load monthly totals"
+  },
+  "locale": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "fr": "Français",
+    "ru": "Русский",
+    "pt": "Português",
+    "de": "Deutsch"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "You're all caught up",
+    "push": {
+      "label": "Push notifications on this device",
+      "denied": "Blocked — allow notifications in your browser settings"
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "search": "Search clients",
+    "empty": "No clients found",
+    "loadError": "Could not load clients ({code}).",
+    "loadErrorGeneric": "Could not load clients.",
+    "retry": "Retry",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "email": "Email",
+      "vatNumber": "VAT number",
+      "country": "Country",
+      "currency": "Currency"
+    },
+    "selector": {
+      "label": "Client",
+      "placeholder": "Search clients",
+      "noData": "No matching clients",
+      "loadError": "Could not search clients."
+    },
+    "new": "Add client",
+    "newTitle": "New client",
+    "editTitle": "Edit client",
+    "create": "Create client",
+    "loadOneError": "Could not load client ({code}).",
+    "loadOneErrorGeneric": "Could not load client.",
+    "saveError": "Could not save client ({code}).",
+    "saveErrorGeneric": "Could not save client.",
+    "fields": {
+      "type": "Type",
+      "displayName": "Display name",
+      "legalName": "Legal name",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "vatNumber": "VAT number",
+      "preferredCurrency": "Preferred currency",
+      "tags": "Tags",
+      "addrLine1": "Address line 1",
+      "addrLine2": "Address line 2",
+      "addrCity": "City",
+      "addrRegion": "Region",
+      "addrPostalCode": "Postal code",
+      "addrCountry": "Country",
+      "preferredLanguage": "Preferred language",
+      "referral": "Contact person"
+    },
+    "form": {
+      "typeCompany": "Company",
+      "typeIndividual": "Individual",
+      "emailRule": "Enter a valid email address",
+      "tagsHint": "Press Enter to add a tag.",
+      "billingAddress": "Billing address",
+      "countryHint": "2-letter code (e.g. IT).",
+      "details": "Details",
+      "languageHint": "Documents & emails to this client use this language."
+    },
+    "saved": "Client saved"
+  },
+  "common": {
+    "loading": "Loading…",
+    "required": "Required",
+    "currencyRule": "3-letter ISO code",
+    "back": "Back",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "saveChanges": "Save changes",
+    "yes": "Yes",
+    "no": "No",
+    "actionFailed": "Action failed ({code}).",
+    "actionFailedGeneric": "Action failed.",
+    "confirm": "Confirm",
+    "dismiss": "Dismiss"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "new": "New invoice",
+    "newTitle": "New invoice",
+    "editTitle": "Edit invoice",
+    "detailTitle": "Invoice",
+    "create": "Create invoice",
+    "empty": "No invoices found",
+    "draftUnnumbered": "Draft (unnumbered)",
+    "allStatuses": "All statuses",
+    "loadError": "Could not load invoices ({code}).",
+    "loadErrorGeneric": "Could not load invoices.",
+    "loadOneError": "Could not load invoice ({code}).",
+    "loadOneErrorGeneric": "Could not load invoice.",
+    "saveError": "Could not save invoice ({code}).",
+    "saveErrorGeneric": "Could not save invoice.",
+    "locked": "This invoice is not a draft and can no longer be edited.",
+    "dueRule": "Due date must be on/after issue date",
+    "finalize": "Finalize",
+    "void": "Void",
+    "send": "Send",
+    "sendReminder": "Send reminder",
+    "addPayment": "Add payment",
+    "recordPayment": "Record payment",
+    "positiveAmount": "Enter a positive payment amount.",
+    "noPayments": "No payments recorded.",
+    "lineItems": "Line items",
+    "payments": "Payments",
+    "filterStatus": "Filter by status",
+    "columns": {
+      "number": "Number",
+      "status": "Status",
+      "issueDate": "Issue date",
+      "dueDate": "Due date",
+      "total": "Total",
+      "due": "Due"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "dueDate": "Due date",
+      "notes": "Notes",
+      "bankAccount": "Bank account"
+    },
+    "detail": {
+      "client": "Client",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "dueDate": "Due date"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total",
+      "paid": "Paid",
+      "due": "Due"
+    },
+    "payColumns": {
+      "date": "Date",
+      "method": "Method",
+      "reference": "Reference",
+      "amount": "Amount"
+    },
+    "payDialog": {
+      "title": "Add payment",
+      "amount": "Amount",
+      "date": "Date",
+      "method": "Method",
+      "reference": "Reference (optional)"
+    },
+    "schedule": {
+      "action": "Schedule send",
+      "unscheduleAction": "Unschedule",
+      "dialogTitle": "Schedule send",
+      "dialogHint": "The invoice stays a draft and is automatically finalized on the chosen date.",
+      "dateLabel": "Send date",
+      "dateError": "Choose today or a later date.",
+      "confirm": "Schedule",
+      "cancel": "Cancel",
+      "banner": "Scheduled to finalize on {date}."
+    },
+    "bankAccountHint": "Bank details attached to this invoice.",
+    "completion": {
+      "title": "Invoice created",
+      "hint": "Your draft invoice is saved. What would you like to do next?",
+      "finalizeAndSend": "Finalize & send",
+      "schedule": "Schedule",
+      "keepDraft": "Keep as draft"
+    },
+    "confirm": {
+      "finalizeTitle": "Finalize invoice?",
+      "finalizeMessage": "Finalizing assigns a number and locks the invoice. This cannot be undone.",
+      "voidTitle": "Void invoice?",
+      "voidMessage": "Voiding permanently cancels this invoice. This cannot be undone.",
+      "unscheduleTitle": "Cancel schedule?",
+      "unscheduleMessage": "This invoice will no longer be sent automatically."
+    },
+    "saved": "Invoice saved"
+  },
+  "quotes": {
+    "title": "Quotes",
+    "new": "New quote",
+    "newTitle": "New quote",
+    "editTitle": "Edit quote",
+    "detailTitle": "Quote",
+    "create": "Create quote",
+    "empty": "No quotes found",
+    "draftUnnumbered": "Draft (unnumbered)",
+    "allStatuses": "All statuses",
+    "filterStatus": "Filter by status",
+    "loadError": "Could not load quotes ({code}).",
+    "loadErrorGeneric": "Could not load quotes.",
+    "loadOneError": "Could not load quote ({code}).",
+    "loadOneErrorGeneric": "Could not load quote.",
+    "saveError": "Could not save quote ({code}).",
+    "saveErrorGeneric": "Could not save quote.",
+    "locked": "This quote is not a draft and can no longer be edited.",
+    "expiryRule": "Expiry must be on/after issue date",
+    "send": "Send",
+    "accept": "Accept",
+    "decline": "Decline",
+    "convert": "Convert to invoice",
+    "converted": "Converted to invoice {id}.",
+    "lineItems": "Line items",
+    "columns": {
+      "number": "Number",
+      "status": "Status",
+      "issueDate": "Issue date",
+      "expiryDate": "Expiry date",
+      "total": "Total"
+    },
+    "fields": {
+      "clientId": "Client ID",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "expiryDate": "Expiry date",
+      "notes": "Notes"
+    },
+    "detail": {
+      "client": "Client",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "expiryDate": "Expiry date"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "confirm": {
+      "sendTitle": "Send quote?",
+      "sendMessage": "The quote will be marked as sent.",
+      "acceptTitle": "Accept quote?",
+      "acceptMessage": "Mark this quote as accepted?",
+      "declineTitle": "Decline quote?",
+      "declineMessage": "Mark this quote as declined?",
+      "convertTitle": "Convert to invoice?",
+      "convertMessage": "A new draft invoice will be created from this quote."
+    },
+    "saved": "Quote saved"
+  },
+  "contracts": {
+    "title": "Contracts",
+    "new": "New contract",
+    "newTitle": "New contract",
+    "editTitle": "Edit contract",
+    "detailTitle": "Contract",
+    "create": "Create contract",
+    "send": "Send",
+    "empty": "No contracts found",
+    "allStatuses": "All statuses",
+    "allTypes": "All types",
+    "filterStatus": "Filter by status",
+    "filterType": "Filter by type",
+    "loadError": "Could not load contracts ({code}).",
+    "loadErrorGeneric": "Could not load contracts.",
+    "loadOneError": "Could not load contract ({code}).",
+    "loadOneErrorGeneric": "Could not load contract.",
+    "saveError": "Could not save contract ({code}).",
+    "saveErrorGeneric": "Could not save contract.",
+    "endDateRule": "End date must be on/after start date",
+    "columns": {
+      "title": "Title",
+      "type": "Type",
+      "status": "Status",
+      "start": "Start",
+      "end": "End",
+      "value": "Value"
+    },
+    "fields": {
+      "clientId": "Client ID",
+      "title": "Title",
+      "type": "Type",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "value": "Value",
+      "currency": "Currency",
+      "terms": "Terms",
+      "notes": "Notes"
+    },
+    "saved": "Contract saved"
+  },
+  "expenses": {
+    "title": "Expenses",
+    "new": "New expense",
+    "newTitle": "New expense",
+    "editTitle": "Edit expense",
+    "create": "Create expense",
+    "empty": "No expenses found",
+    "filterStatus": "Filter by status",
+    "loadError": "Could not load expenses ({code}).",
+    "loadErrorGeneric": "Could not load expenses.",
+    "loadOneError": "Could not load expense ({code}).",
+    "loadOneErrorGeneric": "Could not load expense.",
+    "saveError": "Could not save expense ({code}).",
+    "saveErrorGeneric": "Could not save expense.",
+    "amountRule": "Amount must be positive",
+    "columns": {
+      "vendor": "Vendor",
+      "category": "Category",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "billable": "Billable"
+    },
+    "fields": {
+      "amount": "Amount",
+      "currency": "Currency",
+      "category": "Category",
+      "date": "Date",
+      "vendor": "Vendor",
+      "clientId": "Client ID",
+      "description": "Description",
+      "billable": "Billable"
+    },
+    "saved": "Expense saved"
+  },
+  "subscriptions": {
+    "title": "Subscriptions",
+    "new": "New subscription",
+    "newTitle": "New subscription",
+    "editTitle": "Edit subscription",
+    "create": "Create subscription",
+    "empty": "No subscriptions found",
+    "filterStatus": "Filter by status",
+    "loadError": "Could not load subscriptions ({code}).",
+    "loadErrorGeneric": "Could not load subscriptions.",
+    "loadOneError": "Could not load subscription ({code}).",
+    "loadOneErrorGeneric": "Could not load subscription.",
+    "saveError": "Could not save subscription ({code}).",
+    "saveErrorGeneric": "Could not save subscription.",
+    "amountRequired": "Required",
+    "amountRule": "Must be greater than 0",
+    "nextBillingRule": "Next billing must be on/after start date",
+    "amountHint": "Amount in major units (e.g. 49.00).",
+    "clientIdHint": "Client selector lands with the clients module; enter the id for now.",
+    "columns": {
+      "name": "Name",
+      "plan": "Plan",
+      "amount": "Amount",
+      "interval": "Interval",
+      "status": "Status",
+      "nextBilling": "Next billing"
+    },
+    "fields": {
+      "clientId": "Client ID",
+      "name": "Name",
+      "plan": "Plan",
+      "amount": "Amount",
+      "currency": "Currency",
+      "interval": "Interval",
+      "startDate": "Start date",
+      "nextBillingDate": "Next billing date",
+      "client": "Client",
+      "url": "URL",
+      "note": "Note"
+    },
+    "urlRule": "Enter a valid URL",
+    "urlHint": "Optional. e.g. https://example.com",
+    "saved": "Subscription saved"
+  },
+  "timeEntries": {
+    "title": "Time entries",
+    "new": "New time entry",
+    "newTitle": "New time entry",
+    "editTitle": "Edit time entry",
+    "create": "Create time entry",
+    "empty": "No time entries found",
+    "filterBillable": "Filter by billable",
+    "loadError": "Could not load time entries ({code}).",
+    "loadErrorGeneric": "Could not load time entries.",
+    "loadOneError": "Could not load time entry ({code}).",
+    "loadOneErrorGeneric": "Could not load time entry.",
+    "saveError": "Could not save time entry ({code}).",
+    "saveErrorGeneric": "Could not save time entry.",
+    "durationRule": "Must be a whole number ≥ 0",
+    "rateHint": "Optional. Amount in major units (e.g. 85.00).",
+    "projectIdHint": "Optional.",
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "duration": "Duration",
+      "billable": "Billable",
+      "billed": "Billed",
+      "rate": "Rate"
+    },
+    "fields": {
+      "description": "Description",
+      "date": "Date",
+      "duration": "Duration (minutes)",
+      "rate": "Rate (per hour)",
+      "billable": "Billable",
+      "clientId": "Client ID",
+      "projectId": "Project ID"
+    },
+    "saved": "Time entry saved"
+  },
+  "recurring": {
+    "title": "Recurring profiles",
+    "new": "New profile",
+    "create": "Create profile",
+    "newTitle": "New recurring profile",
+    "editTitle": "Edit recurring profile",
+    "detailTitle": "Recurring profile",
+    "empty": "No recurring profiles found",
+    "retry": "Retry",
+    "loadError": "Could not load recurring profiles ({code}).",
+    "loadErrorGeneric": "Could not load recurring profiles.",
+    "saveError": "Could not save profile ({code}).",
+    "saveErrorGeneric": "Could not save profile.",
+    "locked": "This profile is no longer active and can no longer be edited.",
+    "countRule": "Must be at least 1",
+    "endRule": "End date must be on/after start date",
+    "everyN": "Every {n} × {unit}",
+    "generateNow": "Generate now",
+    "generated": "Occurrence generated.",
+    "generateExhausted": "This profile is complete — nothing to generate.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel profile",
+    "occurrences": "Occurrences generated",
+    "lastRun": "Last run",
+    "lineItems": "Line items",
+    "interval": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "columns": {
+      "client": "Client",
+      "interval": "Interval",
+      "status": "Status",
+      "nextRun": "Next run",
+      "total": "Total",
+      "docType": "Document type"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Currency",
+      "interval": "Interval",
+      "intervalCount": "Interval count",
+      "maxOccurrences": "Max occurrences",
+      "repeatOn": "Repeat on",
+      "repeatOnStartDay": "Same day as start date",
+      "repeatOnDayOfMonth": "A specific day of the month",
+      "dayOfMonth": "Day of month",
+      "dayOfMonthHint": "Shorter months use their last day.",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "notes": "Notes"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "fromDocHint": "Recurring is now set up from a document. Open a new invoice, proforma or expense and turn on “Make this recurring”.",
+    "toggle": {
+      "enable": "Make this recurring",
+      "hint": "A recurring profile will be created and future documents generated automatically on this schedule.",
+      "created": "Recurring profile created.",
+      "viewList": "View recurring",
+      "createError": "Could not create the recurring profile ({code}).",
+      "createErrorGeneric": "Could not create the recurring profile.",
+      "clientRequired": "A client is required to make an expense recurring."
+    }
+  },
+  "creditNotes": {
+    "title": "Credit notes",
+    "new": "New credit note",
+    "create": "Create credit note",
+    "newTitle": "New credit note",
+    "editTitle": "Edit credit note",
+    "detailTitle": "Credit note",
+    "empty": "No credit notes found",
+    "retry": "Retry",
+    "draftUnnumbered": "Draft (unnumbered)",
+    "loadError": "Could not load credit notes ({code}).",
+    "loadErrorGeneric": "Could not load credit notes.",
+    "saveError": "Could not save credit note ({code}).",
+    "saveErrorGeneric": "Could not save credit note.",
+    "locked": "This credit note is issued or void and can no longer be edited.",
+    "issue": "Issue",
+    "void": "Void",
+    "lineItems": "Line items",
+    "columns": {
+      "number": "Number",
+      "client": "Client",
+      "status": "Status",
+      "issueDate": "Issue date",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Client",
+      "creditedInvoice": "Credited invoice",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "reason": "Reason",
+      "notes": "Notes"
+    },
+    "selector": {
+      "label": "Credited invoice",
+      "placeholder": "Search invoices",
+      "noData": "No matching invoices",
+      "draftLabel": "Draft (unnumbered)"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "confirm": {
+      "issueTitle": "Issue credit note?",
+      "issueMessage": "Issuing assigns a number to this credit note.",
+      "voidTitle": "Void credit note?",
+      "voidMessage": "Voiding permanently cancels this credit note. This cannot be undone."
+    },
+    "saved": "Credit note saved"
+  },
+  "proformas": {
+    "title": "Proforma",
+    "new": "New proforma",
+    "create": "Create proforma",
+    "newTitle": "New proforma",
+    "editTitle": "Edit proforma",
+    "detailTitle": "Proforma",
+    "empty": "No proformas found",
+    "retry": "Retry",
+    "draftUnnumbered": "Draft (unnumbered)",
+    "loadError": "Could not load proformas ({code}).",
+    "loadErrorGeneric": "Could not load proformas.",
+    "saveError": "Could not save proforma ({code}).",
+    "saveErrorGeneric": "Could not save proforma.",
+    "locked": "This proforma is issued or void and can no longer be edited.",
+    "expiryRule": "Expiry date must be on/after issue date",
+    "issue": "Issue",
+    "void": "Void",
+    "converted": "Converted to invoice {id}.",
+    "lineItems": "Line items",
+    "columns": {
+      "number": "Number",
+      "client": "Client",
+      "status": "Status",
+      "issueDate": "Issue date",
+      "expiryDate": "Expiry date",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Currency",
+      "issueDate": "Issue date",
+      "expiryDate": "Expiry date",
+      "notes": "Notes"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "convert": "Convert to invoice",
+    "confirm": {
+      "issueTitle": "Issue proforma?",
+      "issueMessage": "Issuing assigns a number to this proforma.",
+      "voidTitle": "Void proforma?",
+      "voidMessage": "Voiding permanently cancels this proforma. This cannot be undone.",
+      "convertTitle": "Convert to invoice?",
+      "convertMessage": "A new draft invoice will be created from this proforma."
+    },
+    "saved": "Proforma saved"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "welcomeNamed": "Welcome, {name}",
+    "currency": "Currency",
+    "year": "Year",
+    "retry": "Retry",
+    "loadError": "Could not load dashboard ({code}).",
+    "loadErrorGeneric": "Could not load dashboard.",
+    "cards": {
+      "clients": "Clients",
+      "activeSubscriptions": "Active subscriptions",
+      "unbilledTimeEntries": "Unbilled time entries",
+      "expenses": "Expenses",
+      "invoicedThisMonth": "Invoiced",
+      "collectedThisMonth": "Collected",
+      "outstanding": "Outstanding",
+      "overdue": "Overdue"
+    },
+    "chart": {
+      "revenueTitle": "Revenue ({year})",
+      "revenueEmpty": "No revenue yet",
+      "revenueExpenseTitle": "Revenue vs expenses ({year})",
+      "revenueExpenseEmpty": "No revenue or expenses yet",
+      "outstandingTitle": "Outstanding vs overdue",
+      "outstandingEmpty": "Nothing outstanding",
+      "invoiced": "Invoiced",
+      "collected": "Collected",
+      "expenses": "Expenses",
+      "current": "Current",
+      "overdue": "Overdue"
+    },
+    "counts": {
+      "title": "Documents by month",
+      "empty": "No documents yet"
+    },
+    "docType": {
+      "invoices": "Invoices",
+      "proforma": "Proforma",
+      "quotes": "Quotes",
+      "creditNotes": "Credit notes",
+      "contracts": "Contracts",
+      "expenses": "Expenses"
+    },
+    "drilldown": {
+      "docType": "Document type",
+      "months": "Months",
+      "allMonths": "All months",
+      "showing": "Showing: {months}",
+      "untitled": "Untitled",
+      "empty": "No documents for this selection",
+      "error": "Could not load documents ({code}).",
+      "errorGeneric": "Could not load documents."
+    },
+    "heatmap": {
+      "title": "Activity by month ({year})",
+      "rowLabel": "Activity",
+      "empty": "No activity yet"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "window": "last {days} days",
+      "clients": "New clients",
+      "expenses": "New expenses",
+      "timeEntries": "Time entries",
+      "subscriptions": "Subscriptions"
+    }
+  },
+  "notification": {
+    "event": {
+      "quote": {
+        "created": {
+          "title": "Quote created",
+          "body": "Quote {entity} was created"
+        },
+        "sent": {
+          "title": "Quote sent",
+          "body": "Quote {entity} was sent"
+        },
+        "converted": {
+          "title": "Quote converted",
+          "body": "Quote {entity} was converted to an invoice"
+        },
+        "accepted": {
+          "title": "Quote accepted",
+          "body": "Quote {entity} was accepted"
+        },
+        "declined": {
+          "title": "Quote declined",
+          "body": "Quote {entity} was declined"
+        }
+      },
+      "invoice": {
+        "created": {
+          "title": "Invoice created",
+          "body": "Invoice {entity} was created"
+        },
+        "finalized": {
+          "title": "Invoice finalized",
+          "body": "Invoice {entity} was finalized"
+        },
+        "scheduled": {
+          "title": "Invoice scheduled",
+          "body": "Invoice {entity} was scheduled to send"
+        },
+        "paid": {
+          "title": "Invoice paid",
+          "body": "Invoice {entity} was paid in full"
+        },
+        "void": {
+          "title": "Invoice voided",
+          "body": "Invoice {entity} was voided"
+        }
+      },
+      "client": {
+        "created": {
+          "title": "Client added",
+          "body": "Client {entity} was added"
+        }
+      },
+      "contract": {
+        "created": {
+          "title": "Contract created",
+          "body": "Contract {entity} was created"
+        },
+        "renewed": {
+          "title": "Contract renewed",
+          "body": "Contract {entity} was renewed"
+        }
+      },
+      "expense": {
+        "created": {
+          "title": "Expense recorded",
+          "body": "Expense {entity} was recorded"
+        },
+        "invoiced": {
+          "title": "Expense invoiced",
+          "body": "Expense {entity} was added to an invoice"
+        }
+      },
+      "generic": {
+        "title": "Notification",
+        "body": "Update for {entity}"
+      }
+    }
+  },
+  "enums": {
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "converted": "Converted",
+      "finalized": "Finalized",
+      "partially_paid": "Partially paid",
+      "paid": "Paid",
+      "void": "Void",
+      "active": "Active",
+      "paused": "Paused",
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "issued": "Issued",
+      "expired": "Expired",
+      "expiring": "Expiring",
+      "renewed": "Renewed",
+      "terminated": "Terminated",
+      "archived": "Archived",
+      "invoiced": "Invoiced"
+    },
+    "contractType": {
+      "development": "Development",
+      "maintenance": "Maintenance",
+      "hosting": "Hosting",
+      "support": "Support",
+      "consulting": "Consulting",
+      "service_agreement": "Service agreement",
+      "retainer": "Retainer",
+      "other": "Other"
+    },
+    "paymentMethod": {
+      "bank_transfer": "Bank transfer",
+      "cash": "Cash",
+      "card": "Card",
+      "other": "Other",
+      "paypal": "PayPal",
+      "stripe": "Stripe",
+      "direct_debit": "Direct debit"
+    },
+    "recurringDocType": {
+      "invoice": "Invoice",
+      "proforma": "Proforma",
+      "expense": "Expense"
+    }
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "branding": {
+      "identity": "Identity",
+      "colors": "Colors",
+      "appName": "Application name",
+      "logo": "Logo",
+      "logoPreview": "Logo preview",
+      "icon": "App icon (favicon)",
+      "iconHint": "Shown in the browser tab; also the app icon. Square image recommended.",
+      "primaryColor": "Primary color",
+      "secondaryColor": "Secondary color",
+      "accentColor": "Accent color",
+      "save": "Save branding",
+      "saved": "Branding saved",
+      "loadError": "Could not load branding.",
+      "saveError": "Could not save branding.",
+      "identityHint": "Your app name and logo appear in the shell and on documents.",
+      "colorsHint": "Colors apply live to the running theme.",
+      "themeMode": "Default theme mode",
+      "themeSystem": "System",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "supportEmail": "Support email",
+      "loginBackground": "Login background",
+      "loginBackgroundHint": "Upload an image for the login-page background (optional)."
+    },
+    "documents": {
+      "title": "Document design",
+      "controls": "Controls",
+      "layout": "Layout",
+      "headerHtml": "Document header HTML",
+      "footerHtml": "Document footer HTML",
+      "headerHint": "Shown at the top of every document. Print-safe formatting only.",
+      "footerHint": "Shown at the bottom of every document. Print-safe formatting only.",
+      "logoPosition": "Logo position",
+      "logoLeft": "Left",
+      "logoRight": "Right",
+      "logoPositionHint": "Which side the company logo sits on; the company details take the opposite side.",
+      "companyLogo": "Company logo (shown on documents)",
+      "companyLogoHint": "Separate from the app logo — this appears on invoices, quotes and PDFs.",
+      "companyLogoPreview": "Company logo preview",
+      "showBankDetails": "Show bank details",
+      "showBankDetailsHint": "Adds a bank-details block above the footer when company bank details exist.",
+      "save": "Save document design",
+      "saved": "Document design saved",
+      "loadError": "Could not load document design.",
+      "saveError": "Could not save document design.",
+      "preview": "Preview — approximate",
+      "previewHint": "Approximation of the PDF; the final document is rendered by the server.",
+      "invoiceHeading": "INVOICE no. {number} of {date}",
+      "recipient": "Recipient",
+      "sampleCompanyName": "Your Company Ltd",
+      "sampleAddress": "1 Example Street - 00100 - Rome (RM)",
+      "sampleClient": "Acme Corporation",
+      "sampleRecipientAddress": "5 Client Avenue - 20100 - Milan (MI)",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colPrice": "Price",
+      "colAmount": "Amount",
+      "sampleItem1": "Consulting services",
+      "sampleItem2": "Design work",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "grandTotal": "Total",
+      "bankTitle": "Bank details",
+      "bankName": "Bank",
+      "bankAccount": "Account",
+      "bankIban": "IBAN",
+      "bankBic": "BIC"
+    },
+    "documentDesignTab": "Document design",
+    "emailContractDesignTab": "Email & Contract",
+    "emailContract": {
+      "contractTitle": "Contract header & footer",
+      "contractHint": "HTML wrapping the top and bottom of rendered contracts.",
+      "contractHeader": "Contract header",
+      "contractFooter": "Contract footer",
+      "emailTitle": "Email header & footer",
+      "emailHint": "HTML wrapping the top and bottom of outgoing emails.",
+      "emailHeader": "Email header",
+      "emailFooter": "Email footer",
+      "save": "Save",
+      "saved": "Email & contract design saved",
+      "loadError": "Could not load email & contract design.",
+      "saveError": "Could not save email & contract design."
+    },
+    "bankAccounts": {
+      "title": "Bank accounts",
+      "hint": "Named bank accounts you can attach to invoices.",
+      "label": "Label",
+      "details": "Details",
+      "add": "Add bank account",
+      "remove": "Remove",
+      "empty": "No bank accounts yet."
+    },
+    "company": {
+      "businessName": "Business name",
+      "legalName": "Legal name",
+      "vatNumber": "VAT number",
+      "taxCode": "Tax code",
+      "email": "Email",
+      "phone": "Phone",
+      "website": "Website",
+      "save": "Save company details",
+      "saved": "Company details saved",
+      "loadError": "Could not load company details.",
+      "saveError": "Could not save company details.",
+      "address": {
+        "title": "Address",
+        "hint": "Postal address shown on your documents.",
+        "line1": "Address line 1",
+        "line2": "Address line 2",
+        "city": "City",
+        "region": "Region / State",
+        "postalCode": "Postal code",
+        "country": "Country (ISO code)"
+      }
+    },
+    "advanced": {
+      "uploadMaxMb": "Max upload size (MB)",
+      "backupSchedule": "Backup schedule (cron)",
+      "clamavEnabled": "ClamAV scanning",
+      "backupEnabled": "Automated backups",
+      "allowPublicLinks": "Allow public links",
+      "save": "Save advanced settings",
+      "saved": "Advanced settings saved",
+      "loadError": "Could not load toggles.",
+      "saveError": "Could not save toggles.",
+      "backupRetentionDays": "Backup retention (days)",
+      "softDeleteRetentionDays": "Soft-delete retention (days)",
+      "sessionIdleTtlMinutes": "Session idle timeout (min)",
+      "sessionAbsoluteTtlMinutes": "Session max lifetime (min)"
+    },
+    "documentsTab": {
+      "defaultTaxRate": "Default tax rate (%)",
+      "save": "Save document settings",
+      "saved": "Document settings saved",
+      "loadError": "Could not load document settings.",
+      "saveError": "Could not save document settings.",
+      "defaultPaymentTermsDays": "Default payment terms (days)",
+      "invoiceNotes": "Default invoice notes",
+      "quoteNotes": "Default quote notes"
+    },
+    "email": {
+      "smtpHost": "SMTP host",
+      "smtpPort": "SMTP port",
+      "smtpUsername": "SMTP username",
+      "smtpPassword": "SMTP password",
+      "smtpSecure": "Use TLS/SSL (secure)",
+      "fromEmail": "From email",
+      "fromName": "From name",
+      "replyTo": "Reply-to",
+      "configured": "Configured",
+      "passwordStoredHint": "A password is stored. Leave blank to keep it; type to replace.",
+      "passwordUnsetHint": "No password set.",
+      "testOk": "Test email sent successfully.",
+      "testError": "Test failed: {error}",
+      "unknownError": "unknown error",
+      "testFailed": "Test failed",
+      "save": "Save email settings",
+      "testConnection": "Test connection",
+      "saved": "Email settings saved",
+      "loadError": "Could not load email settings.",
+      "saveError": "Could not save email settings.",
+      "testRecipient": "Test recipient email",
+      "sendTest": "Send test email",
+      "sendOk": "Test email sent to {to}."
+    },
+    "localization": {
+      "defaultCurrency": "Default currency",
+      "defaultLocale": "Default locale",
+      "timezone": "Timezone",
+      "dateFormat": "Date format",
+      "numberFormat": "Number format",
+      "firstDayOfWeek": "First day of week",
+      "weekdaySunday": "Sunday",
+      "weekdayMonday": "Monday",
+      "weekdaySaturday": "Saturday",
+      "save": "Save localization",
+      "saved": "Localization saved",
+      "loadError": "Could not load localization.",
+      "saveError": "Could not save localization."
+    },
+    "userSettingsTab": "User Settings",
+    "usersTab": "Users",
+    "localizedField": {
+      "language": "Language",
+      "languagesWithContent": "Languages with content: {locales}"
+    }
+  },
+  "documentActions": {
+    "preview": "Preview",
+    "print": "Print",
+    "download": "Download",
+    "previewTitle": "Document preview",
+    "error": "Could not complete ({code})."
+  },
+  "send": {
+    "title": "Send document",
+    "titleReminder": "Send reminder",
+    "to": "To",
+    "cc": "CC",
+    "bcc": "BCC",
+    "emailPlaceholder": "Type an email and press Enter",
+    "subject": "Subject",
+    "body": "Message",
+    "attachmentNoteInvoice": "The invoice PDF will be attached to this email.",
+    "attachmentNoteContract": "The contract PDF will be attached to this email.",
+    "send": "Send",
+    "queued": "Email queued.",
+    "pending": "Document is being prepared — try Send again in a few seconds.",
+    "loadError": "Could not load the email preview ({code}).",
+    "error": "Could not send the email ({code})."
+  },
+  "rowActions": {
+    "menu": "Actions",
+    "open": "Open",
+    "clone": "Clone"
+  },
+  "timer": {
+    "start": "Start timer",
+    "resume": "Resume",
+    "pause": "Pause",
+    "stop": "Stop",
+    "saveTitle": "Save time entry",
+    "durationLabel": "Duration",
+    "saveEntry": "Save entry",
+    "discard": "Discard"
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "twoFactor": {
+      "hint": "Enter the 6-digit code from your authenticator app, or a backup code.",
+      "codeLabel": "Authentication code",
+      "verify": "Verify",
+      "back": "Back to sign in",
+      "backupCodeLabel": "Backup code",
+      "useBackupCode": "Use a backup code instead",
+      "useAppCode": "Use your authenticator app instead"
+    },
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "invalidCode": "That code is incorrect or has expired.",
+      "rateLimited": "Too many attempts. Please wait and try again.",
+      "twoFactorRequired": "Two-factor authentication is required.",
+      "challengeExpired": "This sign-in request expired. Please sign in again.",
+      "generic": "Sign-in failed. Please try again."
+    }
+  },
+  "userSettings": {
+    "mustChangePasswordNotice": "You must change your password before continuing.",
+    "password": {
+      "title": "Change password",
+      "hint": "Changing your password signs out your other sessions.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "minHint": "At least 8 characters.",
+      "save": "Change password",
+      "saved": "Password changed.",
+      "errors": {
+        "tooShort": "New password must be at least 8 characters.",
+        "mismatch": "The new passwords do not match.",
+        "wrongCurrent": "Your current password is incorrect.",
+        "generic": "Could not change your password."
+      }
+    },
+    "totp": {
+      "title": "Two-factor authentication",
+      "hint": "Add a second step at sign-in using an authenticator app.",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "enable": "Enable 2FA",
+      "disable": "Disable 2FA",
+      "qrAlt": "QR code for your authenticator app",
+      "otpauthUrl": "Setup URL",
+      "enterCode": "Enter the 6-digit code",
+      "copied": "Setup URL copied.",
+      "enabledToast": "Two-factor authentication enabled.",
+      "disabledToast": "Two-factor authentication disabled.",
+      "backupWarning": "Save these backup codes now. Each can be used once if you lose your device. They will not be shown again.",
+      "backupCodesLabel": "Backup codes",
+      "backupSaved": "I've saved my codes",
+      "disableTitle": "Disable two-factor authentication",
+      "disableHint": "Enter a current authenticator code or a backup code to confirm.",
+      "disableCodeLabel": "Code",
+      "errors": {
+        "setup": "Could not start 2FA setup.",
+        "enable": "Could not enable 2FA.",
+        "disable": "Could not disable 2FA.",
+        "badCode": "That code is incorrect. Please try again."
+      }
+    }
+  },
+  "users": {
+    "title": "Users",
+    "hint": "Manage the people who can sign in to this workspace.",
+    "add": "Add user",
+    "addTitle": "Add user",
+    "editTitle": "Edit user",
+    "loadError": "Could not load users.",
+    "empty": "No users yet.",
+    "savedCreate": "User created.",
+    "savedEdit": "User updated.",
+    "disabledToast": "User disabled.",
+    "enabledToast": "User enabled.",
+    "deletedToast": "User deleted.",
+    "disable": "Disable",
+    "enable": "Enable",
+    "twoFactorOn": "Two-factor enabled",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "twoFactor": "2FA",
+      "actions": "Actions"
+    },
+    "roles": {
+      "administrator": "Administrator",
+      "member": "Member"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "fields": {
+      "email": "Email",
+      "displayName": "Display name",
+      "role": "Role",
+      "password": "Initial password",
+      "passwordHint": "At least 8 characters.",
+      "status": "Status",
+      "capabilities": "Capabilities"
+    },
+    "capabilities": {
+      "canManageSettings": "Manage settings",
+      "canManageUsers": "Manage users",
+      "canPermanentlyDelete": "Permanently delete records",
+      "canViewFinancialTotals": "View financial totals",
+      "canExportData": "Export data"
+    },
+    "reset": {
+      "action": "Reset password",
+      "title": "Reset password",
+      "hint": "Set a new password for {name}. They can change it after signing in.",
+      "newPassword": "New password",
+      "tooShort": "Password must be at least 8 characters.",
+      "done": "Password reset."
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete user",
+      "message": "Delete {name}? This cannot be undone.",
+      "confirm": "Delete user"
+    },
+    "errors": {
+      "duplicate": "A user with that email already exists.",
+      "lastAdmin": "You cannot remove the last administrator.",
+      "capabilityDenied": "You cannot grant capabilities you do not have.",
+      "generic": "Could not save the user."
+    }
+  },
+  "pwa": {
+    "install": {
+      "message": "Install Billy as an app on this device.",
+      "action": "Install app"
+    },
+    "update": {
+      "message": "A new version of Billy is available.",
+      "reload": "Reload"
+    }
+  },
+  "validations": {
+    "requiredField": "This field is required",
+    "invalidValue": "Invalid value",
+    "onlyNumbersAllowed": "Only numbers are allowed",
+    "insertValidEmail": "Enter a valid email address",
+    "insertValidPhone": "Enter a valid phone number",
+    "insertValidUrl": "Enter a valid URL",
+    "insertValidDomain": "Enter a valid domain",
+    "insertValidImgPath": "Enter a valid image path",
+    "insertValidCF": "Enter a valid tax code",
+    "insertValidPiva": "Enter a valid VAT number (11 digits)",
+    "onlyPdfAllowed": "Only PDF files are allowed",
+    "noPrefix": "Do not include a country prefix",
+    "basicPasswordFormat": "Password must be at least 6 characters",
+    "passwordFormat": "8-20 chars with upper, lower, number and symbol",
+    "maxLength": "Maximum {max} characters",
+    "dates": {
+      "invalid": "Enter a valid date",
+      "maxToday": "Date cannot be in the future"
+    },
+    "formHasErrors": "Please fix the highlighted errors"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "listTitle": "All accounts",
+    "new": "New account",
+    "create": "Create",
+    "edit": "Edit account",
+    "created": "Account created",
+    "saved": "Account saved",
+    "deleted": "Account deleted",
+    "loadError": "Could not load accounts",
+    "saveError": "Could not save the account",
+    "columns": {
+      "name": "Name",
+      "slug": "Slug",
+      "status": "Status"
+    },
+    "fields": {
+      "name": "Account name",
+      "slug": "Slug",
+      "slugHint": "URL-safe id; auto-derived from the name if left blank",
+      "note": "Note",
+      "withAdmin": "Create a first administrator",
+      "adminEmail": "Admin email",
+      "adminName": "Admin name",
+      "adminPassword": "Admin password",
+      "status": "Status"
+    },
+    "delete": {
+      "action": "Delete account",
+      "title": "Delete account permanently",
+      "warning": "This permanently deletes “{name}” and ALL of its data.",
+      "warningDetail": "Every client, document, file and setting for this account will be erased. This cannot be undone.",
+      "proceed": "I understand — continue",
+      "typeName": "Type the account name “{name}” to confirm.",
+      "nameLabel": "Account name",
+      "passwordLabel": "Your sysadmin password",
+      "nameMismatch": "The name does not match.",
+      "wrongPassword": "Password verification failed.",
+      "confirm": "Delete everything"
+    }
+  },
+  "projects": {
+    "selector": {
+      "label": "Project (optional)",
+      "placeholder": "Search projects…",
+      "noData": "No projects"
+    },
+    "title": "Projects",
+    "new": "New project",
+    "delete": "Delete",
+    "empty": "No projects found",
+    "retry": "Retry",
+    "loadError": "Could not load projects ({code}).",
+    "loadErrorGeneric": "Could not load projects.",
+    "loadOneError": "Could not load project ({code}).",
+    "loadOneErrorGeneric": "Could not load project.",
+    "saveError": "Could not save project ({code}).",
+    "saveErrorGeneric": "Could not save project.",
+    "saved": "Project saved",
+    "newTitle": "New project",
+    "editTitle": "Edit project",
+    "create": "Create project",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "status": "Status",
+      "color": "Color"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "color": "Color",
+      "status": "Status"
+    },
+    "form": {
+      "details": "Details",
+      "statusActive": "Active",
+      "statusArchived": "Archived"
+    },
+    "confirm": {
+      "deleteTitle": "Delete project",
+      "deleteMessage": "Delete the project “{name}”? This cannot be undone."
+    }
+  },
+  "address": {
+    "line1": "Address"
+  },
+  "documents": {
+    "subject": "Subject",
+    "preview": "Preview",
+    "previewError": "Could not generate the preview."
+  }
+}

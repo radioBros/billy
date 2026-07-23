@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+# Force patched versions of transitive deps flagged by `pnpm audit` (newly-published
+# advisories on deep transitives; both stay within their existing major line).
+overrides:
+  fast-uri: "3.1.4"
+  fast-xml-parser: "5.10.1"
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: true
+  msgpackr-extract: false
+  vue-demi: true
+

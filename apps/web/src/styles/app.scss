@@ -1,0 +1,289 @@
+/*
+ * Global UI polish (Task 2) — a restrained Linear/Notion/Stripe pass applied
+ * GLOBALLY via Vuetify's theme CSS vars (`--v-theme-*`) so it adapts to light
+ * and dark automatically. No per-page hand-tweaks; nothing here overrides the
+ * ServerTable/component-library defaults.
+ *
+ * Two hard constraints, both enforced at the bottom of this file:
+ *   1. prefers-reduced-motion: reduce  → all transitions/animations/transforms
+ *      are neutralised (see the media query at the end).
+ *   2. Text contrast (WCAG AA) → gradients are applied only behind surfaces
+ *      whose foreground text already meets contrast; the primary-CTA gradient
+ *      keeps `on-primary` text and only shifts hue/lightness slightly.
+ */
+
+/* ── Motion tokens ─────────────────────────────────────────────────────────
+ * Durations kept in the 150–250ms band so interactions feel snappy, never
+ * sluggish. `--billy-ease` is a gentle standard-ease curve. */
+:root {
+  --billy-dur-fast: 150ms;
+  --billy-dur: 200ms;
+  --billy-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --v-list-group-prepend: 16px;
+  --v-list-prepend-gap: 12px
+}
+
+/* ── App shell: app bar + nav drawer ───────────────────────────────────────
+ * A faint primary-tinted gradient wash plus a soft hairline border. The tint
+ * is very low-alpha (4–8%) so it reads as a subtle surface treatment, never as
+ * a coloured panel — foreground text/icons keep their on-surface contrast. */
+.v-app-bar.v-toolbar {
+  background-image: linear-gradient(
+    180deg,
+    rgba(var(--v-theme-primary), 0.06),
+    rgba(var(--v-theme-primary), 0)
+  );
+  border-bottom: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  backdrop-filter: saturate(1.1);
+}
+
+.v-navigation-drawer {
+  background-image: linear-gradient(
+    180deg,
+    rgba(var(--v-theme-primary), 0.05),
+    rgba(var(--v-theme-primary), 0) 240px
+  );
+  border-right: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+}
+
+/* Active nav item gets a soft primary tint + smooth transition. */
+.v-navigation-drawer .v-list-item {
+  transition:
+    background-color var(--billy-dur-fast) var(--billy-ease),
+    color var(--billy-dur-fast) var(--billy-ease);
+}
+
+/* ── Cards: FLAT + light-grey border (operator directive) ──────────────────
+ * No shadows anywhere — not at rest, not on hover. Every card gets a 1px
+ * light-grey border instead of elevation. `--v-billy-border` is the theme's
+ * hairline (light grey in light mode, subtle in dark); the fallback is a light
+ * grey. `!important` overrides Vuetify's own elevation classes so nothing
+ * re-introduces a shadow. */
+.v-card {
+  box-shadow: none !important;
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  /* Give every card a SOLID surface background so cards read as panels against
+   * the tinted page background (Vuetify's `variant="outlined"` cards are
+   * transparent by default). Text color is intentionally NOT forced here — the
+   * theme's `on-surface` applies naturally, and inner `text-primary`/`text-error`
+   * utilities keep working. This replaces the removed `color:'surface'` VCard
+   * default, which painted outlined-card TEXT white (= invisible). */
+  background-color: rgb(var(--v-theme-surface));
+  transition: background-color var(--billy-dur) var(--billy-ease);
+}
+
+/* Tonal / explicitly-colored cards carry their own translucent background — don't
+ * flatten those to surface (keeps e.g. an error-tonal alert card colored). */
+.v-card.v-card--variant-tonal,
+.v-card[class*="bg-"] {
+  background-color: unset;
+}
+
+/* Explicitly flat on hover too — no lift, no shadow. */
+.v-card:hover {
+  transform: none;
+  box-shadow: none !important;
+}
+
+/* Opt-in faint gradient accent for primary KPI cards. Add `billy-kpi-accent`
+ * to a card to get a whisper of primary tint in a corner — kept off by default
+ * so nothing regresses; foreground text stays on the solid surface area. */
+.v-card.billy-kpi-accent {
+  background-image: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-primary), 0.1),
+    rgba(var(--v-theme-primary), 0) 60%
+  );
+}
+
+/* ── Buttons: FLAT — no lift, no shadow (operator directive) ────────────────
+ * Buttons stay flat at rest and on hover (Vuetify default is already flat:true).
+ * Only a smooth color/background transition on hover — never a shadow or a lift.
+ * The primary CTA keeps a subtle theme-anchored gradient (a fill treatment, not
+ * a shadow); every gradient stop is darker than the base primary so white
+ * `on-primary` text contrast only RISES (stays ≥ AA 4.5:1). */
+.v-btn {
+  box-shadow: none !important;
+  transition:
+    background-color var(--billy-dur-fast) var(--billy-ease),
+    background-image var(--billy-dur-fast) var(--billy-ease);
+}
+
+.v-btn:not(.v-btn--disabled):hover {
+  transform: none;
+  box-shadow: none !important;
+}
+
+.v-btn.bg-primary:not(.v-btn--variant-outlined):not(.v-btn--variant-text):not(.v-btn--variant-plain) {
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--v-theme-primary)),
+    color-mix(in srgb, rgb(var(--v-theme-primary)) 80%, #2e2e7a)
+  );
+}
+
+/* ── Micro-interactions: chips, inputs, table rows (flat, no shadow) ────────*/
+.v-chip {
+  box-shadow: none !important;
+  transition: background-color var(--billy-dur-fast) var(--billy-ease);
+}
+
+/* Input focus feels smooth rather than snapping. */
+.v-field {
+  transition:
+    box-shadow var(--billy-dur-fast) var(--billy-ease),
+    border-color var(--billy-dur-fast) var(--billy-ease);
+}
+
+/* List/table row hover — soft tint. Does NOT touch layout or the ServerTable
+ * component logic; a pure hover background transition on data rows. */
+.v-table tbody tr,
+.v-list-item {
+  transition: background-color var(--billy-dur-fast) var(--billy-ease);
+}
+
+/* ── Route transition (paired with <transition name="billy-fade"> in App) ──*/
+.billy-fade-enter-active,
+.billy-fade-leave-active {
+  transition:
+    opacity var(--billy-dur) var(--billy-ease),
+    transform var(--billy-dur) var(--billy-ease);
+}
+.billy-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.billy-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ── Reduced-motion: kill all of the above ─────────────────────────────────
+ * WCAG 2.3.3 (spec A10). Neutralise transitions, animations, transforms and the
+ * route-transition offsets so nothing moves for users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .v-card:hover,
+  .v-btn:not(.v-btn--disabled):hover {
+    transform: none !important;
+  }
+
+  .billy-fade-enter-from,
+  .billy-fade-leave-to {
+    transform: none !important;
+  }
+}
+
+/* ── FLAT everywhere: kill remaining Vuetify elevation shadows (operator ───
+ * directive: no shadows anywhere in the app). Vuetify paints shadows via the
+ * `.elevation-*` classes and default component elevation on tables, menus,
+ * dialogs, sheets, the app bar and nav drawer. Neutralise them all — borders
+ * (see cards above) + the flat surfaces carry the visual separation instead.
+ * Scoped to component roots so we never flatten intentional inner effects. */
+.v-table,
+.v-data-table,
+.v-menu > .v-overlay__content,
+.v-list,
+.v-sheet,
+.v-toolbar,
+.v-navigation-drawer,
+.v-expansion-panel,
+.v-banner,
+[class*="elevation-"] {
+  box-shadow: none !important;
+}
+
+/* Dialogs keep a hairline border instead of their drop shadow so they still
+ * read as a distinct layer on a flat background. */
+.v-overlay__content > .v-card {
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+}
+
+.v-input {
+  .v-field__outline {
+    color: var(--v-billy-border, #e2e4e9);
+    --v-field-border-opacity: 1;
+    label {
+      color: initial
+    }
+  }
+}
+
+html .v-row {
+  margin: 0 -12px;
+}
+
+/* ── Consistent card content padding — ONE variable, applied to EVERY card ───
+ * `--billy-card-pad` is the single source of truth for the inset of ALL card
+ * content. Change it here → every card in the app updates. No card should carry
+ * its own `pa-*` class; padding is a card default, not a per-instance decision.
+ *
+ * Two card shapes exist:
+ *   1. AppCard        → <v-card><v-card-text>…</v-card-text></v-card>
+ *   2. settings/detail → <v-card>…content directly…</v-card> (no v-card-text)
+ * Both are padded from the variable below. The direct-content case uses a
+ * `:not()` guard so we don't double-pad a card that DOES have a v-card-text (or
+ * a v-card-title/-actions, which own their own spacing).
+ *
+ * The `html .v-row { margin: 0 -12px }` rule above is an ASYMMETRIC negative
+ * margin that would eat the horizontal inset of a v-row-based card. Scoped card
+ * rules (specificity 0,2,0 > `html .v-row` 0,1,1) re-symmetrise it: the row's
+ * -8px margin cancels the col's 8px padding on all four sides, so the visible
+ * inset stays exactly `--billy-card-pad`, dense or not. PeriodBar / ServerTable
+ * (no v-row) are untouched. */
+:root {
+  --billy-card-pad: 1.5rem;
+}
+/* Pad ONLY the card TEXT region from the variable — Vuetify's opt-in-by-structure
+ * content area. This covers AppCard, KPI cards, dialogs, and the settings/detail
+ * cards (whose bodies are wrapped in <v-card-text>). Edge-to-edge cards that carry
+ * NO v-card-text (PeriodBar's month strip, the ServerTable list wrappers) are
+ * deliberately untouched — they stay flush. Any `pa-*` utility on the card still
+ * wins over this (e.g. the pa-0 iframe body in the preview dialog). */
+.v-card > .v-card-text:not([class*="pa-"]):not([class*="px-"]):not([class*="py-"]) {
+  padding: var(--billy-card-pad);
+}
+/* Neutralise the v-row negative margin inside a padded card body so the visible
+ * inset stays exactly --billy-card-pad on all four sides (row -8px cancels col
+ * +8px), dense or not. Scoped under .v-card-text so it can't touch flush cards. */
+.v-card > .v-card-text .v-row {
+  margin: -8px;
+}
+.v-card > .v-card-text .v-row > [class*="v-col"] {
+  padding: 8px;
+}
+
+.text-subtitle-1 {
+  font-size: 1.25em !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-top {
+  height: 56px;
+}
+
+.v-card {
+  .v-card-title:not(.auto-h) {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    background-color: var(--v-background-2);
+  }
+  .v-card-actions {
+    min-height: 52px;
+    border-top: 1px solid var(--v-billy-border, #e2e4e9);
+  }
+}
+
+.fs-12 {
+  font-size: 12px !important;
+}
+

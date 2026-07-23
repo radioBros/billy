@@ -1,0 +1,78 @@
+# Dev overlay — bind-mount SOURCE for hot-reload (tsx watch / vite), expose debug
+# ports on localhost only, add Mailpit as the SMTP sink. See docker-compose_spec §C2.
+# Invoke: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+name: billy
+
+services:
+  # Datastores: expose on localhost for host tooling / inspection in dev only.
+  # Host-side ports are all in Billy's assigned 3480–3490 range; the container
+  # side keeps each service's native port (nothing inside the stack changes).
+  mongodb:
+    ports:
+      - "127.0.0.1:3487:27017"
+
+  redis:
+    ports:
+      - "127.0.0.1:3486:6379"
+
+  minio:
+    ports:
+      - "127.0.0.1:3484:9000"   # S3 API
+      - "127.0.0.1:3485:9001"   # console (web UI)
+
+  # API: run from SOURCE via tsx watch (hot-reload) instead of the built bundle.
+  # Dev doesn't need the baked-argon2 image — `pnpm install` in the container
+  # gets the correct Linux binary into the anonymous node_modules volume.
+  api:
+    image: node:24-slim
+    build: !reset null
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/api dev"]
+    environment:
+      APP_ENV: development
+      # In dev, unset SMTP_HOST would use jsonTransport; point it at Mailpit instead.
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+    ports:
+      - "127.0.0.1:3483:3000"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+  # Worker: run from SOURCE via tsx watch in dev (no Chromium image build needed
+  # unless testing PDF render — then use the base image build).
+  worker:
+    image: node:24-slim
+    build: !reset null
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/worker exec tsx watch src/index.ts"]
+    environment:
+      APP_ENV: development
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+  # Web: vite dev server (hot-reload) instead of the nginx static build.
+  web:
+    image: node:24-slim
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/web exec vite --host 0.0.0.0 --port 80"]
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+  # Mailpit — dev-only SMTP sink + web UI (never in prod).
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    networks: [edge, internal]
+    ports:
+      - "127.0.0.1:3488:8025"   # web UI (container serves on 8025; SMTP sink 1025 stays internal)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailpit.rule=PathPrefix(`/mailpit`)"
+      - "traefik.http.services.mailpit.loadbalancer.server.port=8025"

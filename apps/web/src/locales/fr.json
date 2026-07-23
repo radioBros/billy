@@ -1,0 +1,1354 @@
+{
+  "app": {
+    "subtitle": "Facturation"
+  },
+  "tables": {
+    "search_placeholder": "Rechercher…",
+    "no_results": "Aucun résultat trouvé",
+    "configure_columns": "Configurer les colonnes",
+    "show": "Afficher",
+    "entries": "entrées",
+    "showing_items": "Affichage de {from}–{to} sur {total}"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "clients": "Clients",
+    "invoices": "Factures",
+    "quotes": "Devis",
+    "expenses": "Dépenses",
+    "contracts": "Contrats",
+    "timeEntries": "Saisies de temps",
+    "subscriptions": "Abonnements",
+    "recurring": "Récurrents",
+    "creditNotes": "Avoirs",
+    "proforma": "Proforma",
+    "settings": "Paramètres",
+    "documents": "Documents",
+    "accounts": "Comptes",
+    "projects": "Projets"
+  },
+  "shell": {
+    "collapseNav": "Réduire la navigation",
+    "expandNav": "Développer la navigation",
+    "primaryNav": "Navigation principale",
+    "mainContent": "Contenu principal",
+    "signOut": "Se déconnecter",
+    "theme": "Thème : {mode}. Activer pour changer."
+  },
+  "account": {
+    "label": "Compte",
+    "switch": "Changer de compte",
+    "switchError": "Impossible de changer de compte"
+  },
+  "period": {
+    "year": "Année {year}",
+    "selectAll": "Toute l'année",
+    "clear": "Effacer",
+    "allMonths": "Tous les mois",
+    "docCount": "{count} doc | {count} doc | {count} docs",
+    "loadError": "Impossible de charger les totaux mensuels"
+  },
+  "locale": {
+    "label": "Langue",
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "fr": "Français",
+    "ru": "Русский",
+    "pt": "Português",
+    "de": "Deutsch"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Vous êtes à jour",
+    "push": {
+      "label": "Notifications push sur cet appareil",
+      "denied": "Bloquées — autorisez les notifications dans les paramètres du navigateur"
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "search": "Rechercher des clients",
+    "empty": "Aucun client trouvé",
+    "loadError": "Impossible de charger les clients ({code}).",
+    "loadErrorGeneric": "Impossible de charger les clients.",
+    "retry": "Réessayer",
+    "columns": {
+      "name": "Nom",
+      "type": "Type",
+      "email": "E-mail",
+      "vatNumber": "Numéro de TVA",
+      "country": "Pays",
+      "currency": "Devise"
+    },
+    "selector": {
+      "label": "Client",
+      "placeholder": "Rechercher des clients",
+      "noData": "Aucun client correspondant",
+      "loadError": "Impossible de rechercher les clients."
+    },
+    "new": "Ajouter un client",
+    "newTitle": "Nouveau client",
+    "editTitle": "Modifier le client",
+    "create": "Créer le client",
+    "loadOneError": "Impossible de charger le client ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger le client.",
+    "saveError": "Impossible d'enregistrer le client ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer le client.",
+    "fields": {
+      "type": "Type",
+      "displayName": "Nom affiché",
+      "legalName": "Raison sociale",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "vatNumber": "Numéro de TVA",
+      "preferredCurrency": "Devise préférée",
+      "tags": "Étiquettes",
+      "addrLine1": "Adresse ligne 1",
+      "addrLine2": "Adresse ligne 2",
+      "addrCity": "Ville",
+      "addrRegion": "Région",
+      "addrPostalCode": "Code postal",
+      "addrCountry": "Pays",
+      "preferredLanguage": "Langue préférée",
+      "referral": "Personne de contact"
+    },
+    "form": {
+      "typeCompany": "Entreprise",
+      "typeIndividual": "Particulier",
+      "emailRule": "Saisissez une adresse e-mail valide",
+      "tagsHint": "Appuyez sur Entrée pour ajouter une étiquette.",
+      "billingAddress": "Adresse de facturation",
+      "countryHint": "Code à 2 lettres (ex. IT).",
+      "details": "Détails",
+      "languageHint": "Les documents et e-mails destinés à ce client utiliseront cette langue."
+    },
+    "saved": "Client enregistre"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "required": "Obligatoire",
+    "currencyRule": "Code ISO à 3 lettres",
+    "back": "Retour",
+    "edit": "Modifier",
+    "cancel": "Annuler",
+    "retry": "Réessayer",
+    "saveChanges": "Enregistrer les modifications",
+    "yes": "Oui",
+    "no": "Non",
+    "actionFailed": "Échec de l'action ({code}).",
+    "actionFailedGeneric": "Échec de l'action.",
+    "confirm": "Confirmer",
+    "dismiss": "Ignorer"
+  },
+  "invoices": {
+    "title": "Factures",
+    "new": "Nouvelle facture",
+    "newTitle": "Nouvelle facture",
+    "editTitle": "Modifier la facture",
+    "detailTitle": "Facture",
+    "create": "Créer la facture",
+    "empty": "Aucune facture trouvée",
+    "draftUnnumbered": "Brouillon (sans numéro)",
+    "allStatuses": "Tous les statuts",
+    "loadError": "Impossible de charger les factures ({code}).",
+    "loadErrorGeneric": "Impossible de charger les factures.",
+    "loadOneError": "Impossible de charger la facture ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger la facture.",
+    "saveError": "Impossible d'enregistrer la facture ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer la facture.",
+    "locked": "Cette facture n'est pas un brouillon et ne peut plus être modifiée.",
+    "dueRule": "La date d'échéance doit être égale ou postérieure à la date d'émission",
+    "finalize": "Finaliser",
+    "void": "Annuler",
+    "send": "Envoyer",
+    "sendReminder": "Envoyer un rappel",
+    "addPayment": "Ajouter un paiement",
+    "recordPayment": "Enregistrer le paiement",
+    "positiveAmount": "Saisissez un montant de paiement positif.",
+    "noPayments": "Aucun paiement enregistré.",
+    "lineItems": "Lignes",
+    "payments": "Paiements",
+    "filterStatus": "Filtrer par statut",
+    "columns": {
+      "number": "Numéro",
+      "status": "Statut",
+      "issueDate": "Date d'émission",
+      "dueDate": "Date d'échéance",
+      "total": "Total",
+      "due": "Dû"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "dueDate": "Date d'échéance",
+      "notes": "Notes",
+      "bankAccount": "Compte bancaire"
+    },
+    "detail": {
+      "client": "Client",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "dueDate": "Date d'échéance"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "Unité",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total",
+      "paid": "Payé",
+      "due": "Dû"
+    },
+    "payColumns": {
+      "date": "Date",
+      "method": "Méthode",
+      "reference": "Référence",
+      "amount": "Montant"
+    },
+    "payDialog": {
+      "title": "Ajouter un paiement",
+      "amount": "Montant",
+      "date": "Date",
+      "method": "Méthode",
+      "reference": "Référence (facultatif)"
+    },
+    "schedule": {
+      "action": "Programmer l'envoi",
+      "unscheduleAction": "Annuler la programmation",
+      "dialogTitle": "Programmer l'envoi",
+      "dialogHint": "La facture reste un brouillon et est finalisée automatiquement à la date choisie.",
+      "dateLabel": "Date d'envoi",
+      "dateError": "Choisissez aujourd'hui ou une date ultérieure.",
+      "confirm": "Programmer",
+      "cancel": "Annuler",
+      "banner": "Programmée pour finalisation le {date}."
+    },
+    "bankAccountHint": "Coordonnées bancaires jointes à cette facture.",
+    "completion": {
+      "title": "Facture créée",
+      "hint": "Votre brouillon de facture est enregistré. Que souhaitez-vous faire ensuite ?",
+      "finalizeAndSend": "Finaliser et envoyer",
+      "schedule": "Planifier",
+      "keepDraft": "Conserver comme brouillon"
+    },
+    "confirm": {
+      "finalizeTitle": "Finaliser la facture ?",
+      "finalizeMessage": "La finalisation attribue un numéro et verrouille la facture. Cette action est irréversible.",
+      "voidTitle": "Annuler la facture ?",
+      "voidMessage": "L'annulation supprime définitivement cette facture. Cette action est irréversible.",
+      "unscheduleTitle": "Annuler la programmation ?",
+      "unscheduleMessage": "Cette facture ne sera plus envoyée automatiquement."
+    },
+    "saved": "Facture enregistree"
+  },
+  "quotes": {
+    "title": "Devis",
+    "new": "Nouveau devis",
+    "newTitle": "Nouveau devis",
+    "editTitle": "Modifier le devis",
+    "detailTitle": "Devis",
+    "create": "Créer le devis",
+    "empty": "Aucun devis trouvé",
+    "draftUnnumbered": "Brouillon (sans numéro)",
+    "allStatuses": "Tous les statuts",
+    "filterStatus": "Filtrer par statut",
+    "loadError": "Impossible de charger les devis ({code}).",
+    "loadErrorGeneric": "Impossible de charger les devis.",
+    "loadOneError": "Impossible de charger le devis ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger le devis.",
+    "saveError": "Impossible d'enregistrer le devis ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer le devis.",
+    "locked": "Ce devis n'est pas un brouillon et ne peut plus être modifié.",
+    "expiryRule": "La date d'expiration doit être égale ou postérieure à la date d'émission",
+    "send": "Envoyer",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "convert": "Convertir en facture",
+    "converted": "Converti en facture {id}.",
+    "lineItems": "Lignes",
+    "columns": {
+      "number": "Numéro",
+      "status": "Statut",
+      "issueDate": "Date d'émission",
+      "expiryDate": "Date d'expiration",
+      "total": "Total"
+    },
+    "fields": {
+      "clientId": "ID client",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "expiryDate": "Date d'expiration",
+      "notes": "Notes"
+    },
+    "detail": {
+      "client": "Client",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "expiryDate": "Date d'expiration"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "Unité",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total"
+    },
+    "confirm": {
+      "sendTitle": "Envoyer le devis ?",
+      "sendMessage": "Le devis sera marqué comme envoyé.",
+      "acceptTitle": "Accepter le devis ?",
+      "acceptMessage": "Marquer ce devis comme accepté ?",
+      "declineTitle": "Refuser le devis ?",
+      "declineMessage": "Marquer ce devis comme refusé ?",
+      "convertTitle": "Convertir en facture ?",
+      "convertMessage": "Une nouvelle facture brouillon sera créée à partir de ce devis."
+    },
+    "saved": "Devis enregistre"
+  },
+  "contracts": {
+    "title": "Contrats",
+    "new": "Nouveau contrat",
+    "newTitle": "Nouveau contrat",
+    "editTitle": "Modifier le contrat",
+    "detailTitle": "Contrat",
+    "create": "Créer le contrat",
+    "send": "Envoyer",
+    "empty": "Aucun contrat trouvé",
+    "allStatuses": "Tous les statuts",
+    "allTypes": "Tous les types",
+    "filterStatus": "Filtrer par statut",
+    "filterType": "Filtrer par type",
+    "loadError": "Impossible de charger les contrats ({code}).",
+    "loadErrorGeneric": "Impossible de charger les contrats.",
+    "loadOneError": "Impossible de charger le contrat ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger le contrat.",
+    "saveError": "Impossible d'enregistrer le contrat ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer le contrat.",
+    "endDateRule": "La date de fin doit être égale ou postérieure à la date de début",
+    "columns": {
+      "title": "Titre",
+      "type": "Type",
+      "status": "Statut",
+      "start": "Début",
+      "end": "Fin",
+      "value": "Valeur"
+    },
+    "fields": {
+      "clientId": "ID client",
+      "title": "Titre",
+      "type": "Type",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "value": "Valeur",
+      "currency": "Devise",
+      "terms": "Conditions",
+      "notes": "Notes"
+    },
+    "saved": "Contrat enregistre"
+  },
+  "expenses": {
+    "title": "Dépenses",
+    "new": "Nouvelle dépense",
+    "newTitle": "Nouvelle dépense",
+    "editTitle": "Modifier la dépense",
+    "create": "Créer la dépense",
+    "empty": "Aucune dépense trouvée",
+    "filterStatus": "Filtrer par statut",
+    "loadError": "Impossible de charger les dépenses ({code}).",
+    "loadErrorGeneric": "Impossible de charger les dépenses.",
+    "loadOneError": "Impossible de charger la dépense ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger la dépense.",
+    "saveError": "Impossible d'enregistrer la dépense ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer la dépense.",
+    "amountRule": "Le montant doit être positif",
+    "columns": {
+      "vendor": "Fournisseur",
+      "category": "Catégorie",
+      "date": "Date",
+      "amount": "Montant",
+      "status": "Statut",
+      "billable": "Facturable"
+    },
+    "fields": {
+      "amount": "Montant",
+      "currency": "Devise",
+      "category": "Catégorie",
+      "date": "Date",
+      "vendor": "Fournisseur",
+      "clientId": "ID client",
+      "description": "Description",
+      "billable": "Facturable"
+    },
+    "saved": "Depense enregistree"
+  },
+  "subscriptions": {
+    "title": "Abonnements",
+    "new": "Nouvel abonnement",
+    "newTitle": "Nouvel abonnement",
+    "editTitle": "Modifier l'abonnement",
+    "create": "Créer l'abonnement",
+    "empty": "Aucun abonnement trouvé",
+    "filterStatus": "Filtrer par statut",
+    "loadError": "Impossible de charger les abonnements ({code}).",
+    "loadErrorGeneric": "Impossible de charger les abonnements.",
+    "loadOneError": "Impossible de charger l'abonnement ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger l'abonnement.",
+    "saveError": "Impossible d'enregistrer l'abonnement ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer l'abonnement.",
+    "amountRequired": "Obligatoire",
+    "amountRule": "Doit être supérieur à 0",
+    "nextBillingRule": "La prochaine facturation doit être égale ou postérieure à la date de début",
+    "amountHint": "Montant en unités entières (p. ex. 49.00).",
+    "clientIdHint": "Le sélecteur de clients arrivera avec le module clients ; saisissez l'id pour l'instant.",
+    "columns": {
+      "name": "Nom",
+      "plan": "Forfait",
+      "amount": "Montant",
+      "interval": "Intervalle",
+      "status": "Statut",
+      "nextBilling": "Prochaine facturation"
+    },
+    "fields": {
+      "clientId": "ID client",
+      "name": "Nom",
+      "plan": "Forfait",
+      "amount": "Montant",
+      "currency": "Devise",
+      "interval": "Intervalle",
+      "startDate": "Date de début",
+      "nextBillingDate": "Date de prochaine facturation",
+      "client": "Client",
+      "url": "URL",
+      "note": "Note"
+    },
+    "urlRule": "Saisissez une URL valide",
+    "urlHint": "Facultatif. ex. https://example.com",
+    "saved": "Abonnement enregistre"
+  },
+  "timeEntries": {
+    "title": "Saisies de temps",
+    "new": "Nouvelle saisie de temps",
+    "newTitle": "Nouvelle saisie de temps",
+    "editTitle": "Modifier la saisie de temps",
+    "create": "Créer la saisie de temps",
+    "empty": "Aucune saisie de temps trouvée",
+    "filterBillable": "Filtrer par facturable",
+    "loadError": "Impossible de charger les saisies de temps ({code}).",
+    "loadErrorGeneric": "Impossible de charger les saisies de temps.",
+    "loadOneError": "Impossible de charger la saisie de temps ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger la saisie de temps.",
+    "saveError": "Impossible d'enregistrer la saisie de temps ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer la saisie de temps.",
+    "durationRule": "Doit être un nombre entier ≥ 0",
+    "rateHint": "Facultatif. Montant en unités entières (p. ex. 85.00).",
+    "projectIdHint": "Facultatif.",
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "duration": "Durée",
+      "billable": "Facturable",
+      "billed": "Facturé",
+      "rate": "Tarif"
+    },
+    "fields": {
+      "description": "Description",
+      "date": "Date",
+      "duration": "Durée (minutes)",
+      "rate": "Tarif (par heure)",
+      "billable": "Facturable",
+      "clientId": "ID client",
+      "projectId": "ID projet"
+    },
+    "saved": "Saisie de temps enregistree"
+  },
+  "recurring": {
+    "title": "Profils récurrents",
+    "new": "Nouveau profil",
+    "create": "Créer un profil",
+    "newTitle": "Nouveau profil récurrent",
+    "editTitle": "Modifier le profil récurrent",
+    "detailTitle": "Profil récurrent",
+    "empty": "Aucun profil récurrent trouvé",
+    "retry": "Réessayer",
+    "loadError": "Impossible de charger les profils récurrents ({code}).",
+    "loadErrorGeneric": "Impossible de charger les profils récurrents.",
+    "saveError": "Impossible d'enregistrer le profil ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer le profil.",
+    "locked": "Ce profil n'est plus actif et ne peut plus être modifié.",
+    "countRule": "Doit être au moins 1",
+    "endRule": "La date de fin doit être identique ou postérieure à la date de début",
+    "everyN": "Tous les {n} × {unit}",
+    "generateNow": "Générer maintenant",
+    "generated": "Occurrence générée.",
+    "generateExhausted": "Ce profil est terminé — rien à générer.",
+    "pause": "Suspendre",
+    "resume": "Reprendre",
+    "cancel": "Annuler le profil",
+    "occurrences": "Occurrences générées",
+    "lastRun": "Dernière exécution",
+    "lineItems": "Lignes",
+    "interval": {
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "yearly": "Annuel"
+    },
+    "columns": {
+      "client": "Client",
+      "interval": "Intervalle",
+      "status": "Statut",
+      "nextRun": "Prochaine exécution",
+      "total": "Total",
+      "docType": "Type de document"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Devise",
+      "interval": "Intervalle",
+      "intervalCount": "Tous les",
+      "maxOccurrences": "Occurrences max.",
+      "repeatOn": "Répéter le",
+      "repeatOnStartDay": "Même jour que la date de début",
+      "repeatOnDayOfMonth": "Un jour précis du mois",
+      "dayOfMonth": "Jour du mois",
+      "dayOfMonthHint": "Les mois plus courts utilisent leur dernier jour.",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "notes": "Notes"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "Unité",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total"
+    },
+    "fromDocHint": "La récurrence se configure désormais depuis un document. Ouvrez une nouvelle facture, proforma ou dépense et activez « Rendre récurrent ».",
+    "toggle": {
+      "enable": "Rendre récurrent",
+      "hint": "Un profil récurrent sera créé et les documents futurs seront générés automatiquement selon cette fréquence.",
+      "created": "Profil récurrent créé.",
+      "viewList": "Voir les récurrents",
+      "createError": "Impossible de créer le profil récurrent ({code}).",
+      "createErrorGeneric": "Impossible de créer le profil récurrent.",
+      "clientRequired": "Un client est requis pour rendre une dépense récurrente."
+    }
+  },
+  "creditNotes": {
+    "title": "Avoirs",
+    "new": "Nouvel avoir",
+    "create": "Créer un avoir",
+    "newTitle": "Nouvel avoir",
+    "editTitle": "Modifier l'avoir",
+    "detailTitle": "Avoir",
+    "empty": "Aucun avoir trouvé",
+    "retry": "Réessayer",
+    "draftUnnumbered": "Brouillon (sans numéro)",
+    "loadError": "Impossible de charger les avoirs ({code}).",
+    "loadErrorGeneric": "Impossible de charger les avoirs.",
+    "saveError": "Impossible d'enregistrer l'avoir ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer l'avoir.",
+    "locked": "Cet avoir est émis ou annulé et ne peut plus être modifié.",
+    "issue": "Émettre",
+    "void": "Annuler",
+    "lineItems": "Lignes",
+    "columns": {
+      "number": "Numéro",
+      "client": "Client",
+      "status": "Statut",
+      "issueDate": "Date d'émission",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Client",
+      "creditedInvoice": "Facture créditée",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "reason": "Motif",
+      "notes": "Notes"
+    },
+    "selector": {
+      "label": "Facture créditée",
+      "placeholder": "Rechercher des factures",
+      "noData": "Aucune facture correspondante",
+      "draftLabel": "Brouillon (sans numéro)"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "Unité",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total"
+    },
+    "confirm": {
+      "issueTitle": "Émettre l'avoir ?",
+      "issueMessage": "L'émission attribue un numéro à cet avoir.",
+      "voidTitle": "Annuler l'avoir ?",
+      "voidMessage": "L'annulation supprime définitivement cet avoir. Cette action est irréversible."
+    },
+    "saved": "Avoir enregistre"
+  },
+  "proformas": {
+    "title": "Proforma",
+    "new": "Nouvelle proforma",
+    "create": "Créer une proforma",
+    "newTitle": "Nouvelle proforma",
+    "editTitle": "Modifier la proforma",
+    "detailTitle": "Proforma",
+    "empty": "Aucune proforma trouvée",
+    "retry": "Réessayer",
+    "draftUnnumbered": "Brouillon (sans numéro)",
+    "loadError": "Impossible de charger les proformas ({code}).",
+    "loadErrorGeneric": "Impossible de charger les proformas.",
+    "saveError": "Impossible d'enregistrer la proforma ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer la proforma.",
+    "locked": "Cette proforma est émise ou annulée et ne peut plus être modifiée.",
+    "expiryRule": "La date d'expiration doit être identique ou postérieure à la date d'émission",
+    "issue": "Émettre",
+    "void": "Annuler",
+    "converted": "Convertie en facture {id}.",
+    "lineItems": "Lignes",
+    "columns": {
+      "number": "Numéro",
+      "client": "Client",
+      "status": "Statut",
+      "issueDate": "Date d'émission",
+      "expiryDate": "Date d'expiration",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Client",
+      "currency": "Devise",
+      "issueDate": "Date d'émission",
+      "expiryDate": "Date d'expiration",
+      "notes": "Notes"
+    },
+    "lineCols": {
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "Unité",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total"
+    },
+    "convert": "Convertir en facture",
+    "confirm": {
+      "issueTitle": "Émettre la proforma ?",
+      "issueMessage": "L'émission attribue un numéro à cette proforma.",
+      "voidTitle": "Annuler la proforma ?",
+      "voidMessage": "L'annulation supprime définitivement cette proforma. Cette action est irréversible.",
+      "convertTitle": "Convertir en facture ?",
+      "convertMessage": "Une nouvelle facture brouillon sera créée à partir de cette proforma."
+    },
+    "saved": "Proforma enregistree"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "welcomeNamed": "Bienvenue, {name}",
+    "currency": "Devise",
+    "retry": "Réessayer",
+    "loadError": "Impossible de charger le tableau de bord ({code}).",
+    "loadErrorGeneric": "Impossible de charger le tableau de bord.",
+    "cards": {
+      "clients": "Clients",
+      "activeSubscriptions": "Abonnements actifs",
+      "unbilledTimeEntries": "Temps non facturé",
+      "expenses": "Dépenses",
+      "invoicedThisMonth": "Facturé",
+      "collectedThisMonth": "Encaissé",
+      "outstanding": "En attente",
+      "overdue": "En retard"
+    },
+    "chart": {
+      "revenueTitle": "Chiffre d'affaires ({year})",
+      "revenueEmpty": "Pas encore de chiffre d'affaires",
+      "outstandingTitle": "En attente vs en retard",
+      "outstandingEmpty": "Rien en attente",
+      "invoiced": "Facturé",
+      "collected": "Encaissé",
+      "current": "À jour",
+      "overdue": "En retard",
+      "revenueExpenseTitle": "Chiffre d'affaires vs dépenses ({year})",
+      "revenueExpenseEmpty": "Pas encore de chiffre d'affaires ni de dépenses",
+      "expenses": "Dépenses"
+    },
+    "activity": {
+      "title": "Activité récente",
+      "window": "{days} derniers jours",
+      "clients": "Nouveaux clients",
+      "expenses": "Nouvelles dépenses",
+      "timeEntries": "Saisies de temps",
+      "subscriptions": "Abonnements"
+    },
+    "year": "Année",
+    "counts": {
+      "title": "Documents par mois",
+      "empty": "Pas encore de documents"
+    },
+    "docType": {
+      "invoices": "Factures",
+      "proforma": "Proforma",
+      "quotes": "Devis",
+      "creditNotes": "Avoirs",
+      "contracts": "Contrats",
+      "expenses": "Dépenses"
+    },
+    "drilldown": {
+      "docType": "Type de document",
+      "months": "Mois",
+      "allMonths": "Tous les mois",
+      "showing": "Affichage : {months}",
+      "untitled": "Sans titre",
+      "empty": "Aucun document pour cette sélection",
+      "error": "Impossible de charger les documents ({code}).",
+      "errorGeneric": "Impossible de charger les documents."
+    },
+    "heatmap": {
+      "title": "Activité par mois ({year})",
+      "rowLabel": "Activité",
+      "empty": "Pas encore d'activité"
+    }
+  },
+  "notification": {
+    "event": {
+      "quote": {
+        "created": {
+          "title": "Devis créé",
+          "body": "Le devis {entity} a été créé"
+        },
+        "sent": {
+          "title": "Devis envoyé",
+          "body": "Le devis {entity} a été envoyé"
+        },
+        "converted": {
+          "title": "Devis converti",
+          "body": "Le devis {entity} a été converti en facture"
+        },
+        "accepted": {
+          "title": "Devis accepté",
+          "body": "Le devis {entity} a été accepté"
+        },
+        "declined": {
+          "title": "Devis refusé",
+          "body": "Le devis {entity} a été refusé"
+        }
+      },
+      "invoice": {
+        "created": {
+          "title": "Facture créée",
+          "body": "La facture {entity} a été créée"
+        },
+        "finalized": {
+          "title": "Facture finalisée",
+          "body": "La facture {entity} a été finalisée"
+        },
+        "scheduled": {
+          "title": "Facture programmée",
+          "body": "L'envoi de la facture {entity} a été programmé"
+        },
+        "paid": {
+          "title": "Facture payée",
+          "body": "La facture {entity} a été payée intégralement"
+        },
+        "void": {
+          "title": "Facture annulée",
+          "body": "La facture {entity} a été annulée"
+        }
+      },
+      "client": {
+        "created": {
+          "title": "Client ajouté",
+          "body": "Le client {entity} a été ajouté"
+        }
+      },
+      "contract": {
+        "created": {
+          "title": "Contrat créé",
+          "body": "Le contrat {entity} a été créé"
+        },
+        "renewed": {
+          "title": "Contrat renouvelé",
+          "body": "Le contrat {entity} a été renouvelé"
+        }
+      },
+      "expense": {
+        "created": {
+          "title": "Dépense enregistrée",
+          "body": "La dépense {entity} a été enregistrée"
+        },
+        "invoiced": {
+          "title": "Dépense facturée",
+          "body": "La dépense {entity} a été ajoutée à une facture"
+        }
+      },
+      "generic": {
+        "title": "Notification",
+        "body": "Mise à jour pour {entity}"
+      }
+    }
+  },
+  "enums": {
+    "status": {
+      "draft": "Brouillon",
+      "scheduled": "Programmé",
+      "sent": "Envoyé",
+      "accepted": "Accepté",
+      "declined": "Refusé",
+      "converted": "Converti",
+      "finalized": "Finalisé",
+      "partially_paid": "Partiellement payé",
+      "paid": "Payé",
+      "void": "Annulé",
+      "active": "Actif",
+      "paused": "En pause",
+      "cancelled": "Annulé",
+      "completed": "Terminé",
+      "issued": "Émis",
+      "expired": "Expiré",
+      "expiring": "Bientôt expiré",
+      "renewed": "Renouvelé",
+      "terminated": "Résilié",
+      "archived": "Archivé",
+      "invoiced": "Facturé"
+    },
+    "contractType": {
+      "development": "Développement",
+      "maintenance": "Maintenance",
+      "hosting": "Hébergement",
+      "support": "Assistance",
+      "consulting": "Conseil",
+      "service_agreement": "Contrat de service",
+      "retainer": "Forfait",
+      "other": "Autre"
+    },
+    "paymentMethod": {
+      "bank_transfer": "Virement bancaire",
+      "cash": "Espèces",
+      "card": "Carte",
+      "other": "Autre",
+      "paypal": "PayPal",
+      "stripe": "Stripe",
+      "direct_debit": "Prélèvement automatique"
+    },
+    "recurringDocType": {
+      "invoice": "Facture",
+      "proforma": "Proforma",
+      "expense": "Dépense"
+    }
+  },
+  "settings": {
+    "pageTitle": "Paramètres",
+    "branding": {
+      "identity": "Identité",
+      "colors": "Couleurs",
+      "appName": "Nom de l'application",
+      "logo": "Logo",
+      "logoPreview": "Aperçu du logo",
+      "icon": "Icône de l'application (favicon)",
+      "iconHint": "Affichée dans l'onglet du navigateur ; c'est aussi l'icône de l'application. Image carrée recommandée.",
+      "primaryColor": "Couleur primaire",
+      "secondaryColor": "Couleur secondaire",
+      "accentColor": "Couleur d'accent",
+      "save": "Enregistrer la marque",
+      "saved": "Marque enregistrée",
+      "loadError": "Impossible de charger la marque.",
+      "saveError": "Impossible d'enregistrer la marque.",
+      "identityHint": "Le nom et le logo apparaissent dans l'interface et sur les documents.",
+      "colorsHint": "Les couleurs s'appliquent en direct au thème.",
+      "themeMode": "Mode de thème par défaut",
+      "themeSystem": "Système",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "supportEmail": "E-mail d'assistance",
+      "loginBackground": "Arrière-plan de connexion",
+      "loginBackgroundHint": "Téléversez une image pour l'arrière-plan de la page de connexion (facultatif)."
+    },
+    "documents": {
+      "title": "Design des documents",
+      "controls": "Contrôles",
+      "layout": "Mise en page",
+      "headerHtml": "HTML de l'en-tête du document",
+      "footerHtml": "HTML du pied de page du document",
+      "headerHint": "Affiché en haut de chaque document. Mise en forme adaptée à l'impression uniquement.",
+      "footerHint": "Affiché en bas de chaque document. Mise en forme adaptée à l'impression uniquement.",
+      "logoPosition": "Position du logo",
+      "logoLeft": "Gauche",
+      "logoRight": "Droite",
+      "logoPositionHint": "Le côté où se place le logo de l'entreprise ; les coordonnées de l'entreprise occupent le côté opposé.",
+      "companyLogo": "Logo de l'entreprise (affiché sur les documents)",
+      "companyLogoHint": "Distinct du logo de l'application : celui-ci apparaît sur les factures, devis et PDF.",
+      "companyLogoPreview": "Aperçu du logo de l'entreprise",
+      "showBankDetails": "Afficher les coordonnées bancaires",
+      "showBankDetailsHint": "Ajoute un bloc de coordonnées bancaires au-dessus du pied de page lorsque les coordonnées bancaires de l'entreprise existent.",
+      "save": "Enregistrer le design",
+      "saved": "Design enregistré",
+      "loadError": "Impossible de charger le design.",
+      "saveError": "Impossible d'enregistrer le design.",
+      "preview": "Aperçu — approximatif",
+      "previewHint": "Approximation du PDF ; le document final est généré par le serveur.",
+      "invoiceHeading": "FACTURE n° {number} du {date}",
+      "recipient": "Destinataire",
+      "sampleCompanyName": "Votre Société SARL",
+      "sampleAddress": "1 rue Exemple - 00100 - Rome (RM)",
+      "sampleClient": "Acme Corporation",
+      "sampleRecipientAddress": "5 avenue Client - 20100 - Milan (MI)",
+      "colDescription": "Description",
+      "colQty": "Qté",
+      "colPrice": "Prix",
+      "colAmount": "Montant",
+      "sampleItem1": "Services de conseil",
+      "sampleItem2": "Travail de conception",
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "grandTotal": "Total",
+      "bankTitle": "Coordonnées bancaires",
+      "bankName": "Banque",
+      "bankAccount": "Compte",
+      "bankIban": "IBAN",
+      "bankBic": "BIC"
+    },
+    "documentDesignTab": "Design des documents",
+    "emailContractDesignTab": "E-mail et contrat",
+    "emailContract": {
+      "contractTitle": "En-tête et pied de page du contrat",
+      "contractHint": "HTML entourant le haut et le bas des contrats rendus.",
+      "contractHeader": "En-tête du contrat",
+      "contractFooter": "Pied de page du contrat",
+      "emailTitle": "En-tête et pied de page de l'e-mail",
+      "emailHint": "HTML entourant le haut et le bas des e-mails sortants.",
+      "emailHeader": "En-tête de l'e-mail",
+      "emailFooter": "Pied de page de l'e-mail",
+      "save": "Enregistrer",
+      "saved": "Design e-mail et contrat enregistré",
+      "loadError": "Impossible de charger le design e-mail et contrat.",
+      "saveError": "Impossible d'enregistrer le design e-mail et contrat."
+    },
+    "bankAccounts": {
+      "title": "Comptes bancaires",
+      "hint": "Comptes bancaires nommés que vous pouvez joindre aux factures.",
+      "label": "Libellé",
+      "details": "Détails",
+      "add": "Ajouter un compte bancaire",
+      "remove": "Supprimer",
+      "empty": "Aucun compte bancaire pour le moment."
+    },
+    "company": {
+      "businessName": "Nom commercial",
+      "legalName": "Raison sociale",
+      "vatNumber": "Numéro de TVA",
+      "taxCode": "Code fiscal",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "website": "Site web",
+      "save": "Enregistrer les informations de l'entreprise",
+      "saved": "Informations de l'entreprise enregistrées",
+      "loadError": "Impossible de charger les informations de l'entreprise.",
+      "saveError": "Impossible d'enregistrer les informations de l'entreprise.",
+      "address": {
+        "title": "Adresse",
+        "hint": "Adresse postale affichée sur vos documents.",
+        "line1": "Adresse ligne 1",
+        "line2": "Adresse ligne 2",
+        "city": "Ville",
+        "region": "Région / État",
+        "postalCode": "Code postal",
+        "country": "Pays (code ISO)"
+      }
+    },
+    "advanced": {
+      "uploadMaxMb": "Taille max de téléversement (Mo)",
+      "backupSchedule": "Planification des sauvegardes (cron)",
+      "clamavEnabled": "Analyse ClamAV",
+      "backupEnabled": "Sauvegardes automatiques",
+      "allowPublicLinks": "Autoriser les liens publics",
+      "save": "Enregistrer les paramètres avancés",
+      "saved": "Paramètres avancés enregistrés",
+      "loadError": "Impossible de charger les options.",
+      "saveError": "Impossible d'enregistrer les options.",
+      "backupRetentionDays": "Rétention des sauvegardes (jours)",
+      "softDeleteRetentionDays": "Rétention de suppression douce (jours)",
+      "sessionIdleTtlMinutes": "Délai d'inactivité de session (min)",
+      "sessionAbsoluteTtlMinutes": "Durée max de session (min)"
+    },
+    "documentsTab": {
+      "defaultTaxRate": "Taux de taxe par défaut (%)",
+      "save": "Enregistrer les paramètres de documents",
+      "saved": "Paramètres de documents enregistrés",
+      "loadError": "Impossible de charger les paramètres de documents.",
+      "saveError": "Impossible d'enregistrer les paramètres de documents.",
+      "defaultPaymentTermsDays": "Délai de paiement par défaut (jours)",
+      "invoiceNotes": "Notes de facture par défaut",
+      "quoteNotes": "Notes de devis par défaut"
+    },
+    "email": {
+      "smtpHost": "Hôte SMTP",
+      "smtpPort": "Port SMTP",
+      "smtpUsername": "Nom d'utilisateur SMTP",
+      "smtpPassword": "Mot de passe SMTP",
+      "smtpSecure": "Utiliser TLS/SSL (sécurisé)",
+      "fromEmail": "E-mail d'expéditeur",
+      "fromName": "Nom d'expéditeur",
+      "replyTo": "Répondre à",
+      "configured": "Configuré",
+      "passwordStoredHint": "Un mot de passe est enregistré. Laissez vide pour le conserver ; saisissez pour le remplacer.",
+      "passwordUnsetHint": "Aucun mot de passe défini.",
+      "testOk": "E-mail de test envoyé avec succès.",
+      "testError": "Échec du test : {error}",
+      "unknownError": "erreur inconnue",
+      "testFailed": "Échec du test",
+      "save": "Enregistrer les paramètres de messagerie",
+      "testConnection": "Tester la connexion",
+      "saved": "Paramètres de messagerie enregistrés",
+      "loadError": "Impossible de charger les paramètres de messagerie.",
+      "saveError": "Impossible d'enregistrer les paramètres de messagerie.",
+      "testRecipient": "E-mail du destinataire de test",
+      "sendTest": "Envoyer un e-mail de test",
+      "sendOk": "E-mail de test envoyé à {to}."
+    },
+    "localization": {
+      "defaultCurrency": "Devise par défaut",
+      "defaultLocale": "Langue par défaut",
+      "timezone": "Fuseau horaire",
+      "dateFormat": "Format de date",
+      "numberFormat": "Format de nombre",
+      "firstDayOfWeek": "Premier jour de la semaine",
+      "weekdaySunday": "Dimanche",
+      "weekdayMonday": "Lundi",
+      "weekdaySaturday": "Samedi",
+      "save": "Enregistrer la localisation",
+      "saved": "Localisation enregistrée",
+      "loadError": "Impossible de charger la localisation.",
+      "saveError": "Impossible d'enregistrer la localisation."
+    },
+    "userSettingsTab": "Mon compte",
+    "usersTab": "Utilisateurs",
+    "localizedField": {
+      "language": "Langue",
+      "languagesWithContent": "Langues avec contenu : {locales}"
+    }
+  },
+  "documentActions": {
+    "preview": "Aperçu",
+    "print": "Imprimer",
+    "download": "Télécharger",
+    "previewTitle": "Aperçu du document",
+    "error": "Impossible de terminer ({code})."
+  },
+  "send": {
+    "title": "Envoyer le document",
+    "titleReminder": "Envoyer un rappel",
+    "to": "À",
+    "cc": "CC",
+    "bcc": "CCI",
+    "emailPlaceholder": "Saisissez un e-mail et appuyez sur Entrée",
+    "subject": "Objet",
+    "body": "Message",
+    "attachmentNoteInvoice": "Le PDF de la facture sera joint à cet e-mail.",
+    "attachmentNoteContract": "Le PDF du contrat sera joint à cet e-mail.",
+    "send": "Envoyer",
+    "queued": "E-mail mis en file d'attente.",
+    "pending": "Le document est en cours de préparation — réessayez d'envoyer dans quelques secondes.",
+    "loadError": "Impossible de charger l'aperçu de l'e-mail ({code}).",
+    "error": "Impossible d'envoyer l'e-mail ({code})."
+  },
+  "rowActions": {
+    "menu": "Actions",
+    "open": "Ouvrir",
+    "clone": "Cloner"
+  },
+  "timer": {
+    "start": "Démarrer le minuteur",
+    "resume": "Reprendre",
+    "pause": "Pause",
+    "stop": "Arrêter",
+    "saveTitle": "Enregistrer l'entrée de temps",
+    "durationLabel": "Durée",
+    "saveEntry": "Enregistrer l'entrée",
+    "discard": "Abandonner"
+  },
+  "login": {
+    "title": "Se connecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "twoFactor": {
+      "hint": "Saisissez le code à 6 chiffres de votre application d'authentification ou un code de secours.",
+      "codeLabel": "Code d'authentification",
+      "verify": "Vérifier",
+      "back": "Retour à la connexion",
+      "backupCodeLabel": "Code de secours",
+      "useBackupCode": "Utiliser un code de secours",
+      "useAppCode": "Utiliser votre application d'authentification"
+    },
+    "errors": {
+      "invalidCredentials": "E-mail ou mot de passe incorrect.",
+      "invalidCode": "Ce code est incorrect ou a expiré.",
+      "rateLimited": "Trop de tentatives. Veuillez patienter et réessayer.",
+      "twoFactorRequired": "L'authentification à deux facteurs est requise.",
+      "challengeExpired": "Cette demande de connexion a expiré. Veuillez vous reconnecter.",
+      "generic": "Échec de la connexion. Veuillez réessayer."
+    }
+  },
+  "userSettings": {
+    "mustChangePasswordNotice": "Vous devez changer votre mot de passe avant de continuer.",
+    "password": {
+      "title": "Changer le mot de passe",
+      "hint": "Changer votre mot de passe déconnecte vos autres sessions.",
+      "current": "Mot de passe actuel",
+      "new": "Nouveau mot de passe",
+      "confirm": "Confirmer le nouveau mot de passe",
+      "minHint": "Au moins 8 caractères.",
+      "save": "Changer le mot de passe",
+      "saved": "Mot de passe changé.",
+      "errors": {
+        "tooShort": "Le nouveau mot de passe doit comporter au moins 8 caractères.",
+        "mismatch": "Les nouveaux mots de passe ne correspondent pas.",
+        "wrongCurrent": "Votre mot de passe actuel est incorrect.",
+        "generic": "Impossible de changer votre mot de passe."
+      }
+    },
+    "totp": {
+      "title": "Authentification à deux facteurs",
+      "hint": "Ajoutez une deuxième étape à la connexion avec une application d'authentification.",
+      "statusEnabled": "Activée",
+      "statusDisabled": "Désactivée",
+      "enable": "Activer la 2FA",
+      "disable": "Désactiver la 2FA",
+      "qrAlt": "Code QR pour votre application d'authentification",
+      "otpauthUrl": "URL de configuration",
+      "enterCode": "Saisissez le code à 6 chiffres",
+      "copied": "URL de configuration copiée.",
+      "enabledToast": "Authentification à deux facteurs activée.",
+      "disabledToast": "Authentification à deux facteurs désactivée.",
+      "backupWarning": "Enregistrez ces codes de secours maintenant. Chacun est utilisable une fois si vous perdez votre appareil. Ils ne seront plus affichés.",
+      "backupCodesLabel": "Codes de secours",
+      "backupSaved": "J'ai enregistré mes codes",
+      "disableTitle": "Désactiver l'authentification à deux facteurs",
+      "disableHint": "Saisissez un code d'authentification actuel ou un code de secours pour confirmer.",
+      "disableCodeLabel": "Code",
+      "errors": {
+        "setup": "Impossible de démarrer la configuration 2FA.",
+        "enable": "Impossible d'activer la 2FA.",
+        "disable": "Impossible de désactiver la 2FA.",
+        "badCode": "Ce code est incorrect. Veuillez réessayer."
+      }
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "hint": "Gérez les personnes qui peuvent se connecter à cet espace.",
+    "add": "Ajouter un utilisateur",
+    "addTitle": "Ajouter un utilisateur",
+    "editTitle": "Modifier l'utilisateur",
+    "loadError": "Impossible de charger les utilisateurs.",
+    "empty": "Aucun utilisateur pour l'instant.",
+    "savedCreate": "Utilisateur créé.",
+    "savedEdit": "Utilisateur mis à jour.",
+    "disabledToast": "Utilisateur désactivé.",
+    "enabledToast": "Utilisateur activé.",
+    "deletedToast": "Utilisateur supprimé.",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "twoFactorOn": "Deux facteurs activé",
+    "columns": {
+      "name": "Nom",
+      "email": "E-mail",
+      "role": "Rôle",
+      "status": "Statut",
+      "twoFactor": "2FA",
+      "actions": "Actions"
+    },
+    "roles": {
+      "administrator": "Administrateur",
+      "member": "Membre"
+    },
+    "status": {
+      "active": "Actif",
+      "disabled": "Désactivé"
+    },
+    "fields": {
+      "email": "E-mail",
+      "displayName": "Nom affiché",
+      "role": "Rôle",
+      "password": "Mot de passe initial",
+      "passwordHint": "Au moins 8 caractères.",
+      "status": "Statut",
+      "capabilities": "Autorisations"
+    },
+    "capabilities": {
+      "canManageSettings": "Gérer les paramètres",
+      "canManageUsers": "Gérer les utilisateurs",
+      "canPermanentlyDelete": "Supprimer définitivement des enregistrements",
+      "canViewFinancialTotals": "Voir les totaux financiers",
+      "canExportData": "Exporter les données"
+    },
+    "reset": {
+      "action": "Réinitialiser le mot de passe",
+      "title": "Réinitialiser le mot de passe",
+      "hint": "Définissez un nouveau mot de passe pour {name}. Il pourra le changer après connexion.",
+      "newPassword": "Nouveau mot de passe",
+      "tooShort": "Le mot de passe doit comporter au moins 8 caractères.",
+      "done": "Mot de passe réinitialisé."
+    },
+    "delete": {
+      "action": "Supprimer",
+      "title": "Supprimer l'utilisateur",
+      "message": "Supprimer {name} ? Cette action est irréversible.",
+      "confirm": "Supprimer l'utilisateur"
+    },
+    "errors": {
+      "duplicate": "Un utilisateur avec cet e-mail existe déjà.",
+      "lastAdmin": "Vous ne pouvez pas supprimer le dernier administrateur.",
+      "capabilityDenied": "Vous ne pouvez pas accorder des autorisations que vous n'avez pas.",
+      "generic": "Impossible d'enregistrer l'utilisateur."
+    }
+  },
+  "pwa": {
+    "install": {
+      "message": "Installer Billy comme application sur cet appareil.",
+      "action": "Installer l'app"
+    },
+    "update": {
+      "message": "Une nouvelle version de Billy est disponible.",
+      "reload": "Recharger"
+    }
+  },
+  "validations": {
+    "requiredField": "Ce champ est obligatoire",
+    "invalidValue": "Valeur invalide",
+    "onlyNumbersAllowed": "Seuls les chiffres sont autorises",
+    "insertValidEmail": "Saisissez une adresse e-mail valide",
+    "insertValidPhone": "Saisissez un numero de telephone valide",
+    "insertValidUrl": "Saisissez une URL valide",
+    "insertValidDomain": "Saisissez un domaine valide",
+    "insertValidImgPath": "Saisissez un chemin d'image valide",
+    "insertValidCF": "Saisissez un code fiscal valide",
+    "insertValidPiva": "Saisissez un numero de TVA valide (11 chiffres)",
+    "onlyPdfAllowed": "Seuls les fichiers PDF sont autorises",
+    "noPrefix": "N'incluez pas l'indicatif du pays",
+    "basicPasswordFormat": "Le mot de passe doit comporter au moins 6 caracteres",
+    "passwordFormat": "8-20 caracteres avec majuscule, minuscule, chiffre et symbole",
+    "maxLength": "Maximum {max} caracteres",
+    "dates": {
+      "invalid": "Saisissez une date valide",
+      "maxToday": "La date ne peut pas etre future"
+    },
+    "formHasErrors": "Veuillez corriger les erreurs signalees"
+  },
+  "accounts": {
+    "title": "Comptes",
+    "listTitle": "Tous les comptes",
+    "new": "Nouveau compte",
+    "create": "Créer",
+    "edit": "Modifier le compte",
+    "created": "Compte créé",
+    "saved": "Compte enregistré",
+    "deleted": "Compte supprimé",
+    "loadError": "Impossible de charger les comptes",
+    "saveError": "Impossible d'enregistrer le compte",
+    "columns": {
+      "name": "Nom",
+      "slug": "Slug",
+      "status": "Statut"
+    },
+    "fields": {
+      "name": "Nom du compte",
+      "slug": "Slug",
+      "slugHint": "Id pour URL ; dérivé du nom si vide",
+      "note": "Note",
+      "withAdmin": "Créer un premier administrateur",
+      "adminEmail": "E-mail admin",
+      "adminName": "Nom admin",
+      "adminPassword": "Mot de passe admin",
+      "status": "Statut"
+    },
+    "delete": {
+      "action": "Supprimer le compte",
+      "title": "Supprimer le compte définitivement",
+      "warning": "Ceci supprime définitivement « {name} » et TOUTES ses données.",
+      "warningDetail": "Chaque client, document, fichier et réglage de ce compte sera effacé. Irréversible.",
+      "proceed": "Je comprends — continuer",
+      "typeName": "Saisissez le nom « {name} » pour confirmer.",
+      "nameLabel": "Nom du compte",
+      "passwordLabel": "Votre mot de passe sysadmin",
+      "nameMismatch": "Le nom ne correspond pas.",
+      "wrongPassword": "Échec de la vérification du mot de passe.",
+      "confirm": "Tout supprimer"
+    }
+  },
+  "projects": {
+    "selector": {
+      "label": "Projet (facultatif)",
+      "placeholder": "Rechercher des projets…",
+      "noData": "Aucun projet"
+    },
+    "title": "Projets",
+    "new": "Nouveau projet",
+    "delete": "Supprimer",
+    "empty": "Aucun projet trouvé",
+    "retry": "Réessayer",
+    "loadError": "Impossible de charger les projets ({code}).",
+    "loadErrorGeneric": "Impossible de charger les projets.",
+    "loadOneError": "Impossible de charger le projet ({code}).",
+    "loadOneErrorGeneric": "Impossible de charger le projet.",
+    "saveError": "Impossible d'enregistrer le projet ({code}).",
+    "saveErrorGeneric": "Impossible d'enregistrer le projet.",
+    "saved": "Projet enregistré",
+    "newTitle": "Nouveau projet",
+    "editTitle": "Modifier le projet",
+    "create": "Créer le projet",
+    "columns": {
+      "name": "Nom",
+      "description": "Description",
+      "status": "Statut",
+      "color": "Couleur"
+    },
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "color": "Couleur",
+      "status": "Statut"
+    },
+    "form": {
+      "details": "Détails",
+      "statusActive": "Actif",
+      "statusArchived": "Archivé"
+    },
+    "confirm": {
+      "deleteTitle": "Supprimer le projet",
+      "deleteMessage": "Supprimer le projet « {name} » ? Cette action est irréversible."
+    }
+  },
+  "address": {
+    "line1": "Adresse"
+  },
+  "documents": {
+    "subject": "Objet",
+    "preview": "Aperçu",
+    "previewError": "Impossible de générer l'aperçu."
+  }
+}

@@ -1,0 +1,25 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build output (bind-mounted at runtime; built locally)
+dist/
+apps/*/dist/
+
+# secrets & data (bind-mount model — never committed)
+.env
+.env.*
+!.env.example
+data/
+
+# misc
+.DS_Store
+*.log
+coverage/
+
+# harness / session state (not project source)
+.claude/scheduled_tasks.lock
+scripts/seed/seed-demo.bundle.cjs
+
+# Live frontend runtime config (copy from deploy/config.js.example per deploy)
+deploy/config.js

@@ -1,0 +1,28 @@
+{
+  "name": "billy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hostable, open-source invoicing & business-management app.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@11.0.8",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @billy/api dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build:api": "node scripts/build-service.mjs api",
+    "build:worker": "node scripts/build-service.mjs worker",
+    "build:web": "pnpm --filter @billy/web build",
+    "build": "pnpm run build:api && pnpm run build:worker && pnpm run build:web",
+    "seed": "bash scripts/seed/run.sh"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "ts-morph": "^28.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

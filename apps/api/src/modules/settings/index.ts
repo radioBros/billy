@@ -1,0 +1,53 @@
+/** Settings module barrel. */
+export { createSettingsRouter } from "@/modules/settings/routes.js";
+export {
+  SettingsRepository,
+  SETTINGS_COLLECTION,
+  USER_SETTINGS_COLLECTION,
+} from "@/modules/settings/repository.js";
+export { SettingsService, type EmailTestResult } from "@/modules/settings/service.js";
+export {
+  BusinessSettingsUpdateSchema,
+  TaxSettingsUpdateSchema,
+  NumberingSettingsUpdateSchema,
+  UserSettingsUpdateSchema,
+  BrandingSettingsUpdateSchema,
+  EmailSettingsUpdateSchema,
+  LocalizationSettingsUpdateSchema,
+  DocumentsSettingsUpdateSchema,
+  TogglesSettingsUpdateSchema,
+  DEFAULT_BUSINESS_SETTINGS,
+  DEFAULT_TAX_SETTINGS,
+  DEFAULT_NUMBERING_SETTINGS,
+  DEFAULT_USER_SETTINGS,
+  DEFAULT_BRANDING_SETTINGS,
+  DEFAULT_EMAIL_SETTINGS,
+  DEFAULT_LOCALIZATION_SETTINGS,
+  DEFAULT_DOCUMENTS_SETTINGS,
+  DEFAULT_TOGGLES_SETTINGS,
+  type BusinessSettingsUpdateInput,
+  type TaxSettingsUpdateInput,
+  type NumberingSettingsUpdateInput,
+  type UserSettingsUpdateInput,
+  type BrandingSettingsUpdateInput,
+  type EmailSettingsUpdateInput,
+  type LocalizationSettingsUpdateInput,
+  type DocumentsSettingsUpdateInput,
+  type TogglesSettingsUpdateInput,
+} from "@/modules/settings/schema.js";
+export type {
+  SettingsKey,
+  SettingsDoc,
+  BusinessSettingsDoc,
+  TaxSettingsDoc,
+  NumberingSettingsDoc,
+  BrandingSettingsDoc,
+  EmailSettingsDoc,
+  EmailSettingsData,
+  EmailSettingsView,
+  LocalizationSettingsDoc,
+  DocumentsSettingsDoc,
+  TogglesSettingsDoc,
+  UserSettingsDoc,
+  UserSettingsData,
+} from "@/modules/settings/types.js";

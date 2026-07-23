@@ -1,0 +1,1354 @@
+{
+  "app": {
+    "subtitle": "Rechnungsstellung"
+  },
+  "tables": {
+    "search_placeholder": "Suchen…",
+    "no_results": "Keine Ergebnisse gefunden",
+    "configure_columns": "Spalten konfigurieren",
+    "show": "Anzeigen",
+    "entries": "Einträge",
+    "showing_items": "{from}–{to} von {total} werden angezeigt"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Kunden",
+    "invoices": "Rechnungen",
+    "quotes": "Angebote",
+    "expenses": "Ausgaben",
+    "contracts": "Verträge",
+    "timeEntries": "Zeiterfassung",
+    "subscriptions": "Abonnements",
+    "recurring": "Wiederkehrend",
+    "creditNotes": "Gutschriften",
+    "proforma": "Proforma",
+    "settings": "Einstellungen",
+    "documents": "Dokumente",
+    "accounts": "Konten",
+    "projects": "Projekte"
+  },
+  "shell": {
+    "collapseNav": "Navigation einklappen",
+    "expandNav": "Navigation ausklappen",
+    "primaryNav": "Hauptnavigation",
+    "mainContent": "Hauptinhalt",
+    "signOut": "Abmelden",
+    "theme": "Design: {mode}. Zum Ändern aktivieren."
+  },
+  "account": {
+    "label": "Konto",
+    "switch": "Konto wechseln",
+    "switchError": "Konto konnte nicht gewechselt werden"
+  },
+  "period": {
+    "year": "Jahr {year}",
+    "selectAll": "Ganzes Jahr",
+    "clear": "Zurücksetzen",
+    "allMonths": "Alle Monate",
+    "docCount": "{count} Dok. | {count} Dok. | {count} Dok.",
+    "loadError": "Monatssummen konnten nicht geladen werden"
+  },
+  "locale": {
+    "label": "Sprache",
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "fr": "Français",
+    "ru": "Русский",
+    "pt": "Português",
+    "de": "Deutsch"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Alles erledigt",
+    "push": {
+      "label": "Push-Benachrichtigungen auf diesem Gerät",
+      "denied": "Blockiert – erlaube Benachrichtigungen in den Browsereinstellungen"
+    }
+  },
+  "clients": {
+    "title": "Kunden",
+    "search": "Kunden suchen",
+    "empty": "Keine Kunden gefunden",
+    "loadError": "Kunden konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Kunden konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "columns": {
+      "name": "Name",
+      "type": "Typ",
+      "email": "E-Mail",
+      "vatNumber": "USt-IdNr.",
+      "country": "Land",
+      "currency": "Währung"
+    },
+    "selector": {
+      "label": "Kunde",
+      "placeholder": "Kunden suchen",
+      "noData": "Keine passenden Kunden",
+      "loadError": "Kunden konnten nicht gesucht werden."
+    },
+    "new": "Kunde hinzufügen",
+    "newTitle": "Neuer Kunde",
+    "editTitle": "Kunde bearbeiten",
+    "create": "Kunde erstellen",
+    "loadOneError": "Kunde konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Kunde konnte nicht geladen werden.",
+    "saveError": "Kunde konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Kunde konnte nicht gespeichert werden.",
+    "fields": {
+      "type": "Typ",
+      "displayName": "Anzeigename",
+      "legalName": "Firmenname",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "vatNumber": "USt-IdNr.",
+      "preferredCurrency": "Bevorzugte Währung",
+      "tags": "Schlagwörter",
+      "addrLine1": "Adresszeile 1",
+      "addrLine2": "Adresszeile 2",
+      "addrCity": "Stadt",
+      "addrRegion": "Region",
+      "addrPostalCode": "Postleitzahl",
+      "addrCountry": "Land",
+      "preferredLanguage": "Bevorzugte Sprache",
+      "referral": "Ansprechpartner"
+    },
+    "form": {
+      "typeCompany": "Unternehmen",
+      "typeIndividual": "Privatperson",
+      "emailRule": "Gültige E-Mail-Adresse eingeben",
+      "tagsHint": "Enter drücken, um ein Schlagwort hinzuzufügen.",
+      "billingAddress": "Rechnungsadresse",
+      "countryHint": "2-Buchstaben-Code (z. B. IT).",
+      "details": "Details",
+      "languageHint": "Dokumente und E-Mails an diesen Kunden verwenden diese Sprache."
+    },
+    "saved": "Kunde gespeichert"
+  },
+  "common": {
+    "loading": "Wird geladen…",
+    "required": "Erforderlich",
+    "currencyRule": "3-stelliger ISO-Code",
+    "back": "Zurück",
+    "edit": "Bearbeiten",
+    "cancel": "Abbrechen",
+    "retry": "Erneut versuchen",
+    "saveChanges": "Änderungen speichern",
+    "yes": "Ja",
+    "no": "Nein",
+    "actionFailed": "Aktion fehlgeschlagen ({code}).",
+    "actionFailedGeneric": "Aktion fehlgeschlagen.",
+    "confirm": "Bestätigen",
+    "dismiss": "Verwerfen"
+  },
+  "invoices": {
+    "title": "Rechnungen",
+    "new": "Neue Rechnung",
+    "newTitle": "Neue Rechnung",
+    "editTitle": "Rechnung bearbeiten",
+    "detailTitle": "Rechnung",
+    "create": "Rechnung erstellen",
+    "empty": "Keine Rechnungen gefunden",
+    "draftUnnumbered": "Entwurf (ohne Nummer)",
+    "allStatuses": "Alle Status",
+    "loadError": "Rechnungen konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Rechnungen konnten nicht geladen werden.",
+    "loadOneError": "Rechnung konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Rechnung konnte nicht geladen werden.",
+    "saveError": "Rechnung konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Rechnung konnte nicht gespeichert werden.",
+    "locked": "Diese Rechnung ist kein Entwurf und kann nicht mehr bearbeitet werden.",
+    "dueRule": "Das Fälligkeitsdatum muss am oder nach dem Ausstellungsdatum liegen",
+    "finalize": "Finalisieren",
+    "void": "Stornieren",
+    "send": "Senden",
+    "sendReminder": "Erinnerung senden",
+    "addPayment": "Zahlung hinzufügen",
+    "recordPayment": "Zahlung erfassen",
+    "positiveAmount": "Geben Sie einen positiven Zahlungsbetrag ein.",
+    "noPayments": "Keine Zahlungen erfasst.",
+    "lineItems": "Positionen",
+    "payments": "Zahlungen",
+    "filterStatus": "Nach Status filtern",
+    "columns": {
+      "number": "Nummer",
+      "status": "Status",
+      "issueDate": "Ausstellungsdatum",
+      "dueDate": "Fälligkeitsdatum",
+      "total": "Gesamt",
+      "due": "Offen"
+    },
+    "fields": {
+      "client": "Kunde",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "dueDate": "Fälligkeitsdatum",
+      "notes": "Notizen",
+      "bankAccount": "Bankkonto"
+    },
+    "detail": {
+      "client": "Kunde",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "dueDate": "Fälligkeitsdatum"
+    },
+    "lineCols": {
+      "description": "Beschreibung",
+      "qty": "Menge",
+      "unit": "Einzelpreis",
+      "total": "Gesamt"
+    },
+    "totals": {
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "total": "Gesamt",
+      "paid": "Bezahlt",
+      "due": "Offen"
+    },
+    "payColumns": {
+      "date": "Datum",
+      "method": "Methode",
+      "reference": "Referenz",
+      "amount": "Betrag"
+    },
+    "payDialog": {
+      "title": "Zahlung hinzufügen",
+      "amount": "Betrag",
+      "date": "Datum",
+      "method": "Methode",
+      "reference": "Referenz (optional)"
+    },
+    "schedule": {
+      "action": "Versand planen",
+      "unscheduleAction": "Planung aufheben",
+      "dialogTitle": "Versand planen",
+      "dialogHint": "Die Rechnung bleibt ein Entwurf und wird am gewählten Datum automatisch finalisiert.",
+      "dateLabel": "Versanddatum",
+      "dateError": "Wählen Sie heute oder ein späteres Datum.",
+      "confirm": "Planen",
+      "cancel": "Abbrechen",
+      "banner": "Für die Finalisierung am {date} geplant."
+    },
+    "bankAccountHint": "Bankdaten, die dieser Rechnung beigefügt sind.",
+    "completion": {
+      "title": "Rechnung erstellt",
+      "hint": "Ihr Rechnungsentwurf ist gespeichert. Was möchten Sie als Nächstes tun?",
+      "finalizeAndSend": "Finalisieren & senden",
+      "schedule": "Planen",
+      "keepDraft": "Als Entwurf behalten"
+    },
+    "confirm": {
+      "finalizeTitle": "Rechnung finalisieren?",
+      "finalizeMessage": "Das Finalisieren vergibt eine Nummer und sperrt die Rechnung. Dies kann nicht rückgängig gemacht werden.",
+      "voidTitle": "Rechnung stornieren?",
+      "voidMessage": "Das Stornieren annulliert diese Rechnung dauerhaft. Dies kann nicht rückgängig gemacht werden.",
+      "unscheduleTitle": "Planung abbrechen?",
+      "unscheduleMessage": "Diese Rechnung wird nicht mehr automatisch versendet."
+    },
+    "saved": "Rechnung gespeichert"
+  },
+  "quotes": {
+    "title": "Angebote",
+    "new": "Neues Angebot",
+    "newTitle": "Neues Angebot",
+    "editTitle": "Angebot bearbeiten",
+    "detailTitle": "Angebot",
+    "create": "Angebot erstellen",
+    "empty": "Keine Angebote gefunden",
+    "draftUnnumbered": "Entwurf (ohne Nummer)",
+    "allStatuses": "Alle Status",
+    "filterStatus": "Nach Status filtern",
+    "loadError": "Angebote konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Angebote konnten nicht geladen werden.",
+    "loadOneError": "Angebot konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Angebot konnte nicht geladen werden.",
+    "saveError": "Angebot konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Angebot konnte nicht gespeichert werden.",
+    "locked": "Dieses Angebot ist kein Entwurf und kann nicht mehr bearbeitet werden.",
+    "expiryRule": "Das Ablaufdatum muss am oder nach dem Ausstellungsdatum liegen",
+    "send": "Senden",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "convert": "In Rechnung umwandeln",
+    "converted": "In Rechnung {id} umgewandelt.",
+    "lineItems": "Positionen",
+    "columns": {
+      "number": "Nummer",
+      "status": "Status",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Ablaufdatum",
+      "total": "Gesamt"
+    },
+    "fields": {
+      "clientId": "Kunden-ID",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Ablaufdatum",
+      "notes": "Notizen"
+    },
+    "detail": {
+      "client": "Kunde",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Ablaufdatum"
+    },
+    "lineCols": {
+      "description": "Beschreibung",
+      "qty": "Menge",
+      "unit": "Einzelpreis",
+      "total": "Gesamt"
+    },
+    "totals": {
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "total": "Gesamt"
+    },
+    "confirm": {
+      "sendTitle": "Angebot senden?",
+      "sendMessage": "Das Angebot wird als gesendet markiert.",
+      "acceptTitle": "Angebot annehmen?",
+      "acceptMessage": "Dieses Angebot als angenommen markieren?",
+      "declineTitle": "Angebot ablehnen?",
+      "declineMessage": "Dieses Angebot als abgelehnt markieren?",
+      "convertTitle": "In Rechnung umwandeln?",
+      "convertMessage": "Aus diesem Angebot wird ein neuer Rechnungsentwurf erstellt."
+    },
+    "saved": "Angebot gespeichert"
+  },
+  "contracts": {
+    "title": "Verträge",
+    "new": "Neuer Vertrag",
+    "newTitle": "Neuer Vertrag",
+    "editTitle": "Vertrag bearbeiten",
+    "detailTitle": "Vertrag",
+    "create": "Vertrag erstellen",
+    "send": "Senden",
+    "empty": "Keine Verträge gefunden",
+    "allStatuses": "Alle Status",
+    "allTypes": "Alle Typen",
+    "filterStatus": "Nach Status filtern",
+    "filterType": "Nach Typ filtern",
+    "loadError": "Verträge konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Verträge konnten nicht geladen werden.",
+    "loadOneError": "Vertrag konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Vertrag konnte nicht geladen werden.",
+    "saveError": "Vertrag konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Vertrag konnte nicht gespeichert werden.",
+    "endDateRule": "Das Enddatum muss am oder nach dem Startdatum liegen",
+    "columns": {
+      "title": "Titel",
+      "type": "Typ",
+      "status": "Status",
+      "start": "Beginn",
+      "end": "Ende",
+      "value": "Wert"
+    },
+    "fields": {
+      "clientId": "Kunden-ID",
+      "title": "Titel",
+      "type": "Typ",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "value": "Wert",
+      "currency": "Währung",
+      "terms": "Bedingungen",
+      "notes": "Notizen"
+    },
+    "saved": "Vertrag gespeichert"
+  },
+  "expenses": {
+    "title": "Ausgaben",
+    "new": "Neue Ausgabe",
+    "newTitle": "Neue Ausgabe",
+    "editTitle": "Ausgabe bearbeiten",
+    "create": "Ausgabe erstellen",
+    "empty": "Keine Ausgaben gefunden",
+    "filterStatus": "Nach Status filtern",
+    "loadError": "Ausgaben konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Ausgaben konnten nicht geladen werden.",
+    "loadOneError": "Ausgabe konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Ausgabe konnte nicht geladen werden.",
+    "saveError": "Ausgabe konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Ausgabe konnte nicht gespeichert werden.",
+    "amountRule": "Der Betrag muss positiv sein",
+    "columns": {
+      "vendor": "Lieferant",
+      "category": "Kategorie",
+      "date": "Datum",
+      "amount": "Betrag",
+      "status": "Status",
+      "billable": "Abrechenbar"
+    },
+    "fields": {
+      "amount": "Betrag",
+      "currency": "Währung",
+      "category": "Kategorie",
+      "date": "Datum",
+      "vendor": "Lieferant",
+      "clientId": "Kunden-ID",
+      "description": "Beschreibung",
+      "billable": "Abrechenbar"
+    },
+    "saved": "Ausgabe gespeichert"
+  },
+  "subscriptions": {
+    "title": "Abonnements",
+    "new": "Neues Abonnement",
+    "newTitle": "Neues Abonnement",
+    "editTitle": "Abonnement bearbeiten",
+    "create": "Abonnement erstellen",
+    "empty": "Keine Abonnements gefunden",
+    "filterStatus": "Nach Status filtern",
+    "loadError": "Abonnements konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Abonnements konnten nicht geladen werden.",
+    "loadOneError": "Abonnement konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Abonnement konnte nicht geladen werden.",
+    "saveError": "Abonnement konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Abonnement konnte nicht gespeichert werden.",
+    "amountRequired": "Erforderlich",
+    "amountRule": "Muss größer als 0 sein",
+    "nextBillingRule": "Die nächste Abrechnung muss am oder nach dem Startdatum liegen",
+    "amountHint": "Betrag in Haupteinheiten (z. B. 49.00).",
+    "clientIdHint": "Die Kundenauswahl kommt mit dem Kundenmodul; geben Sie vorerst die ID ein.",
+    "columns": {
+      "name": "Name",
+      "plan": "Tarif",
+      "amount": "Betrag",
+      "interval": "Intervall",
+      "status": "Status",
+      "nextBilling": "Nächste Abrechnung"
+    },
+    "fields": {
+      "clientId": "Kunden-ID",
+      "name": "Name",
+      "plan": "Tarif",
+      "amount": "Betrag",
+      "currency": "Währung",
+      "interval": "Intervall",
+      "startDate": "Startdatum",
+      "nextBillingDate": "Datum der nächsten Abrechnung",
+      "client": "Kunde",
+      "url": "URL",
+      "note": "Notiz"
+    },
+    "urlRule": "Gültige URL eingeben",
+    "urlHint": "Optional. z. B. https://example.com",
+    "saved": "Abonnement gespeichert"
+  },
+  "timeEntries": {
+    "title": "Zeiteinträge",
+    "new": "Neuer Zeiteintrag",
+    "newTitle": "Neuer Zeiteintrag",
+    "editTitle": "Zeiteintrag bearbeiten",
+    "create": "Zeiteintrag erstellen",
+    "empty": "Keine Zeiteinträge gefunden",
+    "filterBillable": "Nach Abrechenbarkeit filtern",
+    "loadError": "Zeiteinträge konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Zeiteinträge konnten nicht geladen werden.",
+    "loadOneError": "Zeiteintrag konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Zeiteintrag konnte nicht geladen werden.",
+    "saveError": "Zeiteintrag konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Zeiteintrag konnte nicht gespeichert werden.",
+    "durationRule": "Muss eine ganze Zahl ≥ 0 sein",
+    "rateHint": "Optional. Betrag in Haupteinheiten (z. B. 85.00).",
+    "projectIdHint": "Optional.",
+    "columns": {
+      "date": "Datum",
+      "description": "Beschreibung",
+      "duration": "Dauer",
+      "billable": "Abrechenbar",
+      "billed": "Abgerechnet",
+      "rate": "Satz"
+    },
+    "fields": {
+      "description": "Beschreibung",
+      "date": "Datum",
+      "duration": "Dauer (Minuten)",
+      "rate": "Satz (pro Stunde)",
+      "billable": "Abrechenbar",
+      "clientId": "Kunden-ID",
+      "projectId": "Projekt-ID"
+    },
+    "saved": "Zeiteintrag gespeichert"
+  },
+  "recurring": {
+    "title": "Wiederkehrende Profile",
+    "new": "Neues Profil",
+    "create": "Profil erstellen",
+    "newTitle": "Neues wiederkehrendes Profil",
+    "editTitle": "Wiederkehrendes Profil bearbeiten",
+    "detailTitle": "Wiederkehrendes Profil",
+    "empty": "Keine wiederkehrenden Profile gefunden",
+    "retry": "Erneut versuchen",
+    "loadError": "Wiederkehrende Profile konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Wiederkehrende Profile konnten nicht geladen werden.",
+    "saveError": "Profil konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Profil konnte nicht gespeichert werden.",
+    "locked": "Dieses Profil ist nicht mehr aktiv und kann nicht mehr bearbeitet werden.",
+    "countRule": "Muss mindestens 1 sein",
+    "endRule": "Das Enddatum muss am oder nach dem Startdatum liegen",
+    "everyN": "Alle {n} × {unit}",
+    "generateNow": "Jetzt erzeugen",
+    "generated": "Vorkommen erzeugt.",
+    "generateExhausted": "Dieses Profil ist abgeschlossen — es gibt nichts zu erzeugen.",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "cancel": "Profil abbrechen",
+    "occurrences": "Erzeugte Vorkommen",
+    "lastRun": "Letzte Ausführung",
+    "lineItems": "Positionen",
+    "interval": {
+      "weekly": "Wöchentlich",
+      "monthly": "Monatlich",
+      "quarterly": "Vierteljährlich",
+      "yearly": "Jährlich"
+    },
+    "columns": {
+      "client": "Kunde",
+      "interval": "Intervall",
+      "status": "Status",
+      "nextRun": "Nächste Ausführung",
+      "total": "Gesamt",
+      "docType": "Dokumenttyp"
+    },
+    "fields": {
+      "client": "Kunde",
+      "currency": "Währung",
+      "interval": "Intervall",
+      "intervalCount": "Alle",
+      "maxOccurrences": "Max. Vorkommen",
+      "repeatOn": "Wiederholen am",
+      "repeatOnStartDay": "Gleicher Tag wie Startdatum",
+      "repeatOnDayOfMonth": "Ein bestimmter Tag im Monat",
+      "dayOfMonth": "Tag im Monat",
+      "dayOfMonthHint": "Kürzere Monate verwenden ihren letzten Tag.",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "notes": "Notizen"
+    },
+    "lineCols": {
+      "description": "Beschreibung",
+      "qty": "Menge",
+      "unit": "Einheit",
+      "total": "Gesamt"
+    },
+    "totals": {
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "total": "Gesamt"
+    },
+    "fromDocHint": "Wiederkehrend wird jetzt über ein Dokument eingerichtet. Öffne eine neue Rechnung, Proforma oder Ausgabe und aktiviere „Als wiederkehrend festlegen“.",
+    "toggle": {
+      "enable": "Als wiederkehrend festlegen",
+      "hint": "Es wird ein wiederkehrendes Profil erstellt und künftige Dokumente werden automatisch nach diesem Zeitplan generiert.",
+      "created": "Wiederkehrendes Profil erstellt.",
+      "viewList": "Wiederkehrende anzeigen",
+      "createError": "Wiederkehrendes Profil konnte nicht erstellt werden ({code}).",
+      "createErrorGeneric": "Wiederkehrendes Profil konnte nicht erstellt werden.",
+      "clientRequired": "Für eine wiederkehrende Ausgabe ist ein Kunde erforderlich."
+    }
+  },
+  "creditNotes": {
+    "title": "Gutschriften",
+    "new": "Neue Gutschrift",
+    "create": "Gutschrift erstellen",
+    "newTitle": "Neue Gutschrift",
+    "editTitle": "Gutschrift bearbeiten",
+    "detailTitle": "Gutschrift",
+    "empty": "Keine Gutschriften gefunden",
+    "retry": "Erneut versuchen",
+    "draftUnnumbered": "Entwurf (ohne Nummer)",
+    "loadError": "Gutschriften konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Gutschriften konnten nicht geladen werden.",
+    "saveError": "Gutschrift konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Gutschrift konnte nicht gespeichert werden.",
+    "locked": "Diese Gutschrift ist ausgestellt oder storniert und kann nicht mehr bearbeitet werden.",
+    "issue": "Ausstellen",
+    "void": "Stornieren",
+    "lineItems": "Positionen",
+    "columns": {
+      "number": "Nummer",
+      "client": "Kunde",
+      "status": "Status",
+      "issueDate": "Ausstellungsdatum",
+      "total": "Gesamt"
+    },
+    "fields": {
+      "client": "Kunde",
+      "creditedInvoice": "Gutgeschriebene Rechnung",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "reason": "Grund",
+      "notes": "Notizen"
+    },
+    "selector": {
+      "label": "Gutgeschriebene Rechnung",
+      "placeholder": "Rechnungen suchen",
+      "noData": "Keine passenden Rechnungen",
+      "draftLabel": "Entwurf (ohne Nummer)"
+    },
+    "lineCols": {
+      "description": "Beschreibung",
+      "qty": "Menge",
+      "unit": "Einheit",
+      "total": "Gesamt"
+    },
+    "totals": {
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "total": "Gesamt"
+    },
+    "confirm": {
+      "issueTitle": "Gutschrift ausstellen?",
+      "issueMessage": "Das Ausstellen vergibt eine Nummer für diese Gutschrift.",
+      "voidTitle": "Gutschrift stornieren?",
+      "voidMessage": "Das Stornieren annulliert diese Gutschrift dauerhaft. Dies kann nicht rückgängig gemacht werden."
+    },
+    "saved": "Gutschrift gespeichert"
+  },
+  "proformas": {
+    "title": "Proforma",
+    "new": "Neue Proforma",
+    "create": "Proforma erstellen",
+    "newTitle": "Neue Proforma",
+    "editTitle": "Proforma bearbeiten",
+    "detailTitle": "Proforma",
+    "empty": "Keine Proformas gefunden",
+    "retry": "Erneut versuchen",
+    "draftUnnumbered": "Entwurf (ohne Nummer)",
+    "loadError": "Proformas konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Proformas konnten nicht geladen werden.",
+    "saveError": "Proforma konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Proforma konnte nicht gespeichert werden.",
+    "locked": "Diese Proforma ist ausgestellt oder storniert und kann nicht mehr bearbeitet werden.",
+    "expiryRule": "Das Ablaufdatum muss am oder nach dem Ausstellungsdatum liegen",
+    "issue": "Ausstellen",
+    "void": "Stornieren",
+    "converted": "In Rechnung {id} umgewandelt.",
+    "lineItems": "Positionen",
+    "columns": {
+      "number": "Nummer",
+      "client": "Kunde",
+      "status": "Status",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Ablaufdatum",
+      "total": "Gesamt"
+    },
+    "fields": {
+      "client": "Kunde",
+      "currency": "Währung",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Ablaufdatum",
+      "notes": "Notizen"
+    },
+    "lineCols": {
+      "description": "Beschreibung",
+      "qty": "Menge",
+      "unit": "Einheit",
+      "total": "Gesamt"
+    },
+    "totals": {
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "total": "Gesamt"
+    },
+    "convert": "In Rechnung umwandeln",
+    "confirm": {
+      "issueTitle": "Proforma ausstellen?",
+      "issueMessage": "Das Ausstellen vergibt eine Nummer für diese Proforma.",
+      "voidTitle": "Proforma stornieren?",
+      "voidMessage": "Das Stornieren annulliert diese Proforma dauerhaft. Dies kann nicht rückgängig gemacht werden.",
+      "convertTitle": "In Rechnung umwandeln?",
+      "convertMessage": "Aus dieser Proforma wird ein neuer Rechnungsentwurf erstellt."
+    },
+    "saved": "Proforma gespeichert"
+  },
+  "dashboard": {
+    "welcome": "Willkommen",
+    "welcomeNamed": "Willkommen, {name}",
+    "currency": "Währung",
+    "retry": "Erneut versuchen",
+    "loadError": "Dashboard konnte nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Dashboard konnte nicht geladen werden.",
+    "cards": {
+      "clients": "Kunden",
+      "activeSubscriptions": "Aktive Abonnements",
+      "unbilledTimeEntries": "Nicht abgerechnete Zeit",
+      "expenses": "Ausgaben",
+      "invoicedThisMonth": "Berechnet",
+      "collectedThisMonth": "Eingenommen",
+      "outstanding": "Offen",
+      "overdue": "Überfällig"
+    },
+    "chart": {
+      "revenueTitle": "Umsatz ({year})",
+      "revenueEmpty": "Noch kein Umsatz",
+      "outstandingTitle": "Offen vs. überfällig",
+      "outstandingEmpty": "Nichts offen",
+      "invoiced": "Berechnet",
+      "collected": "Eingenommen",
+      "current": "Aktuell",
+      "overdue": "Überfällig",
+      "revenueExpenseTitle": "Umsatz vs. Ausgaben ({year})",
+      "revenueExpenseEmpty": "Noch kein Umsatz und keine Ausgaben",
+      "expenses": "Ausgaben"
+    },
+    "activity": {
+      "title": "Letzte Aktivität",
+      "window": "letzte {days} Tage",
+      "clients": "Neue Kunden",
+      "expenses": "Neue Ausgaben",
+      "timeEntries": "Zeiterfassung",
+      "subscriptions": "Abonnements"
+    },
+    "year": "Jahr",
+    "counts": {
+      "title": "Dokumente pro Monat",
+      "empty": "Noch keine Dokumente"
+    },
+    "docType": {
+      "invoices": "Rechnungen",
+      "proforma": "Proforma",
+      "quotes": "Angebote",
+      "creditNotes": "Gutschriften",
+      "contracts": "Verträge",
+      "expenses": "Ausgaben"
+    },
+    "drilldown": {
+      "docType": "Dokumenttyp",
+      "months": "Monate",
+      "allMonths": "Alle Monate",
+      "showing": "Angezeigt: {months}",
+      "untitled": "Ohne Titel",
+      "empty": "Keine Dokumente für diese Auswahl",
+      "error": "Dokumente konnten nicht geladen werden ({code}).",
+      "errorGeneric": "Dokumente konnten nicht geladen werden."
+    },
+    "heatmap": {
+      "title": "Aktivität pro Monat ({year})",
+      "rowLabel": "Aktivität",
+      "empty": "Noch keine Aktivität"
+    }
+  },
+  "notification": {
+    "event": {
+      "quote": {
+        "created": {
+          "title": "Angebot erstellt",
+          "body": "Angebot {entity} wurde erstellt"
+        },
+        "sent": {
+          "title": "Angebot gesendet",
+          "body": "Angebot {entity} wurde gesendet"
+        },
+        "converted": {
+          "title": "Angebot umgewandelt",
+          "body": "Angebot {entity} wurde in eine Rechnung umgewandelt"
+        },
+        "accepted": {
+          "title": "Angebot angenommen",
+          "body": "Angebot {entity} wurde angenommen"
+        },
+        "declined": {
+          "title": "Angebot abgelehnt",
+          "body": "Angebot {entity} wurde abgelehnt"
+        }
+      },
+      "invoice": {
+        "created": {
+          "title": "Rechnung erstellt",
+          "body": "Rechnung {entity} wurde erstellt"
+        },
+        "finalized": {
+          "title": "Rechnung finalisiert",
+          "body": "Rechnung {entity} wurde finalisiert"
+        },
+        "scheduled": {
+          "title": "Rechnung geplant",
+          "body": "Der Versand von Rechnung {entity} wurde geplant"
+        },
+        "paid": {
+          "title": "Rechnung bezahlt",
+          "body": "Rechnung {entity} wurde vollständig bezahlt"
+        },
+        "void": {
+          "title": "Rechnung storniert",
+          "body": "Rechnung {entity} wurde storniert"
+        }
+      },
+      "client": {
+        "created": {
+          "title": "Kunde hinzugefügt",
+          "body": "Kunde {entity} wurde hinzugefügt"
+        }
+      },
+      "contract": {
+        "created": {
+          "title": "Vertrag erstellt",
+          "body": "Vertrag {entity} wurde erstellt"
+        },
+        "renewed": {
+          "title": "Vertrag verlängert",
+          "body": "Vertrag {entity} wurde verlängert"
+        }
+      },
+      "expense": {
+        "created": {
+          "title": "Ausgabe erfasst",
+          "body": "Ausgabe {entity} wurde erfasst"
+        },
+        "invoiced": {
+          "title": "Ausgabe abgerechnet",
+          "body": "Ausgabe {entity} wurde einer Rechnung hinzugefügt"
+        }
+      },
+      "generic": {
+        "title": "Benachrichtigung",
+        "body": "Aktualisierung zu {entity}"
+      }
+    }
+  },
+  "enums": {
+    "status": {
+      "draft": "Entwurf",
+      "scheduled": "Geplant",
+      "sent": "Gesendet",
+      "accepted": "Angenommen",
+      "declined": "Abgelehnt",
+      "converted": "Umgewandelt",
+      "finalized": "Finalisiert",
+      "partially_paid": "Teilweise bezahlt",
+      "paid": "Bezahlt",
+      "void": "Storniert",
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "cancelled": "Storniert",
+      "completed": "Abgeschlossen",
+      "issued": "Ausgestellt",
+      "expired": "Abgelaufen",
+      "expiring": "Läuft ab",
+      "renewed": "Verlängert",
+      "terminated": "Gekündigt",
+      "archived": "Archiviert",
+      "invoiced": "Abgerechnet"
+    },
+    "contractType": {
+      "development": "Entwicklung",
+      "maintenance": "Wartung",
+      "hosting": "Hosting",
+      "support": "Support",
+      "consulting": "Beratung",
+      "service_agreement": "Dienstleistungsvertrag",
+      "retainer": "Pauschalvertrag",
+      "other": "Sonstige"
+    },
+    "paymentMethod": {
+      "bank_transfer": "Banküberweisung",
+      "cash": "Bargeld",
+      "card": "Karte",
+      "other": "Sonstiges",
+      "paypal": "PayPal",
+      "stripe": "Stripe",
+      "direct_debit": "Lastschrift"
+    },
+    "recurringDocType": {
+      "invoice": "Rechnung",
+      "proforma": "Proforma",
+      "expense": "Ausgabe"
+    }
+  },
+  "settings": {
+    "pageTitle": "Einstellungen",
+    "branding": {
+      "identity": "Identität",
+      "colors": "Farben",
+      "appName": "Anwendungsname",
+      "logo": "Logo",
+      "logoPreview": "Logo-Vorschau",
+      "icon": "App-Symbol (Favicon)",
+      "iconHint": "Wird im Browser-Tab angezeigt; zugleich das App-Symbol. Quadratisches Bild empfohlen.",
+      "primaryColor": "Primärfarbe",
+      "secondaryColor": "Sekundärfarbe",
+      "accentColor": "Akzentfarbe",
+      "save": "Branding speichern",
+      "saved": "Branding gespeichert",
+      "loadError": "Branding konnte nicht geladen werden.",
+      "saveError": "Branding konnte nicht gespeichert werden.",
+      "identityHint": "Name und Logo erscheinen in der Oberfläche und auf Dokumenten.",
+      "colorsHint": "Farben werden live auf das Theme angewendet.",
+      "themeMode": "Standard-Themenmodus",
+      "themeSystem": "System",
+      "themeLight": "Hell",
+      "themeDark": "Dunkel",
+      "supportEmail": "Support-E-Mail",
+      "loginBackground": "Anmelde-Hintergrund",
+      "loginBackgroundHint": "Laden Sie ein Bild für den Hintergrund der Anmeldeseite hoch (optional)."
+    },
+    "documents": {
+      "title": "Dokument-Design",
+      "controls": "Einstellungen",
+      "layout": "Layout",
+      "headerHtml": "HTML der Dokumentkopfzeile",
+      "footerHtml": "HTML der Dokumentfußzeile",
+      "headerHint": "Wird oben auf jedem Dokument angezeigt. Nur druckfähige Formatierung.",
+      "footerHint": "Wird unten auf jedem Dokument angezeigt. Nur druckfähige Formatierung.",
+      "logoPosition": "Logo-Position",
+      "logoLeft": "Links",
+      "logoRight": "Rechts",
+      "logoPositionHint": "Auf welcher Seite das Firmenlogo steht; die Firmenangaben stehen auf der gegenüberliegenden Seite.",
+      "companyLogo": "Firmenlogo (auf Dokumenten angezeigt)",
+      "companyLogoHint": "Unabhängig vom App-Logo: Dieses erscheint auf Rechnungen, Angeboten und PDFs.",
+      "companyLogoPreview": "Vorschau des Firmenlogos",
+      "showBankDetails": "Bankverbindung anzeigen",
+      "showBankDetailsHint": "Fügt oberhalb der Fußzeile einen Bankverbindungsblock hinzu, wenn Firmen-Bankdaten vorhanden sind.",
+      "save": "Design speichern",
+      "saved": "Design gespeichert",
+      "loadError": "Design konnte nicht geladen werden.",
+      "saveError": "Design konnte nicht gespeichert werden.",
+      "preview": "Vorschau — ungefähr",
+      "previewHint": "Annäherung an das PDF; das endgültige Dokument erstellt der Server.",
+      "invoiceHeading": "RECHNUNG Nr. {number} vom {date}",
+      "recipient": "Empfänger",
+      "sampleCompanyName": "Ihr Unternehmen GmbH",
+      "sampleAddress": "Beispielstraße 1 - 00100 - Rom (RM)",
+      "sampleClient": "Acme Corporation",
+      "sampleRecipientAddress": "Kundenallee 5 - 20100 - Mailand (MI)",
+      "colDescription": "Beschreibung",
+      "colQty": "Menge",
+      "colPrice": "Preis",
+      "colAmount": "Betrag",
+      "sampleItem1": "Beratungsleistungen",
+      "sampleItem2": "Designarbeit",
+      "subtotal": "Zwischensumme",
+      "tax": "Steuer",
+      "grandTotal": "Gesamt",
+      "bankTitle": "Bankverbindung",
+      "bankName": "Bank",
+      "bankAccount": "Konto",
+      "bankIban": "IBAN",
+      "bankBic": "BIC"
+    },
+    "documentDesignTab": "Dokument-Design",
+    "emailContractDesignTab": "E-Mail & Vertrag",
+    "emailContract": {
+      "contractTitle": "Vertrags-Kopf- und -Fußzeile",
+      "contractHint": "HTML, das den oberen und unteren Bereich gerenderter Verträge umschließt.",
+      "contractHeader": "Vertrags-Kopfzeile",
+      "contractFooter": "Vertrags-Fußzeile",
+      "emailTitle": "E-Mail-Kopf- und -Fußzeile",
+      "emailHint": "HTML, das den oberen und unteren Bereich ausgehender E-Mails umschließt.",
+      "emailHeader": "E-Mail-Kopfzeile",
+      "emailFooter": "E-Mail-Fußzeile",
+      "save": "Speichern",
+      "saved": "E-Mail- & Vertragsdesign gespeichert",
+      "loadError": "E-Mail- & Vertragsdesign konnte nicht geladen werden.",
+      "saveError": "E-Mail- & Vertragsdesign konnte nicht gespeichert werden."
+    },
+    "bankAccounts": {
+      "title": "Bankkonten",
+      "hint": "Benannte Bankkonten, die Sie Rechnungen beifügen können.",
+      "label": "Bezeichnung",
+      "details": "Details",
+      "add": "Bankkonto hinzufügen",
+      "remove": "Entfernen",
+      "empty": "Noch keine Bankkonten."
+    },
+    "company": {
+      "businessName": "Firmenname",
+      "legalName": "Rechtlicher Name",
+      "vatNumber": "USt-IdNr.",
+      "taxCode": "Steuernummer",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "website": "Webseite",
+      "save": "Firmendaten speichern",
+      "saved": "Firmendaten gespeichert",
+      "loadError": "Firmendaten konnten nicht geladen werden.",
+      "saveError": "Firmendaten konnten nicht gespeichert werden.",
+      "address": {
+        "title": "Adresse",
+        "hint": "Postanschrift, die auf Ihren Dokumenten angezeigt wird.",
+        "line1": "Adresszeile 1",
+        "line2": "Adresszeile 2",
+        "city": "Stadt",
+        "region": "Region / Bundesland",
+        "postalCode": "Postleitzahl",
+        "country": "Land (ISO-Code)"
+      }
+    },
+    "advanced": {
+      "uploadMaxMb": "Maximale Uploadgröße (MB)",
+      "backupSchedule": "Backup-Zeitplan (Cron)",
+      "clamavEnabled": "ClamAV-Prüfung",
+      "backupEnabled": "Automatische Backups",
+      "allowPublicLinks": "Öffentliche Links zulassen",
+      "save": "Erweiterte Einstellungen speichern",
+      "saved": "Erweiterte Einstellungen gespeichert",
+      "loadError": "Optionen konnten nicht geladen werden.",
+      "saveError": "Optionen konnten nicht gespeichert werden.",
+      "backupRetentionDays": "Backup-Aufbewahrung (Tage)",
+      "softDeleteRetentionDays": "Soft-Delete-Aufbewahrung (Tage)",
+      "sessionIdleTtlMinutes": "Sitzungs-Leerlauf-Timeout (Min.)",
+      "sessionAbsoluteTtlMinutes": "Max. Sitzungsdauer (Min.)"
+    },
+    "documentsTab": {
+      "defaultTaxRate": "Standard-Steuersatz (%)",
+      "save": "Dokumenteinstellungen speichern",
+      "saved": "Dokumenteinstellungen gespeichert",
+      "loadError": "Dokumenteinstellungen konnten nicht geladen werden.",
+      "saveError": "Dokumenteinstellungen konnten nicht gespeichert werden.",
+      "defaultPaymentTermsDays": "Standard-Zahlungsziel (Tage)",
+      "invoiceNotes": "Standard-Rechnungsnotizen",
+      "quoteNotes": "Standard-Angebotsnotizen"
+    },
+    "email": {
+      "smtpHost": "SMTP-Host",
+      "smtpPort": "SMTP-Port",
+      "smtpUsername": "SMTP-Benutzername",
+      "smtpPassword": "SMTP-Passwort",
+      "smtpSecure": "TLS/SSL verwenden (sicher)",
+      "fromEmail": "Absender-E-Mail",
+      "fromName": "Absendername",
+      "replyTo": "Antwort an",
+      "configured": "Konfiguriert",
+      "passwordStoredHint": "Ein Passwort ist gespeichert. Leer lassen, um es zu behalten; eingeben, um es zu ersetzen.",
+      "passwordUnsetHint": "Kein Passwort festgelegt.",
+      "testOk": "Test-E-Mail erfolgreich gesendet.",
+      "testError": "Test fehlgeschlagen: {error}",
+      "unknownError": "unbekannter Fehler",
+      "testFailed": "Test fehlgeschlagen",
+      "save": "E-Mail-Einstellungen speichern",
+      "testConnection": "Verbindung testen",
+      "saved": "E-Mail-Einstellungen gespeichert",
+      "loadError": "E-Mail-Einstellungen konnten nicht geladen werden.",
+      "saveError": "E-Mail-Einstellungen konnten nicht gespeichert werden.",
+      "testRecipient": "Test-Empfänger-E-Mail",
+      "sendTest": "Test-E-Mail senden",
+      "sendOk": "Test-E-Mail an {to} gesendet."
+    },
+    "localization": {
+      "defaultCurrency": "Standardwährung",
+      "defaultLocale": "Standardsprache",
+      "timezone": "Zeitzone",
+      "dateFormat": "Datumsformat",
+      "numberFormat": "Zahlenformat",
+      "firstDayOfWeek": "Erster Wochentag",
+      "weekdaySunday": "Sonntag",
+      "weekdayMonday": "Montag",
+      "weekdaySaturday": "Samstag",
+      "save": "Lokalisierung speichern",
+      "saved": "Lokalisierung gespeichert",
+      "loadError": "Lokalisierung konnte nicht geladen werden.",
+      "saveError": "Lokalisierung konnte nicht gespeichert werden."
+    },
+    "userSettingsTab": "Mein Konto",
+    "usersTab": "Benutzer",
+    "localizedField": {
+      "language": "Sprache",
+      "languagesWithContent": "Sprachen mit Inhalt: {locales}"
+    }
+  },
+  "documentActions": {
+    "preview": "Vorschau",
+    "print": "Drucken",
+    "download": "Herunterladen",
+    "previewTitle": "Dokumentvorschau",
+    "error": "Konnte nicht abgeschlossen werden ({code})."
+  },
+  "send": {
+    "title": "Dokument senden",
+    "titleReminder": "Erinnerung senden",
+    "to": "An",
+    "cc": "CC",
+    "bcc": "BCC",
+    "emailPlaceholder": "E-Mail eingeben und Enter drücken",
+    "subject": "Betreff",
+    "body": "Nachricht",
+    "attachmentNoteInvoice": "Das Rechnungs-PDF wird dieser E-Mail beigefügt.",
+    "attachmentNoteContract": "Das Vertrags-PDF wird dieser E-Mail beigefügt.",
+    "send": "Senden",
+    "queued": "E-Mail in die Warteschlange gestellt.",
+    "pending": "Das Dokument wird vorbereitet — versuchen Sie es in ein paar Sekunden erneut.",
+    "loadError": "E-Mail-Vorschau konnte nicht geladen werden ({code}).",
+    "error": "E-Mail konnte nicht gesendet werden ({code})."
+  },
+  "rowActions": {
+    "menu": "Aktionen",
+    "open": "Öffnen",
+    "clone": "Duplizieren"
+  },
+  "timer": {
+    "start": "Timer starten",
+    "resume": "Fortsetzen",
+    "pause": "Pause",
+    "stop": "Stopp",
+    "saveTitle": "Zeiteintrag speichern",
+    "durationLabel": "Dauer",
+    "saveEntry": "Eintrag speichern",
+    "discard": "Verwerfen"
+  },
+  "login": {
+    "title": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signIn": "Anmelden",
+    "twoFactor": {
+      "hint": "Gib den 6-stelligen Code aus deiner Authenticator-App oder einen Backup-Code ein.",
+      "codeLabel": "Authentifizierungscode",
+      "verify": "Überprüfen",
+      "back": "Zurück zur Anmeldung",
+      "backupCodeLabel": "Backup-Code",
+      "useBackupCode": "Stattdessen einen Backup-Code verwenden",
+      "useAppCode": "Stattdessen die Authenticator-App verwenden"
+    },
+    "errors": {
+      "invalidCredentials": "Falsche E-Mail oder falsches Passwort.",
+      "invalidCode": "Dieser Code ist falsch oder abgelaufen.",
+      "rateLimited": "Zu viele Versuche. Bitte warte und versuche es erneut.",
+      "twoFactorRequired": "Zwei-Faktor-Authentifizierung ist erforderlich.",
+      "challengeExpired": "Diese Anmeldeanfrage ist abgelaufen. Bitte melde dich erneut an.",
+      "generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
+    }
+  },
+  "userSettings": {
+    "mustChangePasswordNotice": "Du musst dein Passwort ändern, bevor du fortfährst.",
+    "password": {
+      "title": "Passwort ändern",
+      "hint": "Das Ändern deines Passworts meldet deine anderen Sitzungen ab.",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "confirm": "Neues Passwort bestätigen",
+      "minHint": "Mindestens 8 Zeichen.",
+      "save": "Passwort ändern",
+      "saved": "Passwort geändert.",
+      "errors": {
+        "tooShort": "Das neue Passwort muss mindestens 8 Zeichen lang sein.",
+        "mismatch": "Die neuen Passwörter stimmen nicht überein.",
+        "wrongCurrent": "Dein aktuelles Passwort ist falsch.",
+        "generic": "Passwort konnte nicht geändert werden."
+      }
+    },
+    "totp": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "hint": "Füge der Anmeldung mit einer Authenticator-App einen zweiten Schritt hinzu.",
+      "statusEnabled": "Aktiviert",
+      "statusDisabled": "Deaktiviert",
+      "enable": "2FA aktivieren",
+      "disable": "2FA deaktivieren",
+      "qrAlt": "QR-Code für deine Authenticator-App",
+      "otpauthUrl": "Einrichtungs-URL",
+      "enterCode": "Gib den 6-stelligen Code ein",
+      "copied": "Einrichtungs-URL kopiert.",
+      "enabledToast": "Zwei-Faktor-Authentifizierung aktiviert.",
+      "disabledToast": "Zwei-Faktor-Authentifizierung deaktiviert.",
+      "backupWarning": "Speichere diese Backup-Codes jetzt. Jeder ist einmal verwendbar, falls du dein Gerät verlierst. Sie werden nicht erneut angezeigt.",
+      "backupCodesLabel": "Backup-Codes",
+      "backupSaved": "Ich habe meine Codes gespeichert",
+      "disableTitle": "Zwei-Faktor-Authentifizierung deaktivieren",
+      "disableHint": "Gib zur Bestätigung einen aktuellen Authenticator-Code oder einen Backup-Code ein.",
+      "disableCodeLabel": "Code",
+      "errors": {
+        "setup": "2FA-Einrichtung konnte nicht gestartet werden.",
+        "enable": "2FA konnte nicht aktiviert werden.",
+        "disable": "2FA konnte nicht deaktiviert werden.",
+        "badCode": "Dieser Code ist falsch. Bitte versuche es erneut."
+      }
+    }
+  },
+  "users": {
+    "title": "Benutzer",
+    "hint": "Verwalte die Personen, die sich in diesem Arbeitsbereich anmelden können.",
+    "add": "Benutzer hinzufügen",
+    "addTitle": "Benutzer hinzufügen",
+    "editTitle": "Benutzer bearbeiten",
+    "loadError": "Benutzer konnten nicht geladen werden.",
+    "empty": "Noch keine Benutzer.",
+    "savedCreate": "Benutzer erstellt.",
+    "savedEdit": "Benutzer aktualisiert.",
+    "disabledToast": "Benutzer deaktiviert.",
+    "enabledToast": "Benutzer aktiviert.",
+    "deletedToast": "Benutzer gelöscht.",
+    "disable": "Deaktivieren",
+    "enable": "Aktivieren",
+    "twoFactorOn": "Zwei-Faktor aktiviert",
+    "columns": {
+      "name": "Name",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "status": "Status",
+      "twoFactor": "2FA",
+      "actions": "Aktionen"
+    },
+    "roles": {
+      "administrator": "Administrator",
+      "member": "Mitglied"
+    },
+    "status": {
+      "active": "Aktiv",
+      "disabled": "Deaktiviert"
+    },
+    "fields": {
+      "email": "E-Mail",
+      "displayName": "Anzeigename",
+      "role": "Rolle",
+      "password": "Anfangspasswort",
+      "passwordHint": "Mindestens 8 Zeichen.",
+      "status": "Status",
+      "capabilities": "Berechtigungen"
+    },
+    "capabilities": {
+      "canManageSettings": "Einstellungen verwalten",
+      "canManageUsers": "Benutzer verwalten",
+      "canPermanentlyDelete": "Datensätze endgültig löschen",
+      "canViewFinancialTotals": "Finanzsummen anzeigen",
+      "canExportData": "Daten exportieren"
+    },
+    "reset": {
+      "action": "Passwort zurücksetzen",
+      "title": "Passwort zurücksetzen",
+      "hint": "Lege ein neues Passwort für {name} fest. Es kann nach der Anmeldung geändert werden.",
+      "newPassword": "Neues Passwort",
+      "tooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+      "done": "Passwort zurückgesetzt."
+    },
+    "delete": {
+      "action": "Löschen",
+      "title": "Benutzer löschen",
+      "message": "{name} löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Benutzer löschen"
+    },
+    "errors": {
+      "duplicate": "Ein Benutzer mit dieser E-Mail existiert bereits.",
+      "lastAdmin": "Du kannst den letzten Administrator nicht entfernen.",
+      "capabilityDenied": "Du kannst keine Berechtigungen erteilen, die du nicht hast.",
+      "generic": "Benutzer konnte nicht gespeichert werden."
+    }
+  },
+  "pwa": {
+    "install": {
+      "message": "Billy als App auf diesem Gerät installieren.",
+      "action": "App installieren"
+    },
+    "update": {
+      "message": "Eine neue Version von Billy ist verfügbar.",
+      "reload": "Neu laden"
+    }
+  },
+  "validations": {
+    "requiredField": "Dieses Feld ist erforderlich",
+    "invalidValue": "Ungultiger Wert",
+    "onlyNumbersAllowed": "Nur Zahlen sind erlaubt",
+    "insertValidEmail": "Gultige E-Mail-Adresse eingeben",
+    "insertValidPhone": "Gultige Telefonnummer eingeben",
+    "insertValidUrl": "Gultige URL eingeben",
+    "insertValidDomain": "Gultige Domain eingeben",
+    "insertValidImgPath": "Gultigen Bildpfad eingeben",
+    "insertValidCF": "Gultige Steuernummer eingeben",
+    "insertValidPiva": "Gultige USt-IdNr. eingeben (11 Ziffern)",
+    "onlyPdfAllowed": "Nur PDF-Dateien sind erlaubt",
+    "noPrefix": "Keine Landesvorwahl angeben",
+    "basicPasswordFormat": "Passwort muss mindestens 6 Zeichen haben",
+    "passwordFormat": "8-20 Zeichen mit Gross-, Kleinbuchstabe, Zahl und Symbol",
+    "maxLength": "Maximal {max} Zeichen",
+    "dates": {
+      "invalid": "Gultiges Datum eingeben",
+      "maxToday": "Datum darf nicht in der Zukunft liegen"
+    },
+    "formHasErrors": "Bitte behebe die markierten Fehler"
+  },
+  "accounts": {
+    "title": "Konten",
+    "listTitle": "Alle Konten",
+    "new": "Neues Konto",
+    "create": "Erstellen",
+    "edit": "Konto bearbeiten",
+    "created": "Konto erstellt",
+    "saved": "Konto gespeichert",
+    "deleted": "Konto gelöscht",
+    "loadError": "Konten konnten nicht geladen werden",
+    "saveError": "Konto konnte nicht gespeichert werden",
+    "columns": {
+      "name": "Name",
+      "slug": "Slug",
+      "status": "Status"
+    },
+    "fields": {
+      "name": "Kontoname",
+      "slug": "Slug",
+      "slugHint": "URL-sichere id; aus dem Namen abgeleitet, wenn leer",
+      "note": "Notiz",
+      "withAdmin": "Ersten Administrator erstellen",
+      "adminEmail": "Admin-E-Mail",
+      "adminName": "Admin-Name",
+      "adminPassword": "Admin-Passwort",
+      "status": "Status"
+    },
+    "delete": {
+      "action": "Konto löschen",
+      "title": "Konto dauerhaft löschen",
+      "warning": "Löscht „{name}“ und ALLE seine Daten dauerhaft.",
+      "warningDetail": "Jeder Kunde, jedes Dokument, jede Datei und Einstellung dieses Kontos wird gelöscht. Nicht umkehrbar.",
+      "proceed": "Verstanden — weiter",
+      "typeName": "Gib den Namen „{name}“ zur Bestätigung ein.",
+      "nameLabel": "Kontoname",
+      "passwordLabel": "Dein Sysadmin-Passwort",
+      "nameMismatch": "Der Name stimmt nicht überein.",
+      "wrongPassword": "Passwortprüfung fehlgeschlagen.",
+      "confirm": "Alles löschen"
+    }
+  },
+  "projects": {
+    "selector": {
+      "label": "Projekt (optional)",
+      "placeholder": "Projekte suchen…",
+      "noData": "Keine Projekte"
+    },
+    "title": "Projekte",
+    "new": "Neues Projekt",
+    "delete": "Löschen",
+    "empty": "Keine Projekte gefunden",
+    "retry": "Erneut versuchen",
+    "loadError": "Projekte konnten nicht geladen werden ({code}).",
+    "loadErrorGeneric": "Projekte konnten nicht geladen werden.",
+    "loadOneError": "Projekt konnte nicht geladen werden ({code}).",
+    "loadOneErrorGeneric": "Projekt konnte nicht geladen werden.",
+    "saveError": "Projekt konnte nicht gespeichert werden ({code}).",
+    "saveErrorGeneric": "Projekt konnte nicht gespeichert werden.",
+    "saved": "Projekt gespeichert",
+    "newTitle": "Neues Projekt",
+    "editTitle": "Projekt bearbeiten",
+    "create": "Projekt erstellen",
+    "columns": {
+      "name": "Name",
+      "description": "Beschreibung",
+      "status": "Status",
+      "color": "Farbe"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Beschreibung",
+      "color": "Farbe",
+      "status": "Status"
+    },
+    "form": {
+      "details": "Details",
+      "statusActive": "Aktiv",
+      "statusArchived": "Archiviert"
+    },
+    "confirm": {
+      "deleteTitle": "Projekt löschen",
+      "deleteMessage": "Projekt „{name}“ löschen? Dies kann nicht rückgängig gemacht werden."
+    }
+  },
+  "address": {
+    "line1": "Adresse"
+  },
+  "documents": {
+    "subject": "Betreff",
+    "preview": "Vorschau",
+    "previewError": "Die Vorschau konnte nicht erstellt werden."
+  }
+}

@@ -1,0 +1,102 @@
+# Prod overlay — resource limits, TLS on the proxy, ClamAV on. NO mailpit, NO
+# source/hot-reload mounts. STILL bind-mounts locally-built dist + config + data
+# (the updatable model §1.2 — this is NOT an immutable-image deployment).
+# Invoke: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prereq: `pnpm install && pnpm build` on the host (produces the bundles the
+# base file bind-mounts) and a fully-populated ./.env with strong secrets.
+
+name: billy
+
+services:
+  proxy:
+    # Prod uses Traefik's FILE provider (deploy/traefik/dynamic.yml), not the
+    # Docker provider — so Traefik needs NO access to the Docker socket. This
+    # sidesteps the Docker-provider API-version handshake (modern Docker Engine
+    # rejects Traefik's default old client version) AND removes socket exposure
+    # (a security win). Routers/services are defined statically by compose DNS
+    # name; the container's own labels are ignored here.
+    command:
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # ACME/Let's Encrypt — set ACME_EMAIL in .env.
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@example.com}"
+      - "--certificatesresolvers.le.acme.storage=/data/acme.json"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      # Redirect http→https.
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    volumes:
+      - ./data/proxy:/data
+      # Prod routing (websecure + Let's Encrypt) mounted at the path the file
+      # provider watches, replacing the base HTTP-only dynamic.yml.
+      - ./deploy/traefik/dynamic.prod.yml:/etc/traefik/dynamic.yml:ro
+    ports:
+      # Host-published in Billy's 3480–3490 range by default. On a public host,
+      # override to the standard web ports so Let's Encrypt's HTTP/TLS challenge
+      # and normal traffic reach it, e.g. in .env:
+      #   PROXY_HTTP_PORT=80
+      #   PROXY_HTTPS_PORT=443
+      # (or front these with an edge LB / firewall forward from 80/443).
+      - "${PROXY_HTTP_PORT:-3480}:80"
+      - "${PROXY_HTTPS_PORT:-3481}:443"
+    deploy:
+      resources:
+        limits: { memory: 256M }
+
+  web:
+    # Routing is defined in deploy/traefik/dynamic.yml (file provider); no labels.
+    deploy:
+      resources:
+        limits: { memory: 128M }
+
+  api:
+    environment:
+      APP_ENV: production
+      # Prod redis requires a password (--requirepass below) — the base
+      # REDIS_URL has none, so override it here or every job/session op gets
+      # NOAUTH. Must stay in sync with the redis `command` password.
+      REDIS_URL: redis://:${REDIS_PASSWORD:-change-me-in-env}@redis:6379
+    # Routing is defined in deploy/traefik/dynamic.yml (file provider); no labels.
+    deploy:
+      resources:
+        limits: { memory: 512M }
+
+  worker:
+    environment:
+      APP_ENV: production
+      # Same prod-redis-auth override as the api (see note there).
+      REDIS_URL: redis://:${REDIS_PASSWORD:-change-me-in-env}@redis:6379
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-true}
+      CLAMAV_HOST: clamav
+    deploy:
+      resources:
+        # Chromium is memory-hungry; cap it. Raise with PDF_CONCURRENCY.
+        limits: { memory: 1536M }
+
+  mongodb:
+    deploy:
+      resources:
+        limits: { memory: 1G }
+
+  redis:
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-change-me-in-env}"]
+    deploy:
+      resources:
+        limits: { memory: 512M }
+
+  # ── ClamAV — upload AV scanning sidecar (toggle with CLAMAV_ENABLED) ─────────
+  clamav:
+    image: clamav/clamav:latest
+    restart: unless-stopped
+    networks: [internal]
+    volumes:
+      - ./data/clamav:/var/lib/clamav   # persist the freshclam DB across restarts
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s               # first freshclam DB download is slow

@@ -1,0 +1,1354 @@
+{
+  "app": {
+    "subtitle": "Faturação"
+  },
+  "tables": {
+    "search_placeholder": "Pesquisar…",
+    "no_results": "Nenhum resultado encontrado",
+    "configure_columns": "Configurar colunas",
+    "show": "Mostrar",
+    "entries": "registos",
+    "showing_items": "A mostrar {from}–{to} de {total}"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "clients": "Clientes",
+    "invoices": "Faturas",
+    "quotes": "Orçamentos",
+    "expenses": "Despesas",
+    "contracts": "Contratos",
+    "timeEntries": "Registos de tempo",
+    "subscriptions": "Subscrições",
+    "recurring": "Recorrentes",
+    "creditNotes": "Notas de crédito",
+    "proforma": "Proforma",
+    "settings": "Definições",
+    "documents": "Documentos",
+    "accounts": "Contas",
+    "projects": "Projetos"
+  },
+  "shell": {
+    "collapseNav": "Recolher navegação",
+    "expandNav": "Expandir navegação",
+    "primaryNav": "Navegação principal",
+    "mainContent": "Conteúdo principal",
+    "signOut": "Terminar sessão",
+    "theme": "Tema: {mode}. Ative para alterar."
+  },
+  "account": {
+    "label": "Conta",
+    "switch": "Mudar de conta",
+    "switchError": "Não foi possível mudar de conta"
+  },
+  "period": {
+    "year": "Ano {year}",
+    "selectAll": "Ano inteiro",
+    "clear": "Limpar",
+    "allMonths": "Todos os meses",
+    "docCount": "{count} documento | {count} documento | {count} documentos",
+    "loadError": "Não foi possível carregar os totais mensais"
+  },
+  "locale": {
+    "label": "Idioma",
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "fr": "Français",
+    "ru": "Русский",
+    "pt": "Português",
+    "de": "Deutsch"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "markAllRead": "Marcar todas como lidas",
+    "empty": "Está tudo em dia",
+    "push": {
+      "label": "Notificações push neste dispositivo",
+      "denied": "Bloqueadas — permita as notificações nas definições do navegador"
+    }
+  },
+  "clients": {
+    "title": "Clientes",
+    "search": "Pesquisar clientes",
+    "empty": "Nenhum cliente encontrado",
+    "loadError": "Não foi possível carregar os clientes ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os clientes.",
+    "retry": "Tentar novamente",
+    "columns": {
+      "name": "Nome",
+      "type": "Tipo",
+      "email": "E-mail",
+      "vatNumber": "Número de IVA",
+      "country": "País",
+      "currency": "Moeda"
+    },
+    "selector": {
+      "label": "Cliente",
+      "placeholder": "Pesquisar clientes",
+      "noData": "Nenhum cliente correspondente",
+      "loadError": "Não foi possível pesquisar clientes."
+    },
+    "new": "Adicionar cliente",
+    "newTitle": "Novo cliente",
+    "editTitle": "Editar cliente",
+    "create": "Criar cliente",
+    "loadOneError": "Não foi possível carregar o cliente ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar o cliente.",
+    "saveError": "Não foi possível guardar o cliente ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar o cliente.",
+    "fields": {
+      "type": "Tipo",
+      "displayName": "Nome de apresentação",
+      "legalName": "Denominação legal",
+      "firstName": "Nome próprio",
+      "lastName": "Apelido",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "vatNumber": "Número de IVA",
+      "preferredCurrency": "Moeda preferida",
+      "tags": "Etiquetas",
+      "addrLine1": "Morada linha 1",
+      "addrLine2": "Morada linha 2",
+      "addrCity": "Cidade",
+      "addrRegion": "Região",
+      "addrPostalCode": "Código postal",
+      "addrCountry": "País",
+      "preferredLanguage": "Idioma preferido",
+      "referral": "Pessoa de contacto"
+    },
+    "form": {
+      "typeCompany": "Empresa",
+      "typeIndividual": "Particular",
+      "emailRule": "Introduza um e-mail válido",
+      "tagsHint": "Prima Enter para adicionar uma etiqueta.",
+      "billingAddress": "Morada de faturação",
+      "countryHint": "Código de 2 letras (ex. IT).",
+      "details": "Detalhes",
+      "languageHint": "Documentos e e-mails para este cliente usarão este idioma."
+    },
+    "saved": "Cliente guardado"
+  },
+  "common": {
+    "loading": "A carregar…",
+    "required": "Obrigatório",
+    "currencyRule": "Código ISO de 3 letras",
+    "back": "Voltar",
+    "edit": "Editar",
+    "cancel": "Cancelar",
+    "retry": "Tentar novamente",
+    "saveChanges": "Guardar alterações",
+    "yes": "Sim",
+    "no": "Não",
+    "actionFailed": "A ação falhou ({code}).",
+    "actionFailedGeneric": "A ação falhou.",
+    "confirm": "Confirmar",
+    "dismiss": "Dispensar"
+  },
+  "invoices": {
+    "title": "Faturas",
+    "new": "Nova fatura",
+    "newTitle": "Nova fatura",
+    "editTitle": "Editar fatura",
+    "detailTitle": "Fatura",
+    "create": "Criar fatura",
+    "empty": "Nenhuma fatura encontrada",
+    "draftUnnumbered": "Rascunho (sem número)",
+    "allStatuses": "Todos os estados",
+    "loadError": "Não foi possível carregar as faturas ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar as faturas.",
+    "loadOneError": "Não foi possível carregar a fatura ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar a fatura.",
+    "saveError": "Não foi possível guardar a fatura ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar a fatura.",
+    "locked": "Esta fatura não é um rascunho e já não pode ser editada.",
+    "dueRule": "A data de vencimento deve ser igual ou posterior à data de emissão",
+    "finalize": "Finalizar",
+    "void": "Anular",
+    "send": "Enviar",
+    "sendReminder": "Enviar lembrete",
+    "addPayment": "Adicionar pagamento",
+    "recordPayment": "Registar pagamento",
+    "positiveAmount": "Introduza um valor de pagamento positivo.",
+    "noPayments": "Nenhum pagamento registado.",
+    "lineItems": "Linhas",
+    "payments": "Pagamentos",
+    "filterStatus": "Filtrar por estado",
+    "columns": {
+      "number": "Número",
+      "status": "Estado",
+      "issueDate": "Data de emissão",
+      "dueDate": "Data de vencimento",
+      "total": "Total",
+      "due": "Em dívida"
+    },
+    "fields": {
+      "client": "Cliente",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "dueDate": "Data de vencimento",
+      "notes": "Notas",
+      "bankAccount": "Conta bancária"
+    },
+    "detail": {
+      "client": "Cliente",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "dueDate": "Data de vencimento"
+    },
+    "lineCols": {
+      "description": "Descrição",
+      "qty": "Qtd",
+      "unit": "Unidade",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "total": "Total",
+      "paid": "Pago",
+      "due": "Em dívida"
+    },
+    "payColumns": {
+      "date": "Data",
+      "method": "Método",
+      "reference": "Referência",
+      "amount": "Valor"
+    },
+    "payDialog": {
+      "title": "Adicionar pagamento",
+      "amount": "Valor",
+      "date": "Data",
+      "method": "Método",
+      "reference": "Referência (opcional)"
+    },
+    "schedule": {
+      "action": "Agendar envio",
+      "unscheduleAction": "Cancelar agendamento",
+      "dialogTitle": "Agendar envio",
+      "dialogHint": "A fatura permanece como rascunho e é finalizada automaticamente na data escolhida.",
+      "dateLabel": "Data de envio",
+      "dateError": "Escolha hoje ou uma data posterior.",
+      "confirm": "Agendar",
+      "cancel": "Cancelar",
+      "banner": "Agendada para finalizar a {date}."
+    },
+    "bankAccountHint": "Dados bancários anexados a esta fatura.",
+    "completion": {
+      "title": "Fatura criada",
+      "hint": "O rascunho da fatura foi guardado. O que deseja fazer a seguir?",
+      "finalizeAndSend": "Finalizar e enviar",
+      "schedule": "Agendar",
+      "keepDraft": "Manter como rascunho"
+    },
+    "confirm": {
+      "finalizeTitle": "Finalizar fatura?",
+      "finalizeMessage": "Finalizar atribui um número e bloqueia a fatura. Não pode ser desfeito.",
+      "voidTitle": "Anular fatura?",
+      "voidMessage": "Anular cancela permanentemente esta fatura. Não pode ser desfeito.",
+      "unscheduleTitle": "Cancelar agendamento?",
+      "unscheduleMessage": "Esta fatura não será mais enviada automaticamente."
+    },
+    "saved": "Fatura guardada"
+  },
+  "quotes": {
+    "title": "Orçamentos",
+    "new": "Novo orçamento",
+    "newTitle": "Novo orçamento",
+    "editTitle": "Editar orçamento",
+    "detailTitle": "Orçamento",
+    "create": "Criar orçamento",
+    "empty": "Nenhum orçamento encontrado",
+    "draftUnnumbered": "Rascunho (sem número)",
+    "allStatuses": "Todos os estados",
+    "filterStatus": "Filtrar por estado",
+    "loadError": "Não foi possível carregar os orçamentos ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os orçamentos.",
+    "loadOneError": "Não foi possível carregar o orçamento ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar o orçamento.",
+    "saveError": "Não foi possível guardar o orçamento ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar o orçamento.",
+    "locked": "Este orçamento não é um rascunho e já não pode ser editado.",
+    "expiryRule": "A data de validade deve ser igual ou posterior à data de emissão",
+    "send": "Enviar",
+    "accept": "Aceitar",
+    "decline": "Recusar",
+    "convert": "Converter em fatura",
+    "converted": "Convertido na fatura {id}.",
+    "lineItems": "Linhas",
+    "columns": {
+      "number": "Número",
+      "status": "Estado",
+      "issueDate": "Data de emissão",
+      "expiryDate": "Data de validade",
+      "total": "Total"
+    },
+    "fields": {
+      "clientId": "ID do cliente",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "expiryDate": "Data de validade",
+      "notes": "Notas"
+    },
+    "detail": {
+      "client": "Cliente",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "expiryDate": "Data de validade"
+    },
+    "lineCols": {
+      "description": "Descrição",
+      "qty": "Qtd",
+      "unit": "Unidade",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "total": "Total"
+    },
+    "confirm": {
+      "sendTitle": "Enviar orçamento?",
+      "sendMessage": "O orçamento será marcado como enviado.",
+      "acceptTitle": "Aceitar orçamento?",
+      "acceptMessage": "Marcar este orçamento como aceite?",
+      "declineTitle": "Recusar orçamento?",
+      "declineMessage": "Marcar este orçamento como recusado?",
+      "convertTitle": "Converter em fatura?",
+      "convertMessage": "Será criada uma nova fatura em rascunho a partir deste orçamento."
+    },
+    "saved": "Orcamento guardado"
+  },
+  "contracts": {
+    "title": "Contratos",
+    "new": "Novo contrato",
+    "newTitle": "Novo contrato",
+    "editTitle": "Editar contrato",
+    "detailTitle": "Contrato",
+    "create": "Criar contrato",
+    "send": "Enviar",
+    "empty": "Nenhum contrato encontrado",
+    "allStatuses": "Todos os estados",
+    "allTypes": "Todos os tipos",
+    "filterStatus": "Filtrar por estado",
+    "filterType": "Filtrar por tipo",
+    "loadError": "Não foi possível carregar os contratos ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os contratos.",
+    "loadOneError": "Não foi possível carregar o contrato ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar o contrato.",
+    "saveError": "Não foi possível guardar o contrato ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar o contrato.",
+    "endDateRule": "A data de fim deve ser igual ou posterior à data de início",
+    "columns": {
+      "title": "Título",
+      "type": "Tipo",
+      "status": "Estado",
+      "start": "Início",
+      "end": "Fim",
+      "value": "Valor"
+    },
+    "fields": {
+      "clientId": "ID do cliente",
+      "title": "Título",
+      "type": "Tipo",
+      "startDate": "Data de início",
+      "endDate": "Data de fim",
+      "value": "Valor",
+      "currency": "Moeda",
+      "terms": "Termos",
+      "notes": "Notas"
+    },
+    "saved": "Contrato guardado"
+  },
+  "expenses": {
+    "title": "Despesas",
+    "new": "Nova despesa",
+    "newTitle": "Nova despesa",
+    "editTitle": "Editar despesa",
+    "create": "Criar despesa",
+    "empty": "Nenhuma despesa encontrada",
+    "filterStatus": "Filtrar por estado",
+    "loadError": "Não foi possível carregar as despesas ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar as despesas.",
+    "loadOneError": "Não foi possível carregar a despesa ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar a despesa.",
+    "saveError": "Não foi possível guardar a despesa ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar a despesa.",
+    "amountRule": "O valor deve ser positivo",
+    "columns": {
+      "vendor": "Fornecedor",
+      "category": "Categoria",
+      "date": "Data",
+      "amount": "Valor",
+      "status": "Estado",
+      "billable": "Faturável"
+    },
+    "fields": {
+      "amount": "Valor",
+      "currency": "Moeda",
+      "category": "Categoria",
+      "date": "Data",
+      "vendor": "Fornecedor",
+      "clientId": "ID do cliente",
+      "description": "Descrição",
+      "billable": "Faturável"
+    },
+    "saved": "Despesa guardada"
+  },
+  "subscriptions": {
+    "title": "Subscrições",
+    "new": "Nova subscrição",
+    "newTitle": "Nova subscrição",
+    "editTitle": "Editar subscrição",
+    "create": "Criar subscrição",
+    "empty": "Nenhuma subscrição encontrada",
+    "filterStatus": "Filtrar por estado",
+    "loadError": "Não foi possível carregar as subscrições ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar as subscrições.",
+    "loadOneError": "Não foi possível carregar a subscrição ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar a subscrição.",
+    "saveError": "Não foi possível guardar a subscrição ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar a subscrição.",
+    "amountRequired": "Obrigatório",
+    "amountRule": "Deve ser maior que 0",
+    "nextBillingRule": "A próxima faturação deve ser igual ou posterior à data de início",
+    "amountHint": "Valor em unidades inteiras (p. ex. 49.00).",
+    "clientIdHint": "O seletor de clientes chegará com o módulo de clientes; introduza o id por agora.",
+    "columns": {
+      "name": "Nome",
+      "plan": "Plano",
+      "amount": "Valor",
+      "interval": "Intervalo",
+      "status": "Estado",
+      "nextBilling": "Próxima faturação"
+    },
+    "fields": {
+      "clientId": "ID do cliente",
+      "name": "Nome",
+      "plan": "Plano",
+      "amount": "Valor",
+      "currency": "Moeda",
+      "interval": "Intervalo",
+      "startDate": "Data de início",
+      "nextBillingDate": "Data da próxima faturação",
+      "client": "Cliente",
+      "url": "URL",
+      "note": "Nota"
+    },
+    "urlRule": "Introduza um URL válido",
+    "urlHint": "Opcional. ex. https://example.com",
+    "saved": "Subscricao guardada"
+  },
+  "timeEntries": {
+    "title": "Registos de tempo",
+    "new": "Novo registo de tempo",
+    "newTitle": "Novo registo de tempo",
+    "editTitle": "Editar registo de tempo",
+    "create": "Criar registo de tempo",
+    "empty": "Nenhum registo de tempo encontrado",
+    "filterBillable": "Filtrar por faturável",
+    "loadError": "Não foi possível carregar os registos de tempo ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os registos de tempo.",
+    "loadOneError": "Não foi possível carregar o registo de tempo ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar o registo de tempo.",
+    "saveError": "Não foi possível guardar o registo de tempo ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar o registo de tempo.",
+    "durationRule": "Deve ser um número inteiro ≥ 0",
+    "rateHint": "Opcional. Valor em unidades inteiras (p. ex. 85.00).",
+    "projectIdHint": "Opcional.",
+    "columns": {
+      "date": "Data",
+      "description": "Descrição",
+      "duration": "Duração",
+      "billable": "Faturável",
+      "billed": "Faturado",
+      "rate": "Tarifa"
+    },
+    "fields": {
+      "description": "Descrição",
+      "date": "Data",
+      "duration": "Duração (minutos)",
+      "rate": "Tarifa (por hora)",
+      "billable": "Faturável",
+      "clientId": "ID do cliente",
+      "projectId": "ID do projeto"
+    },
+    "saved": "Registo de tempo guardado"
+  },
+  "recurring": {
+    "title": "Perfis recorrentes",
+    "new": "Novo perfil",
+    "create": "Criar perfil",
+    "newTitle": "Novo perfil recorrente",
+    "editTitle": "Editar perfil recorrente",
+    "detailTitle": "Perfil recorrente",
+    "empty": "Nenhum perfil recorrente encontrado",
+    "retry": "Tentar novamente",
+    "loadError": "Não foi possível carregar os perfis recorrentes ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os perfis recorrentes.",
+    "saveError": "Não foi possível guardar o perfil ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar o perfil.",
+    "locked": "Este perfil já não está ativo e não pode mais ser editado.",
+    "countRule": "Deve ser pelo menos 1",
+    "endRule": "A data de fim deve ser igual ou posterior à data de início",
+    "everyN": "A cada {n} × {unit}",
+    "generateNow": "Gerar agora",
+    "generated": "Ocorrência gerada.",
+    "generateExhausted": "Este perfil está concluído — não há nada a gerar.",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "cancel": "Cancelar perfil",
+    "occurrences": "Ocorrências geradas",
+    "lastRun": "Última execução",
+    "lineItems": "Linhas",
+    "interval": {
+      "weekly": "Semanal",
+      "monthly": "Mensal",
+      "quarterly": "Trimestral",
+      "yearly": "Anual"
+    },
+    "columns": {
+      "client": "Cliente",
+      "interval": "Intervalo",
+      "status": "Estado",
+      "nextRun": "Próxima execução",
+      "total": "Total",
+      "docType": "Tipo de documento"
+    },
+    "fields": {
+      "client": "Cliente",
+      "currency": "Moeda",
+      "interval": "Intervalo",
+      "intervalCount": "A cada",
+      "maxOccurrences": "Máx. de ocorrências",
+      "repeatOn": "Repetir em",
+      "repeatOnStartDay": "Mesmo dia da data de início",
+      "repeatOnDayOfMonth": "Um dia específico do mês",
+      "dayOfMonth": "Dia do mês",
+      "dayOfMonthHint": "Meses mais curtos usam o último dia.",
+      "startDate": "Data de início",
+      "endDate": "Data de fim",
+      "notes": "Notas"
+    },
+    "lineCols": {
+      "description": "Descrição",
+      "qty": "Qtd.",
+      "unit": "Unidade",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "total": "Total"
+    },
+    "fromDocHint": "A recorrência agora é configurada a partir de um documento. Abra uma nova fatura, proforma ou despesa e ative “Tornar recorrente”.",
+    "toggle": {
+      "enable": "Tornar recorrente",
+      "hint": "Será criado um perfil recorrente e os documentos futuros serão gerados automaticamente com esta periodicidade.",
+      "created": "Perfil recorrente criado.",
+      "viewList": "Ver recorrentes",
+      "createError": "Não foi possível criar o perfil recorrente ({code}).",
+      "createErrorGeneric": "Não foi possível criar o perfil recorrente.",
+      "clientRequired": "É necessário um cliente para tornar uma despesa recorrente."
+    }
+  },
+  "creditNotes": {
+    "title": "Notas de crédito",
+    "new": "Nova nota de crédito",
+    "create": "Criar nota de crédito",
+    "newTitle": "Nova nota de crédito",
+    "editTitle": "Editar nota de crédito",
+    "detailTitle": "Nota de crédito",
+    "empty": "Nenhuma nota de crédito encontrada",
+    "retry": "Tentar novamente",
+    "draftUnnumbered": "Rascunho (sem número)",
+    "loadError": "Não foi possível carregar as notas de crédito ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar as notas de crédito.",
+    "saveError": "Não foi possível guardar a nota de crédito ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar a nota de crédito.",
+    "locked": "Esta nota de crédito está emitida ou anulada e não pode mais ser editada.",
+    "issue": "Emitir",
+    "void": "Anular",
+    "lineItems": "Linhas",
+    "columns": {
+      "number": "Número",
+      "client": "Cliente",
+      "status": "Estado",
+      "issueDate": "Data de emissão",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Cliente",
+      "creditedInvoice": "Fatura creditada",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "reason": "Motivo",
+      "notes": "Notas"
+    },
+    "selector": {
+      "label": "Fatura creditada",
+      "placeholder": "Pesquisar faturas",
+      "noData": "Nenhuma fatura correspondente",
+      "draftLabel": "Rascunho (sem número)"
+    },
+    "lineCols": {
+      "description": "Descrição",
+      "qty": "Qtd.",
+      "unit": "Unidade",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "total": "Total"
+    },
+    "confirm": {
+      "issueTitle": "Emitir nota de crédito?",
+      "issueMessage": "Emitir atribui um número a esta nota de crédito.",
+      "voidTitle": "Anular nota de crédito?",
+      "voidMessage": "Anular cancela permanentemente esta nota de crédito. Não pode ser desfeito."
+    },
+    "saved": "Nota de credito guardada"
+  },
+  "proformas": {
+    "title": "Proforma",
+    "new": "Nova proforma",
+    "create": "Criar proforma",
+    "newTitle": "Nova proforma",
+    "editTitle": "Editar proforma",
+    "detailTitle": "Proforma",
+    "empty": "Nenhuma proforma encontrada",
+    "retry": "Tentar novamente",
+    "draftUnnumbered": "Rascunho (sem número)",
+    "loadError": "Não foi possível carregar as proformas ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar as proformas.",
+    "saveError": "Não foi possível guardar a proforma ({code}).",
+    "saveErrorGeneric": "Não foi possível guardar a proforma.",
+    "locked": "Esta proforma está emitida ou anulada e não pode mais ser editada.",
+    "expiryRule": "A data de validade deve ser igual ou posterior à data de emissão",
+    "issue": "Emitir",
+    "void": "Anular",
+    "converted": "Convertida na fatura {id}.",
+    "lineItems": "Linhas",
+    "columns": {
+      "number": "Número",
+      "client": "Cliente",
+      "status": "Estado",
+      "issueDate": "Data de emissão",
+      "expiryDate": "Data de validade",
+      "total": "Total"
+    },
+    "fields": {
+      "client": "Cliente",
+      "currency": "Moeda",
+      "issueDate": "Data de emissão",
+      "expiryDate": "Data de validade",
+      "notes": "Notas"
+    },
+    "lineCols": {
+      "description": "Descrição",
+      "qty": "Qtd.",
+      "unit": "Unidade",
+      "total": "Total"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "total": "Total"
+    },
+    "convert": "Converter em fatura",
+    "confirm": {
+      "issueTitle": "Emitir proforma?",
+      "issueMessage": "Emitir atribui um número a esta proforma.",
+      "voidTitle": "Anular proforma?",
+      "voidMessage": "Anular cancela permanentemente esta proforma. Não pode ser desfeito.",
+      "convertTitle": "Converter em fatura?",
+      "convertMessage": "Será criada uma nova fatura em rascunho a partir desta proforma."
+    },
+    "saved": "Proforma guardada"
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo",
+    "welcomeNamed": "Bem-vindo, {name}",
+    "currency": "Moeda",
+    "retry": "Tentar novamente",
+    "loadError": "Não foi possível carregar o painel ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar o painel.",
+    "cards": {
+      "clients": "Clientes",
+      "activeSubscriptions": "Subscrições ativas",
+      "unbilledTimeEntries": "Tempo não faturado",
+      "expenses": "Despesas",
+      "invoicedThisMonth": "Faturado",
+      "collectedThisMonth": "Cobrado",
+      "outstanding": "Em dívida",
+      "overdue": "Em atraso"
+    },
+    "chart": {
+      "revenueTitle": "Receita ({year})",
+      "revenueEmpty": "Ainda sem receita",
+      "outstandingTitle": "Em dívida vs em atraso",
+      "outstandingEmpty": "Nada em dívida",
+      "invoiced": "Faturado",
+      "collected": "Cobrado",
+      "current": "Em dia",
+      "overdue": "Em atraso",
+      "revenueExpenseTitle": "Receita vs despesas ({year})",
+      "revenueExpenseEmpty": "Ainda sem receita ou despesas",
+      "expenses": "Despesas"
+    },
+    "activity": {
+      "title": "Atividade recente",
+      "window": "últimos {days} dias",
+      "clients": "Novos clientes",
+      "expenses": "Novas despesas",
+      "timeEntries": "Registos de tempo",
+      "subscriptions": "Subscrições"
+    },
+    "year": "Ano",
+    "counts": {
+      "title": "Documentos por mês",
+      "empty": "Ainda sem documentos"
+    },
+    "docType": {
+      "invoices": "Faturas",
+      "proforma": "Proforma",
+      "quotes": "Orçamentos",
+      "creditNotes": "Notas de crédito",
+      "contracts": "Contratos",
+      "expenses": "Despesas"
+    },
+    "drilldown": {
+      "docType": "Tipo de documento",
+      "months": "Meses",
+      "allMonths": "Todos os meses",
+      "showing": "A mostrar: {months}",
+      "untitled": "Sem título",
+      "empty": "Nenhum documento para esta seleção",
+      "error": "Não foi possível carregar os documentos ({code}).",
+      "errorGeneric": "Não foi possível carregar os documentos."
+    },
+    "heatmap": {
+      "title": "Atividade por mês ({year})",
+      "rowLabel": "Atividade",
+      "empty": "Ainda sem atividade"
+    }
+  },
+  "notification": {
+    "event": {
+      "quote": {
+        "created": {
+          "title": "Orçamento criado",
+          "body": "O orçamento {entity} foi criado"
+        },
+        "sent": {
+          "title": "Orçamento enviado",
+          "body": "O orçamento {entity} foi enviado"
+        },
+        "converted": {
+          "title": "Orçamento convertido",
+          "body": "O orçamento {entity} foi convertido em fatura"
+        },
+        "accepted": {
+          "title": "Orçamento aceite",
+          "body": "O orçamento {entity} foi aceite"
+        },
+        "declined": {
+          "title": "Orçamento recusado",
+          "body": "O orçamento {entity} foi recusado"
+        }
+      },
+      "invoice": {
+        "created": {
+          "title": "Fatura criada",
+          "body": "A fatura {entity} foi criada"
+        },
+        "finalized": {
+          "title": "Fatura finalizada",
+          "body": "A fatura {entity} foi finalizada"
+        },
+        "scheduled": {
+          "title": "Fatura agendada",
+          "body": "O envio da fatura {entity} foi agendado"
+        },
+        "paid": {
+          "title": "Fatura paga",
+          "body": "A fatura {entity} foi paga na totalidade"
+        },
+        "void": {
+          "title": "Fatura anulada",
+          "body": "A fatura {entity} foi anulada"
+        }
+      },
+      "client": {
+        "created": {
+          "title": "Cliente adicionado",
+          "body": "O cliente {entity} foi adicionado"
+        }
+      },
+      "contract": {
+        "created": {
+          "title": "Contrato criado",
+          "body": "O contrato {entity} foi criado"
+        },
+        "renewed": {
+          "title": "Contrato renovado",
+          "body": "O contrato {entity} foi renovado"
+        }
+      },
+      "expense": {
+        "created": {
+          "title": "Despesa registada",
+          "body": "A despesa {entity} foi registada"
+        },
+        "invoiced": {
+          "title": "Despesa faturada",
+          "body": "A despesa {entity} foi adicionada a uma fatura"
+        }
+      },
+      "generic": {
+        "title": "Notificação",
+        "body": "Atualização de {entity}"
+      }
+    }
+  },
+  "enums": {
+    "status": {
+      "draft": "Rascunho",
+      "scheduled": "Agendado",
+      "sent": "Enviado",
+      "accepted": "Aceite",
+      "declined": "Recusado",
+      "converted": "Convertido",
+      "finalized": "Finalizado",
+      "partially_paid": "Parcialmente pago",
+      "paid": "Pago",
+      "void": "Anulado",
+      "active": "Ativo",
+      "paused": "Em pausa",
+      "cancelled": "Cancelado",
+      "completed": "Concluído",
+      "issued": "Emitido",
+      "expired": "Expirado",
+      "expiring": "A expirar",
+      "renewed": "Renovado",
+      "terminated": "Rescindido",
+      "archived": "Arquivado",
+      "invoiced": "Faturado"
+    },
+    "contractType": {
+      "development": "Desenvolvimento",
+      "maintenance": "Manutenção",
+      "hosting": "Alojamento",
+      "support": "Suporte",
+      "consulting": "Consultoria",
+      "service_agreement": "Contrato de serviços",
+      "retainer": "Avença",
+      "other": "Outro"
+    },
+    "paymentMethod": {
+      "bank_transfer": "Transferência bancária",
+      "cash": "Dinheiro",
+      "card": "Cartão",
+      "other": "Outro",
+      "paypal": "PayPal",
+      "stripe": "Stripe",
+      "direct_debit": "Débito direto"
+    },
+    "recurringDocType": {
+      "invoice": "Fatura",
+      "proforma": "Proforma",
+      "expense": "Despesa"
+    }
+  },
+  "settings": {
+    "pageTitle": "Configurações",
+    "branding": {
+      "identity": "Identidade",
+      "colors": "Cores",
+      "appName": "Nome do aplicativo",
+      "logo": "Logótipo",
+      "logoPreview": "Pré-visualização do logótipo",
+      "icon": "Ícone do app (favicon)",
+      "iconHint": "Exibido na aba do navegador; também é o ícone do app. Recomenda-se uma imagem quadrada.",
+      "primaryColor": "Cor primária",
+      "secondaryColor": "Cor secundária",
+      "accentColor": "Cor de destaque",
+      "save": "Guardar marca",
+      "saved": "Marca guardada",
+      "loadError": "Não foi possível carregar a marca.",
+      "saveError": "Não foi possível guardar a marca.",
+      "identityHint": "O nome e o logótipo aparecem na interface e nos documentos.",
+      "colorsHint": "As cores são aplicadas ao tema em tempo real.",
+      "themeMode": "Modo de tema predefinido",
+      "themeSystem": "Sistema",
+      "themeLight": "Claro",
+      "themeDark": "Escuro",
+      "supportEmail": "E-mail de suporte",
+      "loginBackground": "Fundo de login",
+      "loginBackgroundHint": "Envie uma imagem para o fundo da página de login (opcional)."
+    },
+    "documents": {
+      "title": "Design de documentos",
+      "controls": "Controlos",
+      "layout": "Disposição",
+      "headerHtml": "HTML do cabeçalho do documento",
+      "footerHtml": "HTML do rodapé do documento",
+      "headerHint": "Mostrado no topo de cada documento. Apenas formatação adequada à impressão.",
+      "footerHint": "Mostrado no fundo de cada documento. Apenas formatação adequada à impressão.",
+      "logoPosition": "Posição do logótipo",
+      "logoLeft": "Esquerda",
+      "logoRight": "Direita",
+      "logoPositionHint": "Em que lado fica o logótipo da empresa; os dados da empresa ficam no lado oposto.",
+      "companyLogo": "Logótipo da empresa (mostrado nos documentos)",
+      "companyLogoHint": "Distinto do logótipo da aplicação: este aparece em faturas, orçamentos e PDF.",
+      "companyLogoPreview": "Pré-visualização do logótipo da empresa",
+      "showBankDetails": "Mostrar dados bancários",
+      "showBankDetailsHint": "Adiciona um bloco de dados bancários acima do rodapé quando existem dados bancários da empresa.",
+      "save": "Guardar design",
+      "saved": "Design guardado",
+      "loadError": "Não foi possível carregar o design.",
+      "saveError": "Não foi possível guardar o design.",
+      "preview": "Pré-visualização — aproximada",
+      "previewHint": "Aproximação do PDF; o documento final é gerado pelo servidor.",
+      "invoiceHeading": "FATURA n.º {number} de {date}",
+      "recipient": "Destinatário",
+      "sampleCompanyName": "A Sua Empresa Lda",
+      "sampleAddress": "Rua Exemplo 1 - 00100 - Roma (RM)",
+      "sampleClient": "Acme Corporation",
+      "sampleRecipientAddress": "Avenida Cliente 5 - 20100 - Milão (MI)",
+      "colDescription": "Descrição",
+      "colQty": "Qtd",
+      "colPrice": "Preço",
+      "colAmount": "Valor",
+      "sampleItem1": "Serviços de consultoria",
+      "sampleItem2": "Trabalho de design",
+      "subtotal": "Subtotal",
+      "tax": "Imposto",
+      "grandTotal": "Total",
+      "bankTitle": "Dados bancários",
+      "bankName": "Banco",
+      "bankAccount": "Conta",
+      "bankIban": "IBAN",
+      "bankBic": "BIC"
+    },
+    "documentDesignTab": "Design de documentos",
+    "emailContractDesignTab": "E-mail e contrato",
+    "emailContract": {
+      "contractTitle": "Cabeçalho e rodapé do contrato",
+      "contractHint": "HTML que envolve o topo e o rodapé dos contratos renderizados.",
+      "contractHeader": "Cabeçalho do contrato",
+      "contractFooter": "Rodapé do contrato",
+      "emailTitle": "Cabeçalho e rodapé do e-mail",
+      "emailHint": "HTML que envolve o topo e o rodapé dos e-mails enviados.",
+      "emailHeader": "Cabeçalho do e-mail",
+      "emailFooter": "Rodapé do e-mail",
+      "save": "Guardar",
+      "saved": "Design de e-mail e contrato guardado",
+      "loadError": "Não foi possível carregar o design de e-mail e contrato.",
+      "saveError": "Não foi possível guardar o design de e-mail e contrato."
+    },
+    "bankAccounts": {
+      "title": "Contas bancárias",
+      "hint": "Contas bancárias nomeadas que pode anexar às faturas.",
+      "label": "Etiqueta",
+      "details": "Detalhes",
+      "add": "Adicionar conta bancária",
+      "remove": "Remover",
+      "empty": "Ainda não há contas bancárias."
+    },
+    "company": {
+      "businessName": "Nome comercial",
+      "legalName": "Razão social",
+      "vatNumber": "Número de IVA",
+      "taxCode": "Código fiscal",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "website": "Site",
+      "save": "Guardar dados da empresa",
+      "saved": "Dados da empresa guardados",
+      "loadError": "Não foi possível carregar os dados da empresa.",
+      "saveError": "Não foi possível guardar os dados da empresa.",
+      "address": {
+        "title": "Endereço",
+        "hint": "Endereço postal apresentado nos seus documentos.",
+        "line1": "Linha de endereço 1",
+        "line2": "Linha de endereço 2",
+        "city": "Cidade",
+        "region": "Região / Estado",
+        "postalCode": "Código postal",
+        "country": "País (código ISO)"
+      }
+    },
+    "advanced": {
+      "uploadMaxMb": "Tamanho máximo de envio (MB)",
+      "backupSchedule": "Agendamento de backups (cron)",
+      "clamavEnabled": "Análise ClamAV",
+      "backupEnabled": "Backups automáticos",
+      "allowPublicLinks": "Permitir ligações públicas",
+      "save": "Guardar definições avançadas",
+      "saved": "Definições avançadas guardadas",
+      "loadError": "Não foi possível carregar as opções.",
+      "saveError": "Não foi possível guardar as opções.",
+      "backupRetentionDays": "Retenção de backups (dias)",
+      "softDeleteRetentionDays": "Retenção de exclusão suave (dias)",
+      "sessionIdleTtlMinutes": "Tempo ocioso da sessão (min)",
+      "sessionAbsoluteTtlMinutes": "Duração máxima da sessão (min)"
+    },
+    "documentsTab": {
+      "defaultTaxRate": "Taxa de imposto predefinida (%)",
+      "save": "Guardar definições de documentos",
+      "saved": "Definições de documentos guardadas",
+      "loadError": "Não foi possível carregar as definições de documentos.",
+      "saveError": "Não foi possível guardar as definições de documentos.",
+      "defaultPaymentTermsDays": "Prazo de pagamento padrão (dias)",
+      "invoiceNotes": "Notas de fatura padrão",
+      "quoteNotes": "Notas de orçamento padrão"
+    },
+    "email": {
+      "smtpHost": "Servidor SMTP",
+      "smtpPort": "Porta SMTP",
+      "smtpUsername": "Utilizador SMTP",
+      "smtpPassword": "Palavra-passe SMTP",
+      "smtpSecure": "Usar TLS/SSL (seguro)",
+      "fromEmail": "E-mail do remetente",
+      "fromName": "Nome do remetente",
+      "replyTo": "Responder a",
+      "configured": "Configurada",
+      "passwordStoredHint": "Existe uma palavra-passe guardada. Deixe em branco para a manter; escreva para a substituir.",
+      "passwordUnsetHint": "Nenhuma palavra-passe definida.",
+      "testOk": "E-mail de teste enviado com sucesso.",
+      "testError": "Teste falhou: {error}",
+      "unknownError": "erro desconhecido",
+      "testFailed": "Teste falhou",
+      "save": "Guardar definições de e-mail",
+      "testConnection": "Testar ligação",
+      "saved": "Definições de e-mail guardadas",
+      "loadError": "Não foi possível carregar as definições de e-mail.",
+      "saveError": "Não foi possível guardar as definições de e-mail.",
+      "testRecipient": "E-mail do destinatário de teste",
+      "sendTest": "Enviar e-mail de teste",
+      "sendOk": "E-mail de teste enviado para {to}."
+    },
+    "localization": {
+      "defaultCurrency": "Moeda predefinida",
+      "defaultLocale": "Idioma predefinido",
+      "timezone": "Fuso horário",
+      "dateFormat": "Formato de data",
+      "numberFormat": "Formato de número",
+      "firstDayOfWeek": "Primeiro dia da semana",
+      "weekdaySunday": "Domingo",
+      "weekdayMonday": "Segunda-feira",
+      "weekdaySaturday": "Sábado",
+      "save": "Guardar localização",
+      "saved": "Localização guardada",
+      "loadError": "Não foi possível carregar a localização.",
+      "saveError": "Não foi possível guardar a localização."
+    },
+    "userSettingsTab": "Minha conta",
+    "usersTab": "Usuários",
+    "localizedField": {
+      "language": "Idioma",
+      "languagesWithContent": "Idiomas com conteúdo: {locales}"
+    }
+  },
+  "documentActions": {
+    "preview": "Pré-visualizar",
+    "print": "Imprimir",
+    "download": "Baixar",
+    "previewTitle": "Pré-visualização do documento",
+    "error": "Não foi possível concluir ({code})."
+  },
+  "send": {
+    "title": "Enviar documento",
+    "titleReminder": "Enviar lembrete",
+    "to": "Para",
+    "cc": "CC",
+    "bcc": "BCC",
+    "emailPlaceholder": "Escreva um e-mail e pressione Enter",
+    "subject": "Assunto",
+    "body": "Mensagem",
+    "attachmentNoteInvoice": "O PDF da fatura será anexado a este e-mail.",
+    "attachmentNoteContract": "O PDF do contrato será anexado a este e-mail.",
+    "send": "Enviar",
+    "queued": "E-mail em fila.",
+    "pending": "O documento está a ser preparado — tente Enviar novamente daqui a alguns segundos.",
+    "loadError": "Não foi possível carregar a pré-visualização do e-mail ({code}).",
+    "error": "Não foi possível enviar o e-mail ({code})."
+  },
+  "rowActions": {
+    "menu": "Ações",
+    "open": "Abrir",
+    "clone": "Clonar"
+  },
+  "timer": {
+    "start": "Iniciar temporizador",
+    "resume": "Retomar",
+    "pause": "Pausar",
+    "stop": "Parar",
+    "saveTitle": "Guardar registo de tempo",
+    "durationLabel": "Duração",
+    "saveEntry": "Guardar registo",
+    "discard": "Descartar"
+  },
+  "login": {
+    "title": "Entrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "signIn": "Entrar",
+    "twoFactor": {
+      "hint": "Digite o código de 6 dígitos do seu aplicativo autenticador ou um código de backup.",
+      "codeLabel": "Código de autenticação",
+      "verify": "Verificar",
+      "back": "Voltar para o login",
+      "backupCodeLabel": "Código de backup",
+      "useBackupCode": "Usar um código de backup",
+      "useAppCode": "Usar seu app autenticador"
+    },
+    "errors": {
+      "invalidCredentials": "E-mail ou senha incorretos.",
+      "invalidCode": "Esse código está incorreto ou expirou.",
+      "rateLimited": "Muitas tentativas. Aguarde e tente novamente.",
+      "twoFactorRequired": "A autenticação de dois fatores é obrigatória.",
+      "challengeExpired": "Esta solicitação de login expirou. Entre novamente.",
+      "generic": "Falha ao entrar. Tente novamente."
+    }
+  },
+  "userSettings": {
+    "mustChangePasswordNotice": "Você precisa alterar sua senha antes de continuar.",
+    "password": {
+      "title": "Alterar senha",
+      "hint": "Alterar sua senha encerra suas outras sessões.",
+      "current": "Senha atual",
+      "new": "Nova senha",
+      "confirm": "Confirmar nova senha",
+      "minHint": "Pelo menos 8 caracteres.",
+      "save": "Alterar senha",
+      "saved": "Senha alterada.",
+      "errors": {
+        "tooShort": "A nova senha deve ter pelo menos 8 caracteres.",
+        "mismatch": "As novas senhas não coincidem.",
+        "wrongCurrent": "Sua senha atual está incorreta.",
+        "generic": "Não foi possível alterar sua senha."
+      }
+    },
+    "totp": {
+      "title": "Autenticação de dois fatores",
+      "hint": "Adicione uma segunda etapa ao login usando um aplicativo autenticador.",
+      "statusEnabled": "Ativada",
+      "statusDisabled": "Desativada",
+      "enable": "Ativar 2FA",
+      "disable": "Desativar 2FA",
+      "qrAlt": "Código QR para o seu aplicativo autenticador",
+      "otpauthUrl": "URL de configuração",
+      "enterCode": "Digite o código de 6 dígitos",
+      "copied": "URL de configuração copiada.",
+      "enabledToast": "Autenticação de dois fatores ativada.",
+      "disabledToast": "Autenticação de dois fatores desativada.",
+      "backupWarning": "Salve estes códigos de backup agora. Cada um pode ser usado uma vez se você perder o dispositivo. Eles não serão exibidos novamente.",
+      "backupCodesLabel": "Códigos de backup",
+      "backupSaved": "Salvei meus códigos",
+      "disableTitle": "Desativar a autenticação de dois fatores",
+      "disableHint": "Digite um código atual do autenticador ou um código de backup para confirmar.",
+      "disableCodeLabel": "Código",
+      "errors": {
+        "setup": "Não foi possível iniciar a configuração de 2FA.",
+        "enable": "Não foi possível ativar 2FA.",
+        "disable": "Não foi possível desativar 2FA.",
+        "badCode": "Esse código está incorreto. Tente novamente."
+      }
+    }
+  },
+  "users": {
+    "title": "Usuários",
+    "hint": "Gerencie as pessoas que podem entrar neste espaço.",
+    "add": "Adicionar usuário",
+    "addTitle": "Adicionar usuário",
+    "editTitle": "Editar usuário",
+    "loadError": "Não foi possível carregar os usuários.",
+    "empty": "Ainda não há usuários.",
+    "savedCreate": "Usuário criado.",
+    "savedEdit": "Usuário atualizado.",
+    "disabledToast": "Usuário desativado.",
+    "enabledToast": "Usuário ativado.",
+    "deletedToast": "Usuário excluído.",
+    "disable": "Desativar",
+    "enable": "Ativar",
+    "twoFactorOn": "Dois fatores ativado",
+    "columns": {
+      "name": "Nome",
+      "email": "E-mail",
+      "role": "Função",
+      "status": "Estado",
+      "twoFactor": "2FA",
+      "actions": "Ações"
+    },
+    "roles": {
+      "administrator": "Administrador",
+      "member": "Membro"
+    },
+    "status": {
+      "active": "Ativo",
+      "disabled": "Desativado"
+    },
+    "fields": {
+      "email": "E-mail",
+      "displayName": "Nome de exibição",
+      "role": "Função",
+      "password": "Senha inicial",
+      "passwordHint": "Pelo menos 8 caracteres.",
+      "status": "Estado",
+      "capabilities": "Permissões"
+    },
+    "capabilities": {
+      "canManageSettings": "Gerenciar configurações",
+      "canManageUsers": "Gerenciar usuários",
+      "canPermanentlyDelete": "Excluir registros permanentemente",
+      "canViewFinancialTotals": "Ver totais financeiros",
+      "canExportData": "Exportar dados"
+    },
+    "reset": {
+      "action": "Redefinir senha",
+      "title": "Redefinir senha",
+      "hint": "Defina uma nova senha para {name}. Ela pode ser alterada após o login.",
+      "newPassword": "Nova senha",
+      "tooShort": "A senha deve ter pelo menos 8 caracteres.",
+      "done": "Senha redefinida."
+    },
+    "delete": {
+      "action": "Excluir",
+      "title": "Excluir usuário",
+      "message": "Excluir {name}? Isso não pode ser desfeito.",
+      "confirm": "Excluir usuário"
+    },
+    "errors": {
+      "duplicate": "Já existe um usuário com esse e-mail.",
+      "lastAdmin": "Você não pode remover o último administrador.",
+      "capabilityDenied": "Você não pode conceder permissões que não possui.",
+      "generic": "Não foi possível salvar o usuário."
+    }
+  },
+  "pwa": {
+    "install": {
+      "message": "Instale o Billy como app neste dispositivo.",
+      "action": "Instalar app"
+    },
+    "update": {
+      "message": "Uma nova versão do Billy está disponível.",
+      "reload": "Recarregar"
+    }
+  },
+  "validations": {
+    "requiredField": "Este campo e obrigatorio",
+    "invalidValue": "Valor invalido",
+    "onlyNumbersAllowed": "Apenas numeros sao permitidos",
+    "insertValidEmail": "Insira um endereco de e-mail valido",
+    "insertValidPhone": "Insira um numero de telefone valido",
+    "insertValidUrl": "Insira um URL valido",
+    "insertValidDomain": "Insira um dominio valido",
+    "insertValidImgPath": "Insira um caminho de imagem valido",
+    "insertValidCF": "Insira um codigo fiscal valido",
+    "insertValidPiva": "Insira um numero de IVA valido (11 digitos)",
+    "onlyPdfAllowed": "Apenas ficheiros PDF sao permitidos",
+    "noPrefix": "Nao inclua o prefixo do pais",
+    "basicPasswordFormat": "A palavra-passe deve ter pelo menos 6 caracteres",
+    "passwordFormat": "8-20 caracteres com maiuscula, minuscula, numero e simbolo",
+    "maxLength": "Maximo de {max} caracteres",
+    "dates": {
+      "invalid": "Insira uma data valida",
+      "maxToday": "A data nao pode ser futura"
+    },
+    "formHasErrors": "Corrija os erros destacados"
+  },
+  "accounts": {
+    "title": "Contas",
+    "listTitle": "Todas as contas",
+    "new": "Nova conta",
+    "create": "Criar",
+    "edit": "Editar conta",
+    "created": "Conta criada",
+    "saved": "Conta guardada",
+    "deleted": "Conta eliminada",
+    "loadError": "Não foi possível carregar as contas",
+    "saveError": "Não foi possível guardar a conta",
+    "columns": {
+      "name": "Nome",
+      "slug": "Slug",
+      "status": "Estado"
+    },
+    "fields": {
+      "name": "Nome da conta",
+      "slug": "Slug",
+      "slugHint": "Id para URL; derivado do nome se vazio",
+      "note": "Nota",
+      "withAdmin": "Criar um primeiro administrador",
+      "adminEmail": "Email do admin",
+      "adminName": "Nome do admin",
+      "adminPassword": "Palavra-passe do admin",
+      "status": "Estado"
+    },
+    "delete": {
+      "action": "Eliminar conta",
+      "title": "Eliminar conta permanentemente",
+      "warning": "Isto elimina permanentemente “{name}” e TODOS os seus dados.",
+      "warningDetail": "Cada cliente, documento, ficheiro e definição desta conta será apagado. Irreversível.",
+      "proceed": "Compreendo — continuar",
+      "typeName": "Escreva o nome “{name}” para confirmar.",
+      "nameLabel": "Nome da conta",
+      "passwordLabel": "A sua palavra-passe de sysadmin",
+      "nameMismatch": "O nome não corresponde.",
+      "wrongPassword": "Falha na verificação da palavra-passe.",
+      "confirm": "Eliminar tudo"
+    }
+  },
+  "projects": {
+    "selector": {
+      "label": "Projeto (opcional)",
+      "placeholder": "Procurar projetos…",
+      "noData": "Sem projetos"
+    },
+    "title": "Projetos",
+    "new": "Novo projeto",
+    "delete": "Excluir",
+    "empty": "Nenhum projeto encontrado",
+    "retry": "Tentar novamente",
+    "loadError": "Não foi possível carregar os projetos ({code}).",
+    "loadErrorGeneric": "Não foi possível carregar os projetos.",
+    "loadOneError": "Não foi possível carregar o projeto ({code}).",
+    "loadOneErrorGeneric": "Não foi possível carregar o projeto.",
+    "saveError": "Não foi possível salvar o projeto ({code}).",
+    "saveErrorGeneric": "Não foi possível salvar o projeto.",
+    "saved": "Projeto salvo",
+    "newTitle": "Novo projeto",
+    "editTitle": "Editar projeto",
+    "create": "Criar projeto",
+    "columns": {
+      "name": "Nome",
+      "description": "Descrição",
+      "status": "Estado",
+      "color": "Cor"
+    },
+    "fields": {
+      "name": "Nome",
+      "description": "Descrição",
+      "color": "Cor",
+      "status": "Estado"
+    },
+    "form": {
+      "details": "Detalhes",
+      "statusActive": "Ativo",
+      "statusArchived": "Arquivado"
+    },
+    "confirm": {
+      "deleteTitle": "Excluir projeto",
+      "deleteMessage": "Excluir o projeto “{name}”? Esta ação não pode ser desfeita."
+    }
+  },
+  "address": {
+    "line1": "Morada"
+  },
+  "documents": {
+    "subject": "Assunto",
+    "preview": "Pré-visualização",
+    "previewError": "Não foi possível gerar a pré-visualização."
+  }
+}
