@@ -1,0 +1,34 @@
+# Traefik dynamic config — PROD (HTTPS on :443 with Let's Encrypt).
+#
+# File provider (not Docker-provider labels), so Traefik needs no Docker socket.
+# Routes are host-agnostic (path-only) so this file needs no per-deployment edit:
+# on a single-domain self-host every request already arrives for PUBLIC_HOST, and
+# the ACME tls-challenge obtains the cert for whatever host is served. To host
+# multiple domains behind this proxy, add `Host(...)` clauses to the rules.
+#
+# The API owns /api, /socket.io and /public; everything else is the SPA.
+http:
+  routers:
+    api:
+      rule: "PathPrefix(`/api`) || PathPrefix(`/socket.io`) || PathPrefix(`/public`)"
+      entryPoints: [websecure]
+      service: api
+      priority: 10
+      tls:
+        certResolver: le
+    web:
+      rule: "PathPrefix(`/`)"
+      entryPoints: [websecure]
+      service: web
+      priority: 1
+      tls:
+        certResolver: le
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://api:3000"
+    web:
+      loadBalancer:
+        servers:
+          - url: "http://web:80"

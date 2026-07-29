@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Billy</title>
+    <!-- Favicon = the billy icon (cropped from the horizontal logo). -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <!--
+      Runtime config (AS-1b): config.js sets window.__APP_CONFIG__ and MUST load
+      before the app bundle so config.ts can read it synchronously at boot. In
+      production nginx serves a bind-mounted config.js rendered from .env at
+      container start; no rebuild needed to repoint API_URL. This dev default
+      lives in public/config.js and is copied to dist/ by vite build.
+    -->
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

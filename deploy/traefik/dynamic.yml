@@ -1,0 +1,27 @@
+# Traefik dynamic config — DEV / base (HTTP only, no TLS).
+#
+# File provider (not Docker-provider labels), so Traefik needs no Docker socket.
+# Routes are host-agnostic (path-only): the API owns /api, /socket.io and /public;
+# everything else is the SPA. The prod overlay mounts dynamic.prod.yml instead,
+# which adds the :443 entrypoint + Let's Encrypt.
+http:
+  routers:
+    api:
+      rule: "PathPrefix(`/api`) || PathPrefix(`/socket.io`) || PathPrefix(`/public`)"
+      entryPoints: [web]
+      service: api
+      priority: 10
+    web:
+      rule: "PathPrefix(`/`)"
+      entryPoints: [web]
+      service: web
+      priority: 1
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://api:3000"
+    web:
+      loadBalancer:
+        servers:
+          - url: "http://web:80"
