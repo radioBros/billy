@@ -70,6 +70,8 @@ const profileShape = {
   notes: z.string().trim().nullable().optional(),
   /** Optional per-occurrence auto-send email config (see AutoSendSchema). */
   autoSend: AutoSendSchema,
+  /** Italian e-invoicing: send each generated INVOICE to SdI (ignored for proforma/expense). */
+  einvoice: z.object({ autoSubmit: z.boolean() }).nullable().optional(),
 } as const;
 
 interface AutoSendShape {

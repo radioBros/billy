@@ -18,6 +18,60 @@ const parseLocalDate = (v: any) => {
 
 const dateValid = (v: any) => !Number.isNaN(parseLocalDate(v).getTime());
 
+const strOf = (v: any): string => (v == null ? "" : String(v).trim());
+const isEmpty = (v: any): boolean => strOf(v) === "";
+
+const HOST_RE =
+  /^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+const DECIMAL2_RE = /^\d+(\.\d{1,2})?$/;
+const RECIPIENT_CODE_RE = /^[A-Za-z0-9]{6,7}$/;
+
+/** Plain hostname / IPv4 (no scheme, port, path or spaces). */
+/** Service base URL: http(s)://host[:port][/path] where host may be a bare container name or localhost
+ *  (unlike `url`, which demands a dotted public domain). */
+const SERVICE_URL_RE = /^https?:\/\/([A-Za-z0-9]([A-Za-z0-9_-]*[A-Za-z0-9])?)(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:\d{1,5})?(\/[^\s]*)?$/;
+export const isServiceUrl = (v: any): boolean => SERVICE_URL_RE.test(strOf(v));
+
+export const isHost = (v: any): boolean => HOST_RE.test(strOf(v));
+/** Integer within [min, max] (accepts numbers and numeric strings). */
+export const isIntBetween = (v: any, min: number, max: number): boolean => {
+  const s = strOf(v);
+  if (!/^\d+$/.test(s)) return false;
+  const n = Number(s);
+  return n >= min && n <= max;
+};
+/** Non-negative decimal with at most 2 fraction digits (dot separator). */
+export const isDecimal2 = (v: any): boolean => DECIMAL2_RE.test(strOf(v));
+/** IBAN: spaces ignored, case-insensitive, structure + mod-97 checksum. */
+export const isIban = (v: any): boolean => {
+  const s = strOf(v).replace(/\s+/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+  const rearranged = s.slice(4) + s.slice(0, 4);
+  let rem = 0;
+  for (const ch of rearranged) {
+    const digits = ch >= "A" ? String(ch.charCodeAt(0) - 55) : ch;
+    for (const d of digits) rem = (rem * 10 + Number(d)) % 97;
+  }
+  return rem === 1;
+};
+
+const requiredMsg = (v: any): boolean | string =>
+  (typeof v === "string" ? v.trim() !== "" : !!v || v === 0) || t("validations.requiredField");
+const hostRule = (v: any): boolean | string =>
+  isEmpty(v) || isHost(v) || t("validations.hostInvalid");
+const portRule = (v: any): boolean | string =>
+  isEmpty(v) || isIntBetween(v, 1, 65535) || t("validations.portInvalid");
+const ibanRule = (v: any): boolean | string =>
+  isEmpty(v) || isIban(v) || t("validations.ibanInvalid");
+const decimal2Rule = (v: any): boolean | string =>
+  isEmpty(v) || isDecimal2(v) || t("validations.decimalInvalid");
+const recipientCodeRule = (v: any): boolean | string =>
+  isEmpty(v) || RECIPIENT_CODE_RE.test(strOf(v)) || t("validations.insertValidRecipientCode");
+const intBetweenRule =
+  (min: number, max: number) =>
+  (v: any): boolean | string =>
+    isEmpty(v) || isIntBetween(v, min, max) || t("validations.intBetween", { min, max });
+
 export default {
   names: ["email", "int", "password", "cf", "phone", "url"],
   fileMaxSize: [(v: any) => !v || v.size < 1024 * 1024 * 3 || "Max 3MB"],
@@ -188,12 +242,29 @@ export default {
       return valid || t("validations.insertValidPhone");
     },
   ],
+  host: [hostRule],
+  port: [portRule],
+  iban: [ibanRule],
+  decimal2: [decimal2Rule],
+  recipientCode: [recipientCodeRule],
+  intBetween: (min: number, max: number) => [intBetweenRule(min, max)],
+  serviceUrl: [(v: any) => isEmpty(v) || isServiceUrl(v) || t("validations.insertValidUrl")],
   maxLength: (max: number) => (v: any) => {
     if (!v || !v.length) return true;
     return v.length <= max || t("validations.maxLength", { max: max });
   },
   required: {
-    any: [(v: any) => !!v || v === 0 || t("validations.requiredField")],
+    serviceUrl: [
+      (v: any) => !isEmpty(v) || t("validations.requiredField"),
+      (v: any) => isServiceUrl(v) || t("validations.insertValidUrl"),
+    ],
+    any: [requiredMsg],
+    host: [requiredMsg, hostRule],
+    port: [requiredMsg, portRule],
+    iban: [requiredMsg, ibanRule],
+    decimal2: [requiredMsg, decimal2Rule],
+    recipientCode: [requiredMsg, recipientCodeRule],
+    intBetween: (min: number, max: number) => [requiredMsg, intBetweenRule(min, max)],
     boolean: [
       (v: any) => v === false || v === true || t("validations.requiredField"),
     ],

@@ -64,6 +64,6 @@ export const ClientSnapshotSchema = z.object({
  */
 export const CREDIT_NOTE_LIST_WHITELIST: ListWhitelist = {
   sortable: ["issueDate", "createdAt", "updatedAt", "grandTotalMinor", "status", "creditNoteNumber"],
-  filterable: ["status", "clientId", "currency", "creditedInvoiceId", "issueDate"],
+  filterable: ["status", "clientId", "currency", "creditedInvoiceId", "issueDate", "einvoice.status"],
   searchable: ["creditNoteNumber", "creditedInvoiceNumber", "reason", "notes"],
 };

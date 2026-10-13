@@ -18,8 +18,11 @@ import { useI18n } from "vue-i18n";
 import type { PlaceholderDocType } from "@billy/shared/template";
 import type { RecurrenceConfig, RecurringAutoSend, RecurringInterval } from "@/types/domain";
 import AutoSendConfigModal from "@/components/AutoSendConfigModal.vue";
+import { useEInvoicing } from "@/stores/einvoicing";
 
 const { t } = useI18n();
+const einvoicing = useEInvoicing();
+void einvoicing.load();
 
 const model = defineModel<RecurrenceConfig | null>({ default: null });
 
@@ -101,6 +104,23 @@ watch(autoSendModal, (open) => {
   if (!open && autoSend.value?.enabled !== true) autoSendOn.value = false;
 });
 
+// ── SdI (Italian e-invoicing): send each generated INVOICE officially ─────────
+// Only offered for invoices while e-invoicing is enabled. Defaults to the account's
+// `recurringDefaultSubmit` until the user touches the switch.
+const showSdi = computed<boolean>(() => props.docType === "invoice" && einvoicing.enabled);
+const autoSubmit = ref<boolean>(model.value?.einvoice?.autoSubmit ?? einvoicing.recurringDefaultSubmit);
+const autoSubmitTouched = ref<boolean>(model.value?.einvoice != null);
+watch(
+  () => einvoicing.recurringDefaultSubmit,
+  (def) => {
+    if (!autoSubmitTouched.value) autoSubmit.value = def;
+  },
+);
+const onAutoSubmit = (value: boolean | null): void => {
+  autoSubmitTouched.value = true;
+  autoSubmit.value = value === true;
+};
+
 const sync = (): void => {
   if (!enabled.value) {
     model.value = null;
@@ -119,6 +139,7 @@ const sync = (): void => {
         ? null
         : Number(maxOccurrences.value),
     autoSend: autoSend.value,
+    ...(showSdi.value ? { einvoice: { autoSubmit: autoSubmit.value } } : {}),
   };
 };
 
@@ -127,7 +148,7 @@ watch(interval, () => {
   if (!supportsDayAnchor.value) dayOfMonth.value = null;
 });
 
-watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, dayOfMonth], sync);
+watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, dayOfMonth, autoSubmit, showSdi], sync);
 </script>
 
 <template>
@@ -247,6 +268,16 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
           {{ t("recurring.autoSend.configure") }}
         </v-btn>
       </div>
+      <v-switch
+        v-if="showSdi"
+        :model-value="autoSubmit"
+        data-test="recurring-sdi-switch"
+        color="primary"
+        hide-details
+        :label="t('einvoicing.recurring.switch')"
+        :disabled="props.disabled"
+        @update:model-value="onAutoSubmit"
+      />
     </template>
     </v-card-text>
   </v-card>

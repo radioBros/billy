@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { loadConfig } from "@billy/config";
 import { assertCapability, type DomainEventEmitter } from "@/platform/service.js";
 import type { Logger } from "@billy/shared";
+import { DEFAULT_EINVOICING_SETTINGS } from "@billy/einvoice";
 import { decryptField, encryptField } from "@/platform/crypto.js";
 import type { SettingsRepository } from "@/modules/settings/repository.js";
 import {
@@ -62,6 +63,7 @@ const DEFAULTS: SettingsDataByKey = {
   localization: DEFAULT_LOCALIZATION_SETTINGS,
   documents: DEFAULT_DOCUMENTS_SETTINGS,
   toggles: DEFAULT_TOGGLES_SETTINGS,
+  einvoicing: DEFAULT_EINVOICING_SETTINGS,
 };
 
 const toEmailView = (data: EmailSettingsData): EmailSettingsView => {

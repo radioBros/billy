@@ -45,13 +45,13 @@ export const createProformaRouter = (deps: {
     )) as ClientRecord | null;
   };
 
-  // Multi-bank: read the business-settings singleton's bankAccounts (mirrors
-  // invoices routes.ts). The settings doc is single-tenant (`{ key: "business", data }`)
-  // — no accountId filter. Missing/legacy docs have no bankAccounts → []. Shared by the
-  // proforma service (its own bank snapshot) AND the convert-seam invoice service.
-  const loadBankAccounts = async (): Promise<BankAccountRecord[]> => {
+  // Multi-bank: read THIS account's business-settings bankAccounts (mirrors
+  // invoices routes.ts; `{ key: "business", accountId }`). Missing/legacy docs have
+  // none → []. Shared by the proforma service (its own bank snapshot) AND the
+  // convert-seam invoice service.
+  const loadBankAccounts = async (ctx: AuthContext): Promise<BankAccountRecord[]> => {
     const doc = (await settings.findOne(
-      { key: "business" },
+      { key: "business", accountId: ctx.accountId },
       { projection: { _id: 0, "data.bankAccounts": 1 } },
     )) as { data?: { bankAccounts?: BankAccountRecord[] } } | null;
     return doc?.data?.bankAccounts ?? [];

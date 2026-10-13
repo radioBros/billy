@@ -21,6 +21,8 @@ import ClientLanguageHint from "@/components/ClientLanguageHint.vue";
 import ProjectSelect from "@/components/ProjectSelect.vue";
 import RecurringToggle from "@/components/RecurringToggle.vue";
 import SendDocumentModal from "@/components/SendDocumentModal.vue";
+import EInvoiceSubmitStep from "@/components/einvoicing/EInvoiceSubmitStep.vue";
+import EInvoiceScheduleOption from "@/components/einvoicing/EInvoiceScheduleOption.vue";
 import FormActions from "@/components/FormActions.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
@@ -30,12 +32,14 @@ import { useRecurringProfile } from "@/composables/useRecurringProfile";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useEInvoicing } from "@/stores/einvoicing";
 import { confirm } from "@/composables/useConfirm";
 import { translateValidationDetails, summarizeValidationDetails, apiErrorReason } from "@/utils/validationMessages";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const einvoicing = useEInvoicing();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
@@ -134,6 +138,10 @@ const completionDialog = ref(false);
 const completionBusy = ref(false);
 const completionError = ref<string | null>(null);
 const sendModal = ref(false);
+// SdI step between finalize and the email modal (only when e-invoicing is on).
+const einvoiceStep = ref(false);
+// "Send officially via SdI when issued" for the schedule dialog.
+const submitOnFinalize = ref(false);
 const scheduleDialog = ref(false);
 const today = new Date().toISOString().slice(0, 10);
 const scheduleDate = ref(today);
@@ -167,6 +175,7 @@ const loadInvoice = async (): Promise<void> => {
       unitPriceMinor: li.unitPriceMinor,
       discountRate: li.discountRate,
       taxRate: li.taxRate,
+      nature: li.nature,
     }));
     version.value = inv.version;
     status.value = inv.status;
@@ -317,7 +326,10 @@ const finalizeAndSend = async (): Promise<void> => {
       { ifMatch: createdInvoice.value.version },
     );
     completionDialog.value = false;
-    sendModal.value = true;
+    // E-invoicing on: offer the official SdI submission first; the email modal
+    // follows either way ("Not now" included).
+    if (einvoicing.enabled && einvoicing.offerStepAfterFinalize) einvoiceStep.value = true;
+    else sendModal.value = true;
   } catch (err) {
     completionError.value =
       err instanceof ApiError
@@ -326,6 +338,17 @@ const finalizeAndSend = async (): Promise<void> => {
   } finally {
     completionBusy.value = false;
   }
+};
+
+const onEInvoiceDone = (): void => {
+  einvoiceStep.value = false;
+  sendModal.value = true;
+};
+
+const openScheduleDialog = (): void => {
+  scheduleDate.value = today;
+  submitOnFinalize.value = einvoicing.enabled && einvoicing.scheduledDefaultSubmit;
+  scheduleDialog.value = true;
 };
 
 const submitSchedule = async (): Promise<void> => {
@@ -339,7 +362,10 @@ const submitSchedule = async (): Promise<void> => {
   try {
     await api.post<Invoice>(
       `/v1/invoices/${createdInvoice.value.id}/schedule`,
-      { scheduledSendDate: scheduleDate.value },
+      {
+        scheduledSendDate: scheduleDate.value,
+        ...(einvoicing.enabled ? { submitOnFinalize: submitOnFinalize.value } : {}),
+      },
       { ifMatch: createdInvoice.value.version },
     );
     scheduleDialog.value = false;
@@ -383,6 +409,7 @@ const loadBankAccounts = async (): Promise<void> => {
 };
 
 onMounted(() => {
+  void einvoicing.load();
   void loadInvoice();
   applyClone();
   void loadBankAccounts();
@@ -496,6 +523,7 @@ onMounted(() => {
           :currency="currency"
           :disabled="nonDraft"
           doc-type="invoice"
+          show-nature
           :errors="lineItemErrors"
         />
         <v-alert
@@ -611,7 +639,7 @@ onMounted(() => {
               block
               :disabled="completionBusy"
               data-test="completion-schedule"
-              @click="scheduleDate = today; scheduleDialog = true"
+              @click="openScheduleDialog"
             >
               {{ t("invoices.completion.schedule") }}
             </v-btn>
@@ -646,6 +674,12 @@ onMounted(() => {
             :min="today"
             density="comfortable"
           />
+          <EInvoiceScheduleOption
+            v-if="createdInvoice"
+            v-model="submitOnFinalize"
+            :document-id="createdInvoice.id"
+            :client-id="clientId"
+          />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -656,6 +690,15 @@ onMounted(() => {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <EInvoiceSubmitStep
+      v-if="createdInvoice"
+      v-model="einvoiceStep"
+      kind="invoices"
+      :document-id="createdInvoice.id"
+      :client-id="clientId"
+      @done="onEInvoiceDone"
+    />
 
     <SendDocumentModal
       v-if="createdInvoice"

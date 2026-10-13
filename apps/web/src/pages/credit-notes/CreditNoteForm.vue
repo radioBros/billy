@@ -117,6 +117,7 @@ const load = async (): Promise<void> => {
       unitPriceMinor: li.unitPriceMinor,
       discountRate: li.discountRate,
       taxRate: li.taxRate,
+      nature: li.nature,
     }));
     version.value = cn.version;
     status.value = cn.status;
@@ -296,7 +297,7 @@ onMounted(() => {
             <PlaceholderLegend doc-type="credit-note" />
           </template>
         </v-text-field>
-        <LineItemEditor v-model="lineItems" :currency="currency" :disabled="nonDraft" doc-type="credit-note" :errors="lineItemErrors" />
+        <LineItemEditor v-model="lineItems" :currency="currency" :disabled="nonDraft" doc-type="credit-note" show-nature :errors="lineItemErrors" />
         <v-alert v-if="fieldErrors.lineItems" type="error" variant="tonal" density="compact" class="mt-2">
           {{ fieldErrors.lineItems }}
         </v-alert>

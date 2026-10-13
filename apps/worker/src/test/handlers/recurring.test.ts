@@ -8,7 +8,8 @@ const makeDb = (
   extra: { files?: Record<string, unknown>[]; settings?: Record<string, unknown>[]; proformas?: Record<string, unknown>[] } = {},
 ) => {
   const counters = new Map<string, number>();
-  const finalizedCalls: { id: string; number: string }[] = [];
+  const clientLookups: Record<string, unknown>[] = [];
+  const finalizedCalls: { id: string; number: string; set: Record<string, unknown> }[] = [];
   const insertedInvoices: Record<string, unknown>[] = [];
   const files = extra.files ?? [];
   const settings = extra.settings ?? [];
@@ -49,7 +50,11 @@ const makeDb = (
       if (name === "settings") {
         return {
           findOne: (filter: { key: string; accountId?: string }) =>
-            Promise.resolve(settings.find((s) => (s as { key: string }).key === filter.key) ?? null),
+            Promise.resolve(
+              settings.find(
+                (s) => (s as { key: string }).key === filter.key && (filter.accountId === undefined || (s as { accountId?: string }).accountId === filter.accountId),
+              ) ?? null,
+            ),
         };
       }
       if (name === "counters") {
@@ -62,7 +67,16 @@ const makeDb = (
         };
       }
       if (name === "clients") {
-        return { findOne: () => Promise.resolve({ id: "c1", displayName: "Acme", email: "a@b.c" }) };
+        return {
+          findOne: (filter: { accountId?: string }) => {
+            clientLookups.push(filter);
+            return Promise.resolve({
+              id: "c1", type: "company", displayName: "Acme", legalName: "Acme S.r.l.", email: "a@b.c", vatNumber: "IT01234567890",
+              taxCode: "01234567890", recipientCode: "ABC1234", pecEmail: "acme@pec.it", country: "IT",
+              billingAddress: { line1: "Via Roma 1", city: "Milano" },
+            });
+          },
+        };
       }
       if (name === "invoices") {
         return {
@@ -89,7 +103,7 @@ const makeDb = (
               const inv = scheduledInvoices.find((i) => (i as { id: string }).id === (filter as { id: string }).id);
               if (!inv || (inv as { status: string }).status !== "scheduled") return Promise.resolve(null);
               (inv as { status: string }).status = "finalized";
-              finalizedCalls.push({ id: (filter as { id: string }).id, number: (update.$set as { invoiceNumber: string }).invoiceNumber });
+              finalizedCalls.push({ id: (filter as { id: string }).id, number: (update.$set as { invoiceNumber: string }).invoiceNumber, set: update.$set ?? {} });
               return Promise.resolve({ ...inv, ...update.$set });
             }
             return claim(scheduledInvoices)(filter, update);
@@ -147,7 +161,7 @@ const makeDb = (
       throw new Error(`unexpected collection ${name}`);
     },
   };
-  return { db, counters, finalizedCalls, insertedInvoices };
+  return { db, counters, finalizedCalls, insertedInvoices, clientLookups };
 };
 
 const mongoConnect = vi.fn();
@@ -428,5 +442,75 @@ describe("recurringTickHandler — auto-send (Scan 3)", () => {
     const atts = (emailJob!.payload as { attachments: { fileId: string }[] }).attachments;
     // occurrence PDF + only the clean extra; dirty + missing dropped.
     expect(atts.map((a) => a.fileId)).toEqual(["pdf1", "extraClean"]);
+  });
+});
+
+describe("recurringTickHandler — scheduled finalize: fiscal correctness (e-invoicing prerequisites)", () => {
+  const sched = (over: Record<string, unknown> = {}) => ({
+    id: "i1", version: 1, accountId: "acct1", clientId: "c1", currency: "EUR",
+    issueDate: "2020-01-01", dueDate: "2020-01-31", status: "scheduled", scheduledSendDate: "2020-01-05", ...over,
+  });
+
+  it("numbers from the PER-ACCOUNT series (same counter key as the api), never a shared one", async () => {
+    const invoices = [sched({ id: "i1", accountId: "acctA" }), sched({ id: "i2", accountId: "acctB" })];
+    const { db, counters, finalizedCalls } = makeDb(invoices);
+    currentDb = db;
+    const year = new Date().getUTCFullYear();
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect([...counters.keys()].sort()).toEqual([`acctA:invoice-${year}`, `acctB:invoice-${year}`]);
+    // each account starts its own sequence at 1
+    expect(finalizedCalls.map((c) => c.number)).toEqual([`1/${year}`, `1/${year}`]);
+  });
+
+  it("looks the client up scoped by the invoice's accountId", async () => {
+    const { db, clientLookups } = makeDb([sched({ accountId: "acctZ" })]);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(clientLookups[0]).toMatchObject({ id: "c1", accountId: "acctZ" });
+  });
+
+  it("freezes the full fiscal client snapshot (SDI code, PEC, CF, country) like the api does", async () => {
+    const { db, finalizedCalls } = makeDb([sched()]);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(finalizedCalls[0]!.set.clientSnapshot).toMatchObject({
+      clientId: "c1", type: "company", recipientCode: "ABC1234", pecEmail: "acme@pec.it",
+      taxCode: "01234567890", vatNumber: "IT01234567890", country: "IT", currency: "EUR",
+    });
+  });
+
+  it("sets issueDate to the real finalize date and preserves the payment term", async () => {
+    const { db, finalizedCalls } = makeDb([sched()]); // drafted 2020-01-01, due +30d
+    currentDb = db;
+    const { recurringTickHandler, todayIn } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    const today = todayIn("Europe/Rome");
+    const set = finalizedCalls[0]!.set as { issueDate: string; dueDate: string };
+    expect(set.issueDate).toBe(today);
+    const gap = (Date.parse(set.dueDate) - Date.parse(set.issueDate)) / 86_400_000;
+    expect(gap).toBe(30);
+  });
+
+  it("uses the account's business timezone (default Europe/Rome) for 'today'", async () => {
+    const { todayIn } = await import("@/handlers/recurring.js");
+    // 23:30 UTC on Dec 31 is already Jan 1 in Rome and Auckland, still Dec 31 in New York.
+    const at = new Date("2026-12-31T23:30:00Z");
+    expect(todayIn("Europe/Rome", at)).toBe("2027-01-01");
+    expect(todayIn("America/New_York", at)).toBe("2026-12-31");
+    expect(todayIn("Not/AZone", at)).toBe("2026-12-31"); // bad zone → UTC, never throws
+  });
+
+  it("does not finalize an invoice whose send date is still tomorrow in the account's timezone", async () => {
+    const { todayIn } = await import("@/handlers/recurring.js");
+    const tomorrow = new Date(Date.parse(`${todayIn("Europe/Rome")}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    const { db, finalizedCalls } = makeDb([sched({ scheduledSendDate: tomorrow })]);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const result = await recurringTickHandler({} as never, stubCtx());
+    expect(result.finalized).toBe(0);
+    expect(finalizedCalls).toHaveLength(0);
   });
 });

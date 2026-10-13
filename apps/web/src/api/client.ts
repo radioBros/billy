@@ -208,6 +208,11 @@ export const post = async <T>(path: string, body?: unknown, opts?: WriteOptions)
   return data;
 };
 
+export const put = async <T>(path: string, body?: unknown, opts?: WriteOptions): Promise<T> => {
+  const { data } = await request<T>("PUT", path, { body, signal: opts?.signal, ifMatch: opts?.ifMatch });
+  return data;
+};
+
 export const patch = async <T>(path: string, body?: unknown, opts?: WriteOptions): Promise<T> => {
   const { data } = await request<T>("PATCH", path, { body, signal: opts?.signal, ifMatch: opts?.ifMatch });
   return data;
@@ -223,4 +228,4 @@ export const list = async <T>(path: string, query?: ListQuery, signal?: AbortSig
   return { data, meta: meta as ListMeta };
 };
 
-export const api = { get, post, patch, del, list };
+export const api = { get, post, put, patch, del, list };

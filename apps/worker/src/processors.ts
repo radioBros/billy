@@ -5,6 +5,7 @@ import { pdfHandler } from "@/handlers/pdf.js";
 import { pushHandler } from "@/handlers/push.js";
 import { backupHandler } from "@/handlers/backup.js";
 import { recurringTickHandler } from "@/handlers/recurring.js";
+import { einvoiceHandler } from "@/handlers/einvoice.js";
 
 /**
  * Dependencies handed to every job handler. Kept minimal for the framework layer;
@@ -63,6 +64,8 @@ export function createProcessors(): ProcessorRegistry {
     // Scheduled-send + recurring tick (first worker→invoice-write path): finalizes
     // `scheduled` invoices whose date has arrived, under a system context.
     recurring: recurringTickHandler,
+    // Italian e-invoicing via PASSO (handlers/einvoice.ts): submit / retry / sync / tick.
+    einvoice: einvoiceHandler,
   };
 }
 

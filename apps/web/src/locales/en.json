@@ -115,7 +115,9 @@
       "addrPostalCode": "Postal code",
       "addrCountry": "Country",
       "preferredLanguage": "Preferred language",
-      "referral": "Contact person"
+      "referral": "Contact person",
+      "recipientCode": "SDI code (Codice Destinatario)",
+      "pecEmail": "Certified email (PEC)"
     },
     "form": {
       "typeCompany": "Company",
@@ -125,7 +127,8 @@
       "billingAddress": "Billing address",
       "countryHint": "2-letter code (e.g. IT).",
       "details": "Details",
-      "languageHint": "Documents & emails to this client use this language."
+      "languageHint": "Documents & emails to this client use this language.",
+      "recipientCodeHint": "7-character code your client gave you for electronic invoices (6 for public administration). Leave empty if they use PEC or are a private consumer."
     },
     "saved": "Client saved",
     "showArchived": "Show archived",
@@ -1009,7 +1012,9 @@
       "details": "Details",
       "add": "Add bank account",
       "remove": "Remove",
-      "empty": "No bank accounts yet."
+      "empty": "No bank accounts yet.",
+      "iban": "IBAN (optional)",
+      "ibanHint": "Needed to send bank-transfer payment data to SdI (e-invoicing)."
     },
     "company": {
       "businessName": "Business name",
@@ -1104,7 +1109,8 @@
     "localizedField": {
       "language": "Language",
       "languagesWithContent": "Languages with content: {locales}"
-    }
+    },
+    "einvoicingTab": "E-invoicing (SdI)"
   },
   "documentActions": {
     "preview": "Preview",
@@ -1321,7 +1327,13 @@
     "lineItemsRequired": "Add at least one line item",
     "currencyInvalid": "Enter a valid 3-letter currency code (e.g. EUR)",
     "dueBeforeIssue": "Due date cannot be before the issue date",
-    "failedWithFields": "Validation failed — {fields}"
+    "failedWithFields": "Validation failed — {fields}",
+    "insertValidRecipientCode": "Enter a valid SDI code (6–7 letters or digits)",
+    "hostInvalid": "Enter a valid host name (e.g. smtps.pec.example.it), without http:// or spaces",
+    "portInvalid": "Enter a port between 1 and 65535",
+    "ibanInvalid": "Enter a valid IBAN (e.g. IT60 X054 2811 1010 0000 0123 456)",
+    "decimalInvalid": "Enter an amount with at most 2 decimals (e.g. 77.47)",
+    "intBetween": "Enter a whole number between {min} and {max}"
   },
   "accounts": {
     "title": "Accounts",
@@ -1474,6 +1486,14 @@
       "DATE_RANGE_INVALID": "The date range is invalid",
       "DEPENDENCY_UNAVAILABLE": "A required service is unavailable — check your connection and try again",
       "DUPLICATE_VALUE": "This value already exists",
+      "EINVOICE_ADMIN_KEY_MISSING": "The server has no PASSO admin key — use manual mode",
+      "EINVOICE_ALREADY_SUBMITTED": "This document was already sent to SdI",
+      "EINVOICE_BUSINESS_INCOMPLETE": "Your company data is incomplete for e-invoicing",
+      "EINVOICE_DISABLED": "E-invoicing is switched off",
+      "EINVOICE_LEGALLY_ISSUED": "Already issued at SdI — it can no longer be voided; issue a credit note instead",
+      "EINVOICE_NOT_CONNECTED": "E-invoicing is not connected to PASSO yet",
+      "EINVOICE_NOT_READY": "The document is not ready to be sent to SdI — fix the listed issues first",
+      "EINVOICE_PASSO_UNREACHABLE": "PASSO cannot be reached — check the API URL and try again",
       "EMAIL_DELIVERY_FAILED": "The email could not be delivered",
       "EXPENSE_ALREADY_INVOICED": "The expense is already invoiced",
       "FILE_TOO_LARGE": "The file is too large",
@@ -1506,6 +1526,581 @@
       "UNSUPPORTED_FILE_TYPE": "This file type is not supported",
       "VALIDATION_FAILED": "Some fields are invalid",
       "VERSION_CONFLICT": "This record was modified by someone else — reload the page and try again"
+    }
+  },
+  "einvoicing": {
+    "loadError": "Could not load the e-invoicing settings",
+    "saved": "E-invoicing settings saved",
+    "saveError": "Could not save the e-invoicing settings",
+    "fix": "Fix",
+    "clientHint": "E-invoicing is on: add an SDI code or a PEC address so invoices to this client can be sent to SdI.",
+    "enable": {
+      "title": "Enable",
+      "hint": "Turns on the official sending of invoices and credit notes to the Italian Sistema di Interscambio (SdI) through PASSO.",
+      "label": "Send invoices to SdI",
+      "incomplete": "Setup is not complete yet. Still open: {items} (see the guide below).",
+      "since": "Enabled since {date}"
+    },
+    "readiness": {
+      "business": "Company data",
+      "iban": "IBAN",
+      "connection": "PASSO connection",
+      "channel": "Transmission channel"
+    },
+    "guide": {
+      "title": "Setup guide",
+      "steps": {
+        "company": {
+          "title": "Company data complete",
+          "body": "Company tab: legal name, VAT number, tax code and a full Italian address with a 2-letter province (e.g. MI)."
+        },
+        "taxRegime": {
+          "title": "Tax regime and stamp duty",
+          "body": "Pick your regime (RF01 ordinary, RF19 flat-rate, …) and the stamp-duty rule. Flat-rate taxpayers and VAT-exempt amounts above €77.47 owe €2 virtual stamp duty."
+        },
+        "iban": {
+          "title": "IBAN on your bank account",
+          "body": "Add the IBAN to a bank account in the Company tab. It is needed for bank-transfer payments (MP05)."
+        },
+        "connect": {
+          "title": "Connect to PASSO",
+          "body": "Managed: press “Connect to PASSO”. Manual: paste the API key and seller ID your PASSO operator gave you."
+        },
+        "channel": {
+          "title": "Choose the transmission channel",
+          "body": "PEC is recommended: enter your PEC mailbox credentials. For OpenAPI.it enter its token, then paste the shown inbound URL into the vendor console."
+        },
+        "clients": {
+          "title": "Prepare your clients",
+          "body": "Each client needs an SDI code (codice destinatario) or a PEC address. Foreign clients are handled automatically."
+        },
+        "test": {
+          "title": "Test",
+          "body": "Press “Test connection”, then send one invoice and watch it reach “Delivered”."
+        },
+        "defaults": {
+          "title": "Pick your defaults",
+          "body": "Decide the behaviour for scheduled and recurring invoices and whether to offer the SdI step after finalizing."
+        }
+      },
+      "sendLater": "Send later: an invoice is legally issued only once it reaches SdI, so send it within the deadline ({days} days from the invoice date by default). The dashboard lists everything still pending.",
+      "statusesTitle": "What the statuses mean",
+      "ns": "Notification of rejection: NOT issued. Fix the problem and re-issue with a new number.",
+      "mc": "Delivery failure (impossibilità di recapito): the invoice IS issued. Do NOT resubmit.",
+      "at": "Attestation of transmission: the invoice is issued; your client finds it in their tax portal."
+    },
+    "connection": {
+      "title": "Connection",
+      "hint": "Where Billy reaches PASSO, the service that talks to SdI for you.",
+      "apiUrl": "PASSO API URL",
+      "mode": "Mode",
+      "modes": {
+        "managed": "Managed (Billy sets everything up)",
+        "manual": "Manual (paste API key)"
+      },
+      "managedUnavailable": "Managed mode is not available on this server (no PASSO admin key).",
+      "statusConnected": "Connected",
+      "statusNotConnected": "Not connected",
+      "tenant": "PASSO account: {name}",
+      "seller": "Issuer: {name}",
+      "keyLast4": "Key ••••{last4}",
+      "webhook": "Webhook active",
+      "pollOnly": "Poll-only (no webhook)",
+      "lastCheck": "Last check {date}",
+      "connect": "Connect to PASSO",
+      "connected": "Connected to PASSO",
+      "connectError": "Could not connect to PASSO",
+      "businessFirst": "Complete your company data first (Company tab): the transmitter code cannot be changed after connecting.",
+      "apiKey": "API key",
+      "keyStoredHint": "A key is stored. Leave empty to keep it, or type a new one to replace it.",
+      "keyUnsetHint": "Never shown again after saving.",
+      "sellerId": "Seller ID",
+      "save": "Save connection",
+      "saved": "Connection saved",
+      "test": "Test connection",
+      "testOk": "All checks passed",
+      "testFailed": "Some checks failed",
+      "testError": "The connection test could not be run",
+      "checks": {
+        "api": "PASSO reachable",
+        "key": "API key valid",
+        "channel": "Transmission channel healthy",
+        "webhook": "Webhook working"
+      }
+    },
+    "channel": {
+      "title": "Transmission channel",
+      "hint": "How PASSO delivers invoices to SdI and receives the receipts. Credentials are forwarded to PASSO and never shown again.",
+      "type": "Channel",
+      "types": {
+        "pec": "PEC (certified email)",
+        "openapi": "OpenAPI.it",
+        "mock": "Mock (testing only)"
+      },
+      "pecRecommended": "Recommended: needs no third-party account.",
+      "current": "Active channel: {type}",
+      "pec": {
+        "smtpHost": "SMTP host",
+        "smtpPort": "SMTP port",
+        "imapHost": "IMAP host",
+        "imapPort": "IMAP port",
+        "user": "PEC address / user",
+        "password": "PEC password",
+        "testTitle": "Check your PEC mailbox",
+        "testTo": "Send test email to",
+        "testToHint": "Billy sends a real test email from your PEC mailbox to this address.",
+        "testRun": "Test connection & send test email",
+        "rows": {
+          "smtp": "Outgoing mail (SMTP) login",
+          "imap": "Incoming mail (IMAP) login",
+          "mail": "Test email sent to {to} — check that inbox"
+        },
+        "reasons": {
+          "authFailed": "Wrong username or password.",
+          "hostNotFound": "Server not found: check the host name.",
+          "unreachable": "Could not reach the server: check the host and port.",
+          "tlsFailed": "The secure connection failed: check the port and encryption settings."
+        },
+        "passed": "All checks passed. Please open the inbox of {to} and confirm the test email actually arrived before you rely on this mailbox.",
+        "failed": "The test did not pass. Fix the issues above and run it again.",
+        "stale": "Run the test again after changing the settings.",
+        "required": "You must run this test successfully before the channel can be saved.",
+        "testRequired": "Run the connection test with these exact settings before saving.",
+        "toRequired": "Enter the address that should receive the test email.",
+        "toInvalid": "Enter a valid email address.",
+        "recipientForbidden": "This address cannot receive the test email. Use your own address instead.",
+        "testError": "Could not run the connection test",
+        "noticeTitle": "Before you start",
+        "notice": "The PEC mailbox must be a certified mailbox accredited with SdI. The first submission goes to the SdI address; SdI answers with a dedicated address, which Billy learns automatically. PEC works for B2B invoices only. The PEC password gives full access to the mailbox, so it is sent once and never shown again."
+      },
+      "openapi": {
+        "token": "OpenAPI.it token",
+        "baseUrl": "Environment",
+        "production": "Production",
+        "test": "Test (sandbox)",
+        "requestSigning": "Sign requests",
+        "requestSigningHint": "Must match the “apply signature” option in the OpenAPI.it console. Required for invoices to public administrations.",
+        "tokenHint": "Create it in the OpenAPI console, see the notice below.",
+        "sandbox": "Sandbox (test)",
+        "prodWarning": "Real invoices will be transmitted to the tax authority. Use a production token and make sure your company is registered in the production environment.",
+        "signingLabel": "Vendor signs the invoice (requestSigning)",
+        "signingHint": "Must match the seller's apply_signature setting in the OpenAPI.it business registry. Turn it on for public-administration invoices.",
+        "testTitle": "Check your OpenAPI.it setup",
+        "testRun": "Test connection",
+        "rows": {
+          "token": "API token accepted by OpenAPI.it",
+          "registry": "Your company (VAT number) is registered at OpenAPI.it",
+          "signing": "Signing setting matches the registry"
+        },
+        "remedies": {
+          "token": "Check that the token is correct and was created in the same environment you selected here (sandbox or production).",
+          "registry": "Register your company in the OpenAPI.it console first (business registry configurations), then test again.",
+          "signing": "Set the switch to match the signing option of the registry, then test again."
+        },
+        "details": "Details: {message}",
+        "passed": "All checks passed. You can now save the channel.",
+        "failed": "The test did not pass. Fix the issues above and run it again.",
+        "stale": "Run the test again after changing the settings.",
+        "required": "You must run this test successfully before the channel can be saved.",
+        "testRequired": "Run the connection test with these exact settings before saving.",
+        "testError": "Could not run the connection test",
+        "notice": {
+          "title": "What to enable on OpenAPI.it",
+          "intro": "Work through these steps in the OpenAPI console. The test below tells you what is still missing.",
+          "s1": {
+            "title": "Activate the service and create the token",
+            "body": "In the OpenAPI console (console.openapi.com: the .com is the console, the SdI API host is .it) activate the SDI service (Sistema di Interscambio, e-invoicing) and create the API key in the same environment you chose here: a sandbox token for Sandbox, a production token for Production. They live on different hosts."
+          },
+          "s2": {
+            "title": "Allow these API calls on the token",
+            "body": "Enable these endpoints on the key:"
+          },
+          "table": {
+            "call": "API call",
+            "purpose": "Used to",
+            "when": "Needed",
+            "purposes": {
+              "send": "Send the invoice",
+              "sign": "Send the invoice signed by the vendor",
+              "legal": "Legal storage variants",
+              "read": "Read the invoice status",
+              "receipts": "Read the SdI receipts",
+              "registry": "Check and create the company registration",
+              "callback": "Register the callback"
+            },
+            "whens": {
+              "always": "Always",
+              "signing": "Only with signing ON",
+              "legal": "Only if you use legal storage",
+              "callback": "Optional"
+            }
+          },
+          "s3": {
+            "title": "Register your company once",
+            "body": "In the console, open the business registries (Business registry configurations) and add your company:",
+            "fiscalId": "Fiscal ID: {vat} (your VAT number without the IT prefix). Also enter the company name and an e-mail address.",
+            "fiscalIdExample": "Fiscal ID: your VAT number without the IT prefix, for example {vat}. Also enter the company name and an e-mail address.",
+            "signingOn": "Choose signing ON, to match the switch above.",
+            "signingOff": "Choose signing OFF, to match the switch above.",
+            "mismatch": "ON accepts only signed submissions, OFF only unsigned ones. A mismatch makes every invoice fail with error 387."
+          },
+          "s4": {
+            "title": "Keep credit in the OpenAPI wallet",
+            "body": "Sending and reading invoice records are billed. With an empty wallet, invoices end as Failed and can be retried after you top up."
+          },
+          "s5": {
+            "title": "Optional: set up the callback",
+            "body": "After saving, paste the inbound URL shown here in the console for the customer-notification event. It must be reachable from the internet."
+          },
+          "tip": "Start with Sandbox: invoices are not sent to the real tax authority."
+        }
+      },
+      "secretHint": "Never shown again after saving.",
+      "mockHint": "The mock channel simulates SdI responses. It is only available outside production.",
+      "inboundTitle": "Inbound URL — copy it now, it is shown only once",
+      "inboundHint": "Paste it into the OpenAPI.it console as the callback URL for invoice notifications. A new URL is issued every time you save the channel.",
+      "copy": "Copy",
+      "copied": "Copied to the clipboard",
+      "save": "Save channel",
+      "saved": "Channel saved",
+      "saveError": "Could not save the channel",
+      "needConnection": "Connect to PASSO first.",
+      "chooser": {
+        "title": "Choose how invoices are transmitted",
+        "pick": "Pick a channel to continue. You can change it later."
+      },
+      "cards": {
+        "openapi": {
+          "subtitle": "Managed service with an API key",
+          "f1": "Also handles public-administration (B2G) invoices",
+          "f2": "Receipts are pushed to Billy",
+          "f3": "Per-invoice cost"
+        },
+        "pec": {
+          "subtitle": "Your own certified-email mailbox",
+          "f1": "No vendor fee",
+          "f2": "B2B invoices only"
+        },
+        "mock": {
+          "subtitle": "Development only",
+          "f1": "Simulates the SdI responses"
+        }
+      },
+      "inboundSteps": "Paste it in the OpenAPI console as the callback for the customer-notification event. It must be reachable from the internet.",
+      "inboundOptional": "Optional: without it Billy still receives the receipts by polling about every 5 minutes."
+    },
+    "fiscal": {
+      "title": "Fiscal profile",
+      "hint": "Your tax regime and the seller data that goes into every invoice.",
+      "taxRegime": "Tax regime",
+      "businessTitle": "Seller data (from the Company tab)",
+      "business": {
+        "name": "Name",
+        "vat": "VAT number",
+        "taxCode": "Tax code",
+        "address": "Address",
+        "province": "Province (2 letters)"
+      },
+      "openCompany": "Edit in the Company tab"
+    },
+    "defaults": {
+      "title": "Defaults & behaviour",
+      "hint": "How Billy behaves around SdI by default.",
+      "offerStep": "Offer the SdI step after finalizing an invoice",
+      "scheduled": "Scheduled invoices are sent to SdI by default",
+      "recurring": "Recurring invoices are sent to SdI by default",
+      "paymentConditions": "Payment conditions",
+      "paymentMethod": "Payment method",
+      "nature": "Default VAT nature for 0% lines",
+      "natureHint": "Used when a 0% line has no nature of its own.",
+      "lawReference": "Law reference for 0% lines",
+      "bolloMode": "Stamp duty (bollo)",
+      "bolloAuto": "Automatic",
+      "bolloOff": "Off",
+      "bolloThreshold": "Stamp duty threshold",
+      "bolloAmount": "Stamp duty amount",
+      "creditNotePrefix": "Credit-note number prefix",
+      "creditNotePrefixHint": "SdI needs a number distinct from the invoices, e.g. NC 1/2026. The PDF keeps the Billy number.",
+      "deadlineDays": "Send deadline (days)",
+      "deadlineDaysHint": "From the invoice date; the legal default is 12.",
+      "save": "Save settings"
+    },
+    "errors": {
+      "legallyIssued": "This document is already issued at SdI and can no longer be voided. Issue a credit note instead.",
+      "businessIncomplete": "Your company data is incomplete. Missing:",
+      "adminKeyMissing": "The server has no PASSO admin key: use manual mode.",
+      "unreachable": "PASSO cannot be reached. Check the API URL and try again."
+    },
+    "status": {
+      "not_sent": "Not sent to SdI",
+      "blocked": "Blocked",
+      "queued": "Queued",
+      "transmitted": "Transmitted",
+      "awaiting_delivery": "Awaiting delivery",
+      "delivered": "Delivered",
+      "undelivered_attested": "Issued (not delivered)",
+      "accepted_by_pa": "Accepted by PA",
+      "rejected_by_pa": "Rejected by PA",
+      "rejected": "Rejected by SdI",
+      "failed": "Failed",
+      "channel": "Channel: {type}"
+    },
+    "receipts": {
+      "RC": "Delivery receipt (RC)",
+      "NS": "Rejection notice (NS) — not issued",
+      "MC": "Failed-delivery notice (MC) — issued",
+      "NE": "Outcome notice from PA (NE)",
+      "DT": "Deadline expired (DT)",
+      "AT": "Attestation of transmission (AT) — issued"
+    },
+    "guidance": {
+      "issued_do_not_resubmit": "This invoice is issued. Do NOT send it again — if something is wrong, issue a credit note.",
+      "rejected_reissue": "SdI rejected this invoice, so it is NOT issued. Fix the problem, then void it and issue a new invoice with a new number.",
+      "failed_retry": "Sending failed before reaching SdI. You can retry.",
+      "undelivered_tell_client": "SdI could not deliver the invoice, but it IS issued. Tell your client to find it in their tax portal (cassetto fiscale). Do NOT resubmit."
+    },
+    "panel": {
+      "title": "E-invoice (SdI)",
+      "refresh": "Refresh status",
+      "send": "Send to SdI",
+      "retry": "Retry",
+      "downloadXml": "Download XML",
+      "viewRendered": "View as AdE",
+      "identificativoSdI": "SdI identifier",
+      "fileName": "File name",
+      "submittedAt": "Sent",
+      "history": "History",
+      "attempt": "Attempt {n}",
+      "remedy": "Remedy",
+      "deadline": "Send to SdI by {date}.",
+      "deadlineOverdue": "Send deadline passed on {date}",
+      "finalizedBeforeEnable": "This document was issued before e-invoicing was enabled.",
+      "sentOn": "Sent to SdI on {date}"
+    },
+    "submit": {
+      "title": "Send officially via SdI",
+      "checking": "Checking the invoice…",
+      "ready": "Ready to send.",
+      "recipientSdi": "Recipient: SDI code {value}",
+      "recipientPec": "Recipient: PEC {value}",
+      "format": "Format FPR12",
+      "bollo": "Stamp duty of {amount} applies (virtual stamp).",
+      "irreversible": "Once SdI accepts it, the invoice is legally issued and can no longer be voided.",
+      "blocked": "This invoice cannot be sent yet. Fix the issues below, then re-check.",
+      "sendNow": "Send to SdI now",
+      "notNow": "Not now — I'll do it later",
+      "recheck": "Re-check",
+      "continue": "Continue",
+      "sent": "Sent to SdI. The status updates here; you can continue meanwhile.",
+      "error": "Could not complete the step: {error}",
+      "disabled": "E-invoicing is switched off."
+    },
+    "schedule": {
+      "checkbox": "Send officially via SdI when issued",
+      "hint": "On the scheduled date the invoice is issued and submitted to SdI automatically.",
+      "routingWarning": "This client has no way to receive e-invoices yet, so the invoice would be blocked when it is issued:"
+    },
+    "recurring": {
+      "switch": "Send each generated invoice via SdI",
+      "hint": "Each invoice generated by this profile is submitted to SdI right after it is issued."
+    },
+    "list": {
+      "column": "SdI",
+      "filter": "Filter by SdI status",
+      "allStatuses": "All SdI statuses"
+    },
+    "dashboard": {
+      "title": "Invoices not yet sent to SdI",
+      "overdue": "{n} overdue",
+      "dueBy": "send by {date}",
+      "overdueBy": "overdue since {date}",
+      "problems": "{n} need attention"
+    },
+    "nature": {
+      "column": "VAT nature",
+      "placeholder": "Why 0%?"
+    },
+    "issues": {
+      "invoice": {
+        "number_missing": "The invoice has no number yet.",
+        "number_too_long": "The invoice number is too long for SdI (max 20 characters).",
+        "date_invalid": "The invoice date is not valid for SdI.",
+        "no_lines": "The invoice has no lines.",
+        "nature_missing": "SdI requires a reason code (Natura) on every line without VAT, even if no tax applies (e.g. non-EU clients, exempt or out-of-scope operations). Pick it on the line, or set a default in the e-invoicing settings. Forfettari (RF19) get it automatically.",
+        "nature_invalid": "A line has an invalid VAT nature (Natura) for its rate.",
+        "tax_rounding": "The tax total differs from the sum of line taxes by more than 1 cent, which SdI rejects. Adjust the line amounts.",
+        "iban_missing": "No IBAN on the bank account: the payment data will be incomplete.",
+        "deadline_passed": "The legal deadline to send this invoice to SdI has passed. Send it as soon as possible.",
+        "finalized_before_enable": "This invoice was issued before e-invoicing was enabled.",
+        "not_finalized": "The invoice is not finalized yet."
+      },
+      "business": {
+        "vat_missing": "Your company VAT number is missing.",
+        "name_missing": "Your company name is missing.",
+        "address_incomplete": "Your company address is incomplete.",
+        "postal_code_invalid": "Your company postal code is not valid (5 digits for Italy).",
+        "province_missing": "Your company province is missing (2 letters, e.g. MI)."
+      },
+      "client": {
+        "tax_id_missing": "The client has no VAT number or tax code.",
+        "person_name_missing": "The client's first and last name are missing.",
+        "name_missing": "The client's name is missing.",
+        "address_incomplete": "The client's address is incomplete.",
+        "postal_code_invalid": "The client's postal code is not valid.",
+        "province_missing": "The client's province is missing (2 letters, for Italian clients).",
+        "recipient_code_invalid": "The client's SDI code is not valid (6 or 7 letters/digits).",
+        "public_administration_unsupported": "Invoices to public administrations are not supported with this channel.",
+        "routing_missing": "The client needs an SDI code or a PEC address to receive e-invoices."
+      },
+      "einvoicing": {
+        "not_connected": "E-invoicing is not connected to PASSO yet. Finish the setup in Settings.",
+        "disabled": "E-invoicing is switched off in the settings."
+      }
+    },
+    "codes": {
+      "taxRegime": {
+        "RF01": "Ordinary",
+        "RF02": "Minimum taxpayers (L. 244/2007)",
+        "RF04": "Agriculture and fishing (arts. 34, 34-bis)",
+        "RF05": "Sale of salt and tobacco",
+        "RF06": "Matches trade",
+        "RF07": "Publishing",
+        "RF08": "Public telephony services",
+        "RF09": "Resale of transport and parking tickets",
+        "RF10": "Entertainment, games and similar",
+        "RF11": "Travel and tourism agencies",
+        "RF12": "Farm holidays (agriturismo)",
+        "RF13": "Door-to-door sales",
+        "RF14": "Resale of used goods, art and antiques",
+        "RF15": "Art and antiques auction agencies",
+        "RF16": "Cash-basis VAT for public bodies (art. 6, c. 5)",
+        "RF17": "Cash-basis VAT (art. 32-bis)",
+        "RF18": "Other",
+        "RF19": "Flat-rate regime (forfettario)"
+      },
+      "paymentMethod": {
+        "MP01": "Cash",
+        "MP02": "Cheque",
+        "MP03": "Banker's draft",
+        "MP04": "Cash at the Treasury",
+        "MP05": "Bank transfer",
+        "MP06": "Promissory note",
+        "MP07": "Bank payment slip",
+        "MP08": "Payment card",
+        "MP09": "RID",
+        "MP10": "RID utilities",
+        "MP11": "Fast RID",
+        "MP12": "RIBA",
+        "MP13": "MAV",
+        "MP14": "Tax-office receipt",
+        "MP15": "Transfer on special accounting accounts",
+        "MP16": "Bank direct debit",
+        "MP17": "Postal direct debit",
+        "MP18": "Postal current-account slip",
+        "MP19": "SEPA Direct Debit",
+        "MP20": "SEPA Direct Debit CORE",
+        "MP21": "SEPA Direct Debit B2B",
+        "MP22": "Deduction from sums already collected",
+        "MP23": "PagoPA"
+      },
+      "paymentCondition": {
+        "TP01": "Instalments",
+        "TP02": "Full payment",
+        "TP03": "Advance payment"
+      },
+      "natura": {
+        "N1": "Excluded (art. 15 DPR 633/72)",
+        "N2": {
+          "1": "Outside VAT scope (arts. 7 to 7-septies)",
+          "2": "Outside VAT scope — other cases"
+        },
+        "N3": {
+          "1": "Not taxable — exports",
+          "2": "Not taxable — intra-EU supplies",
+          "3": "Not taxable — supplies to San Marino",
+          "4": "Not taxable — transactions treated as exports",
+          "5": "Not taxable — under letters of intent",
+          "6": "Not taxable — other, outside the plafond"
+        },
+        "N4": "Exempt",
+        "N5": "Margin scheme / VAT not shown",
+        "N6": {
+          "1": "Reverse charge — scrap and recovered materials",
+          "2": "Reverse charge — gold and silver, used jewellery",
+          "3": "Reverse charge — construction subcontracting",
+          "4": "Reverse charge — sale of buildings",
+          "5": "Reverse charge — mobile phones",
+          "6": "Reverse charge — electronic products",
+          "7": "Reverse charge — construction and related sectors",
+          "8": "Reverse charge — energy sector",
+          "9": "Reverse charge — other cases"
+        },
+        "N7": "VAT paid in another EU state"
+      }
+    },
+    "reset": {
+      "button": "Reset connection",
+      "title": "Reset the e-invoicing connection?",
+      "message": "Sending to SdI is switched off and the local connection (PASSO tenant link, API key, seller, channel and webhook) is cleared. Invoices already sent are not affected. The PASSO tenant itself is NOT deleted: it is re-used when you reconnect.",
+      "confirm": "Reset connection",
+      "done": "Connection reset. Set it up again with the steps below.",
+      "error": "Could not reset the connection"
+    },
+    "wizard": {
+      "title": "Set up e-invoicing",
+      "hint": "Follow these steps to start sending invoices to SdI. You can come back at any time.",
+      "next": "Next",
+      "back": "Back",
+      "steps": {
+        "company": "Company data",
+        "connect": "Connect",
+        "channel": "Channel",
+        "test": "Test",
+        "finish": "Finish"
+      },
+      "company": {
+        "hint": "Billy fills in the seller section of every e-invoice from your company data, so it has to be complete first.",
+        "required": "Required",
+        "recommended": "Recommended",
+        "ibanHint": "Without an IBAN invoices can still be sent, but the bank details will be missing. You can add it in the Company tab.",
+        "recheck": "Re-check"
+      },
+      "connect": {
+        "managedHint": "Billy creates your PASSO account, API key and webhook in one click.",
+        "manualHint": "Ask your PASSO operator for an API key and a seller ID, then paste them here.",
+        "manualIncomplete": "Saved, but the connection is not complete yet: both an API key and a seller ID are needed."
+      },
+      "channel": {
+        "required": "Set up the transmission channel to continue.",
+        "manualNote": "In manual mode the PASSO operator configures the transmission channel, so there is nothing to do here. This step is skipped."
+      },
+      "test": {
+        "hint": "Check that everything works before you switch sending on. Every check must pass (a missing webhook is fine: Billy will poll instead)."
+      },
+      "finish": {
+        "hint": "Last choices. Everything else can be fine-tuned afterwards in the full settings.",
+        "finishEnable": "Finish & enable",
+        "finishOnly": "Finish",
+        "done": "E-invoicing is set up"
+      },
+      "stepHints": {
+        "company": "Seller details",
+        "connect": "Link to PASSO",
+        "channel": "How invoices travel",
+        "test": "Check it works",
+        "finish": "Go live"
+      }
+    },
+    "actions": {
+      "sentToSdi": "Sent to SdI · {status}",
+      "notSent": "SdI · Not sent",
+      "sending": "SdI · Sending…",
+      "rejected": "SdI · Rejected",
+      "failed": "SdI · Failed",
+      "tipSent": "Sent to SdI on {date}",
+      "tipSdiId": "SdI identifier: {id}",
+      "tipExpand": "Show e-invoice (SdI) details",
+      "tipCollapse": "Hide e-invoice (SdI) details"
     }
   }
 }

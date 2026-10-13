@@ -64,7 +64,8 @@ export const parseListQuery = (raw: RawParams, whitelist: ListWhitelist): Parsed
     }
     const val = first(rawVal) ?? "";
     if (op === "in") {
-      filter[field] = { $in: val.split(",").map((s) => s.trim()) };
+      // "~null" matches documents where the field is missing/null (e.g. e-invoice "not sent").
+      filter[field] = { $in: val.split(",").map((s) => (s.trim() === "~null" ? null : s.trim())) };
     } else if (op === "gte" || op === "lte") {
       const existing = (filter[field] as Record<string, unknown> | undefined) ?? {};
       filter[field] = { ...existing, [`$${op}`]: val };
@@ -84,4 +85,17 @@ export const parseListQuery = (raw: RawParams, whitelist: ListWhitelist): Parsed
   const archived = archivedRaw === "true" || archivedRaw === "all" ? archivedRaw : "false";
 
   return { filter, sort, sortSpec, page, limit, skip: (page - 1) * limit, q, archived };
+};
+
+/**
+ * Translate the friendly `?einvoiceStatus=<status>` into the whitelisted `einvoice.status`
+ * filter. `not_sent` also matches documents the integration never touched (field absent).
+ */
+export const einvoiceStatusQuery = (
+  raw: Record<string, string | string[] | undefined>,
+): Record<string, string | string[] | undefined> => {
+  const { einvoiceStatus, ...rest } = raw;
+  const v = Array.isArray(einvoiceStatus) ? einvoiceStatus[0] : einvoiceStatus;
+  if (!v) return raw;
+  return { ...rest, "einvoice.status[in]": v === "not_sent" ? "not_sent,~null" : v };
 };

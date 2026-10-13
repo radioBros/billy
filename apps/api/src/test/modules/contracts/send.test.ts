@@ -166,7 +166,7 @@ const driver = (router: ReturnType<typeof createContractsRouter>) => {
     );
 };
 
-const BUSINESS: Doc = { key: "business", data: { businessName: "Acme LLC" } };
+const BUSINESS: Doc = { key: "business", accountId: "default", data: { businessName: "Acme LLC" } };
 
 const baseContract = (overrides: Doc = {}): Doc => {
   return {

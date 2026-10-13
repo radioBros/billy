@@ -27,6 +27,7 @@ export const QUEUE_NAMES = {
   backup: "backup",
   cleanup: "cleanup",
   recurring: "recurring",
+  einvoice: "einvoice",
 } as const;
 
 /** Union of the registered queue names (`"email" | "pdf" | …`). */
@@ -118,6 +119,20 @@ export interface RecurringRunJob {
 }
 
 /**
+ * Italian e-invoicing (PASSO/SdI). One queue, three job kinds:
+ *  - `submit`: map + send one document to PASSO (from the API, or the worker's scheduled /
+ *    recurring scans);
+ *  - `retry`:  re-run a `failed` PASSO submission (same ProgressivoInvio);
+ *  - `sync`:   pull status/receipts for one submission, or sweep an account's in-flight ones;
+ *  - `tick`:   repeatable fan-out that enqueues a `sync` per account with in-flight work.
+ */
+export type EInvoiceJob =
+  | { kind: "submit"; accountId: string; docKind: "invoice" | "credit_note"; docId: string; trigger: "manual" | "creation_step" | "scheduled" | "recurring" }
+  | { kind: "retry"; accountId: string; docKind: "invoice" | "credit_note"; docId: string }
+  | { kind: "sync"; accountId: string; submissionId?: string }
+  | { kind: "tick"; accountId: "*" };
+
+/**
  * Queue-name → payload map. The `_payloadsAreExhaustive` guard below makes this
  * exhaustive in both directions — a `QueueName` without a payload (or a payload
  * key that is not a queue name) is a compile error (mirrors the `satisfies`
@@ -130,6 +145,7 @@ export interface JobPayloads {
   backup: BackupJob;
   cleanup: CleanupJob;
   recurring: RecurringRunJob;
+  einvoice: EInvoiceJob;
 }
 
 // Compile-time guard that JobPayloads covers exactly the queue names.

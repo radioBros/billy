@@ -136,6 +136,7 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
       subject: input.subject ?? null,
       notes: input.notes ?? null,
       autoSend: input.autoSend ?? null,
+      einvoice: input.einvoice ?? null,
     });
     await this.emit(this.event("recurring.profile_created", ctx, created.id, { status: "active" }));
 

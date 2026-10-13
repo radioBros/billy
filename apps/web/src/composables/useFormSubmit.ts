@@ -20,6 +20,7 @@ import { toast } from "@/composables/useToast";
 /** Minimal shape of Vuetify's v-form exposed API we depend on. */
 export interface VuetifyFormRef {
   validate: () => Promise<{ valid: boolean }>;
+  resetValidation?: () => void;
 }
 
 /**

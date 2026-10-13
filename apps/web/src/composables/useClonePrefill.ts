@@ -49,6 +49,7 @@ export const toLineItemInputs = (items: LineItemComputed[] | undefined): LineIte
     unitPriceMinor: li.unitPriceMinor,
     ...(li.discountRate !== undefined ? { discountRate: li.discountRate } : {}),
     ...(li.taxRate !== undefined ? { taxRate: li.taxRate } : {}),
+    ...(li.nature ? { nature: li.nature } : {}),
   }));
 };
 

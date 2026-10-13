@@ -19,14 +19,24 @@ import StatusChip from "@/components/StatusChip.vue";
 import AppCard from "@/components/AppCard.vue";
 import DocumentActions from "@/components/DocumentActions.vue";
 import SendDocumentModal from "@/components/SendDocumentModal.vue";
+import EInvoicePanel from "@/components/einvoicing/EInvoicePanel.vue";
+import EInvoiceSentChip from "@/components/einvoicing/EInvoiceSentChip.vue";
+import EInvoiceActionButton from "@/components/einvoicing/EInvoiceActionButton.vue";
+import EInvoiceScheduleOption from "@/components/einvoicing/EInvoiceScheduleOption.vue";
+import { isApiCode } from "@/composables/useEInvoice";
+import { useToast } from "@/composables/useToast";
+import { useEInvoicing } from "@/stores/einvoicing";
 import type { SendKind } from "@/composables/useSendDocument";
 import { confirm } from "@/composables/useConfirm";
 import { useAuthStore } from "@/stores/auth";
+import type { EInvoiceInfo } from "@/types/domain";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const auth = useAuthStore();
+const einvoicing = useEInvoicing();
+const { toast } = useToast();
 const id = computed<string>(() => route.params.id as string);
 
 const invoice = ref<Invoice | null>(null);
@@ -151,6 +161,24 @@ const openSend = (kind: SendKind): void => {
 // schedule-send dialog state
 const scheduleDialog = ref(false);
 const scheduleDate = ref(today);
+// "Send officially via SdI when issued" (e-invoicing only).
+const submitOnFinalize = ref(false);
+
+// Once the invoice is legally issued at SdI it can no longer be voided — the fix
+// is a credit note. Fed by the e-invoice panel; also learned from a 409.
+const legallyIssued = ref(false);
+const einvoiceInfo = ref<EInvoiceInfo | null>(null);
+// The SdI panel is collapsed by default; it opens by itself (once) when something needs attention.
+const einvoiceOpen = ref(false);
+let einvoiceAutoOpened = false;
+const onEInvoiceLoaded = (info: EInvoiceInfo): void => {
+  legallyIssued.value = info.legallyIssued;
+  einvoiceInfo.value = info;
+  if (!einvoiceAutoOpened && (info.status === "rejected" || info.status === "failed")) {
+    einvoiceAutoOpened = true;
+    einvoiceOpen.value = true;
+  }
+};
 
 const load = async (): Promise<void> => {
   loading.value = true;
@@ -174,10 +202,15 @@ const runAction = async (fn: () => Promise<Invoice>): Promise<void> => {
   try {
     invoice.value = await fn();
   } catch (err) {
-    actionError.value =
-      err instanceof ApiError
-        ? t("common.actionFailed", { code: apiErrorReason(err) })
-        : t("common.actionFailedGeneric");
+    if (isApiCode(err, "EINVOICE_LEGALLY_ISSUED")) {
+      legallyIssued.value = true;
+      toast.error(t("einvoicing.errors.legallyIssued"));
+    } else {
+      actionError.value =
+        err instanceof ApiError
+          ? t("common.actionFailed", { code: apiErrorReason(err) })
+          : t("common.actionFailedGeneric");
+    }
   } finally {
     acting.value = false;
   }
@@ -212,6 +245,7 @@ const voidInvoice = async (): Promise<void> => {
 
 const openScheduleDialog = (): void => {
   scheduleDate.value = invoice.value?.scheduledSendDate ?? today;
+  submitOnFinalize.value = einvoicing.enabled && einvoicing.scheduledDefaultSubmit;
   actionError.value = null;
   scheduleDialog.value = true;
 };
@@ -226,7 +260,10 @@ const submitSchedule = async (): Promise<void> => {
   await runAction(() =>
     api.post<Invoice>(
       `/v1/invoices/${id.value}/schedule`,
-      { scheduledSendDate: scheduleDate.value },
+      {
+        scheduledSendDate: scheduleDate.value,
+        ...(einvoicing.enabled ? { submitOnFinalize: submitOnFinalize.value } : {}),
+      },
       { ifMatch: invoice.value!.version },
     ),
   );
@@ -283,6 +320,7 @@ const submitPayment = async (): Promise<void> => {
 };
 
 onMounted(() => {
+  void einvoicing.load();
   void load();
   // Best-effort: load the company's registered bank accounts for the payment
   // dropdown's first group. Any failure (permissions / unset) → no bank group.
@@ -324,6 +362,7 @@ onMounted(() => {
         <template #header>
           <div class="text-h6 mr-3">{{ invoice.invoiceNumber ?? t("invoices.draftUnnumbered") }}</div>
           <StatusChip :status="invoice.status" />
+          <EInvoiceSentChip v-if="einvoicing.enabled" :info="einvoiceInfo" @click="einvoiceOpen = !einvoiceOpen" />
         </template>
 
         <v-alert
@@ -364,12 +403,26 @@ onMounted(() => {
               {{ t("invoices.schedule.unscheduleAction") }}
             </v-btn>
             <v-btn v-if="canFinalize" color="primary" :loading="acting" @click="finalize">{{ t("invoices.finalize") }}</v-btn>
-            <v-btn v-if="canVoid" color="error" :loading="acting" @click="voidInvoice">
+            <v-btn
+              v-if="canVoid"
+              color="error"
+              :loading="acting"
+              :disabled="legallyIssued"
+              :title="legallyIssued ? t('einvoicing.errors.legallyIssued') : undefined"
+              data-test="invoice-void"
+              @click="voidInvoice"
+            >
               {{ t("invoices.void") }}
             </v-btn>
             <v-btn v-if="canVoid" color="primary" :loading="acting" @click="payDialog = true">
               {{ t("invoices.addPayment") }}
             </v-btn>
+            <EInvoiceActionButton
+              v-if="einvoicing.enabled && canSend"
+              :info="einvoiceInfo"
+              :open="einvoiceOpen"
+              @toggle="einvoiceOpen = !einvoiceOpen"
+            />
             <v-btn
               v-if="canDelete"
               color="error"
@@ -384,6 +437,20 @@ onMounted(() => {
           </div>
         </template>
       </AppCard>
+
+      <v-expand-transition>
+        <div v-show="isScheduled || einvoiceOpen" data-test="einvoice-collapse">
+        <EInvoicePanel
+          v-if="einvoicing.enabled && (canSend || isScheduled)"
+          kind="invoices"
+          :document-id="invoice.id"
+          :client-id="invoice.clientId"
+          :scheduled="isScheduled"
+          :refresh-key="invoice.version"
+          @loaded="onEInvoiceLoaded"
+        />
+        </div>
+      </v-expand-transition>
 
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
@@ -487,6 +554,12 @@ onMounted(() => {
             type="date"
             :min="today"
             density="comfortable"
+          />
+          <EInvoiceScheduleOption
+            v-if="invoice"
+            v-model="submitOnFinalize"
+            :document-id="invoice.id"
+            :client-id="invoice.clientId"
           />
         </v-card-text>
         <v-card-actions>

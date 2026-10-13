@@ -52,6 +52,13 @@ const BankAccountSchema = z.object({
   id: NonEmptyString,
   label: NonEmptyString,
   details: z.string(),
+  // Structured IBAN (spaces stripped, uppercased); empty string clears it.
+  iban: z
+    .preprocess(
+      (v) => (typeof v === "string" ? (v.trim() === "" ? null : v.replace(/\s+/gu, "").toUpperCase()) : v),
+      z.string().regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/u, { message: "iban.invalid" }).nullable(),
+    )
+    .optional(),
 });
 
 const businessShape = {

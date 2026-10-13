@@ -4039,3 +4039,39 @@ The final product is a focused operational system for a software developer or sm
 * which events require attention
 
 Nothing beyond this boundary should be implemented without an explicit revision of this specification.
+
+---
+
+# 48\. Revision — Italian e-invoicing (SdI) integration
+
+§47 forbids modules beyond the listed boundary without revising this specification. This revision adds
+one **optional, per-account** integration; it does not change the product boundary for accounts that
+leave it off.
+
+## 48.1 Purpose
+
+Let an account send invoices and credit notes *officially* to the Italian Sistema di Interscambio (SdI)
+through **PASSO**, a separate open-source FatturaPA relay deployed as its own Compose project. PASSO is
+**not** part of this repository; only the integration is.
+
+## 48.2 Scope
+
+* Settings key `einvoicing` (per account): enable toggle, PASSO connection, channel (PEC / OpenAPI.it),
+  fiscal profile (tax regime, stamp duty), defaults, and an in-app setup guide.
+* Sending at the end of single-invoice creation (send now or later), for scheduled invoices, for
+  recurring profiles, and for credit notes (TD04).
+* Per-document `einvoice` state (status, receipts, SdI errors), an `einvoiceSubmissions` collection with
+  the archived XML, and a dashboard list of documents not yet sent.
+* Queue `einvoice` (submit / retry / sync / tick), processed only by the worker.
+
+## 48.3 Amendments to earlier sections
+
+* **11.2 Invoice statuses / 11.4 actions:** unchanged; `einvoice.status` is a separate axis. New action
+  "send to SdI". A document SdI holds cannot be voided (issue a credit note).
+* **Line items:** optional `nature` (FatturaPA Natura) for 0% lines. **Bank accounts:** optional `iban`.
+* **Clients:** SDI code (`recipientCode`) and PEC are editable.
+
+## 48.4 Non-goals
+
+B2G invoices, passive invoices, withholding tax, pension-fund contributions, certified archiving
+(*conservazione a norma*), and tax advice.

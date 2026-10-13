@@ -13,13 +13,18 @@ import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
 import type { ListQuery } from "@/api/client";
 import type { ListMeta } from "@billy/types";
-import type { Invoice, InvoiceStatus } from "@/types/domain";
+import type { EInvoiceStatus, Invoice, InvoiceStatus } from "@/types/domain";
 import { minorToDisplay } from "@/utils/money";
 import { enumLabel } from "@/utils/enums";
 import { useSettingsStore } from "@/stores/settings";
 import { useAuthStore } from "@/stores/auth";
 import { useClientNames } from "@/composables/useClientNames";
 import StatusChip from "@/components/StatusChip.vue";
+import EInvoiceStatusChip from "@/components/einvoicing/EInvoiceStatusChip.vue";
+import EInvoiceStatusFilter from "@/components/einvoicing/EInvoiceStatusFilter.vue";
+import { isApiCode } from "@/composables/useEInvoice";
+import { useToast } from "@/composables/useToast";
+import { useEInvoicing } from "@/stores/einvoicing";
 import ServerTable from "@/components/tables/ServerTable.vue";
 import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
@@ -43,6 +48,8 @@ const settings = useSettingsStore();
 const auth = useAuthStore();
 const { resolve: resolveClientNames, nameOf: clientNameOf } = useClientNames();
 const period = usePeriodStore();
+const einvoicing = useEInvoicing();
+const { toast } = useToast();
 
 const canDelete = computed<boolean>(
   () => auth.principal?.capabilities.canPermanentlyDelete === true,
@@ -55,6 +62,9 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("invoices.columns.number"), key: "invoiceNumber", sortable: true },
   { title: t("documents.columns.customer"), key: "clientId", sortable: false },
   { title: t("invoices.columns.status"), key: "status", sortable: true },
+  // SdI column only exists while e-invoicing is enabled. `forced` so users with saved
+  // column prefs (written before this column existed) don't end up with it hidden.
+  ...(einvoicing.enabled ? [{ title: t("einvoicing.list.column"), key: "einvoice", sortable: false, forced: true }] : []),
   { title: t("invoices.columns.issueDate"), key: "issueDate", sortable: true },
   { title: t("invoices.columns.dueDate"), key: "dueDate", sortable: true },
   { title: t("documents.columns.created"), key: "createdAt", sortable: true },
@@ -65,8 +75,14 @@ const headers = computed<ServerTableHeader[]>(() => [
 
 const { cloneRow } = useClonePrefill();
 
+// An invoice legally issued at SdI can't be voided — a credit note is the way out.
 const canVoid = (item: Invoice): boolean => {
-  return item.status !== "void" && item.status !== "draft" && item.status !== "scheduled";
+  return (
+    item.status !== "void" &&
+    item.status !== "draft" &&
+    item.status !== "scheduled" &&
+    item.einvoice?.legallyIssued !== true
+  );
 };
 
 const voidRow = async (item: Invoice): Promise<void> => {
@@ -81,6 +97,11 @@ const voidRow = async (item: Invoice): Promise<void> => {
     await api.post<Invoice>(`/v1/invoices/${item.id}/void`, undefined, { ifMatch: item.version });
     await fetchPage();
   } catch (err) {
+    if (isApiCode(err, "EINVOICE_LEGALLY_ISSUED")) {
+      toast.error(t("einvoicing.errors.legallyIssued"));
+      await fetchPage();
+      return;
+    }
     errorMessage.value =
       err instanceof ApiError ? t("common.actionFailed", { code: apiErrorReason(err) }) : t("common.actionFailedGeneric");
   }
@@ -167,6 +188,7 @@ const itemsPerPage = ref(50);
 const sortBy = ref<SortItem[]>([{ key: "issueDate", order: "desc" }]);
 const search = ref("");
 const statusFilter = ref<InvoiceStatus | null>(null);
+const einvoiceFilter = ref<EInvoiceStatus | null>(null);
 
 const toSortParam = (items_: SortItem[]): string | undefined => {
   if (items_.length === 0) return undefined;
@@ -188,6 +210,7 @@ const fetchPage = async (): Promise<void> => {
     sort: toSortParam(sortBy.value),
     q: search.value.trim() || undefined,
     status: statusFilter.value ?? undefined,
+    einvoiceStatus: einvoicing.enabled ? (einvoiceFilter.value ?? undefined) : undefined,
     "issueDate[gte]": bounds.from,
     "issueDate[lte]": bounds.to,
   };
@@ -218,7 +241,7 @@ watch([page, itemsPerPage, sortBy, search], () => {
   void fetchPage();
 });
 
-watch(statusFilter, () => {
+watch([statusFilter, einvoiceFilter], () => {
   if (page.value !== 1) page.value = 1;
   else void fetchPage();
 });
@@ -246,6 +269,7 @@ const openRow = (_e: unknown, ctx: { item: unknown }): void => {
 };
 
 onMounted(() => {
+  void einvoicing.load();
   void settings.load();
   void fetchPage();
 });
@@ -302,12 +326,17 @@ onMounted(() => {
             max-width="200"
             :aria-label="t('invoices.filterStatus')"
           />
+          <EInvoiceStatusFilter v-if="einvoicing.enabled" v-model="einvoiceFilter" class="ml-2" />
         </template>
         <template #[`item.invoiceNumber`]="{ item }">
           {{ item.invoiceNumber ?? "—" }}
         </template>
         <template #[`item.status`]="{ item }">
           <StatusChip :status="item.status" />
+        </template>
+        <template #[`item.einvoice`]="{ item }">
+          <EInvoiceStatusChip v-if="item.einvoice" :status="item.einvoice.status" />
+          <span v-else>&mdash;</span>
         </template>
         <template #[`item.grandTotalMinor`]="{ item }">
           {{ minorToDisplay(item.grandTotalMinor, item.currency) }}

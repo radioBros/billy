@@ -140,6 +140,7 @@ validated fail-fast at boot). Highlights:
 | **Secrets (required in prod)** | `SESSION_SECRET`, `JWT_SECRET`, `DATA_ENCRYPTION_KEY` | `DATA_ENCRYPTION_KEY` loss = encrypted fields unrecoverable — back it up |
 | **Data** | `MONGO_URI`, `REDIS_URL`, `MINIO_*` | in-cluster hostnames set by compose |
 | **Email** | `SMTP_*` | unset host → dev jsonTransport; or set via the panel (encrypted) |
+| **E-invoicing (optional)** | `PASSO_API_URL`, `PASSO_ADMIN_KEY`, `PASSO_WEBHOOK_BASE_URL`, `PASSO_POLL_INTERVAL_SEC` | Italian SdI via a separate PASSO stack — see [Integrations](#integrations) |
 | **Deploy** | `PROXY_HTTP_PORT` (3480), `PROXY_HTTPS_PORT` (3481), `PUBLIC_HOST`, `ACME_EMAIL`, `REDIS_PASSWORD`, `PDF_CONCURRENCY`, `CLAMAV_ENABLED` | consumed by compose; host ports default into 3480–3490 |
 
 **Config precedence:** DB setting (Settings) → `.env` → built-in
@@ -311,12 +312,35 @@ Run it against a running stack: `pnpm seed` (or `bash scripts/seed/run.sh`).
 
 ---
 
+## Integrations
+
+### Italian e-invoicing (SdI) via PASSO — optional
+
+Billy can send invoices and credit notes **officially** to the Italian *Sistema di Interscambio*
+through [PASSO](https://github.com/radioBros/passo), a separate open-source FatturaPA relay (own repo,
+own Docker Compose project, joined to billy over a shared network — it is **not** part of this repo).
+
+- **Off by default, per account.** Enable it in **Settings → E-invoicing (SdI)**; every option
+  (connection, PEC / OpenAPI.it channel, tax regime, defaults, stamp duty) lives in that tab, which also
+  carries a short step-by-step setup guide.
+- **Flexible sending:** at the end of invoice creation (*Send officially via SdI* — send now or later),
+  per scheduled invoice, per recurring profile, and for credit notes. Status and SdI receipts
+  (delivered / rejected / awaiting delivery …) show on every invoice, with a dashboard list of
+  anything not yet sent.
+- **Env wiring only:** `PASSO_API_URL`, `PASSO_ADMIN_KEY` (one-click setup; never shown in the UI),
+  `PASSO_WEBHOOK_BASE_URL`, `PASSO_POLL_INTERVAL_SEC`. Deploy with the opt-in override:
+  `COMPOSE_FILE=docker-compose.yml:docker-compose.passo.yml docker compose up -d api worker`.
+
+Full guide (setup, statuses, limits): [docs/integrations/passo.md](./docs/integrations/passo.md).
+
+---
+
 ## Services topology (short form)
 
 `proxy` (Traefik), `web` (nginx), `api`, `worker`, `scheduler` (opt-in
 `--profile scale`), `mongodb`, `redis`, `minio`, `mailpit` (dev only), `clamav`
 (prod, toggle `CLAMAV_ENABLED`). Only `proxy` is publicly exposed; datastores +
-worker live on the private `internal` network. No `minio-init` — the API creates
+worker live on the private `internal` network. With the opt-in `docker-compose.passo.yml`, `api` + `worker` also join the external `billy_passo` network to reach a separate PASSO stack. No `minio-init` — the API creates
 its bucket on boot.
 
 ---

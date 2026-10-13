@@ -23,6 +23,7 @@ import { createProformaRouter } from "@/modules/proforma/index.js";
 import { mountPdfGeneration } from "@/modules/pdf-generation/routes.js";
 import { createAccountsRouter } from "@/modules/accounts/index.js";
 import { createProjectsRouter } from "@/modules/projects/index.js";
+import { createEInvoicingRouters } from "@/modules/einvoicing/index.js";
 import type { UserStore } from "@/modules/auth/users.js";
 import type { QueueRegistry } from "@/platform/queue.js";
 
@@ -45,7 +46,10 @@ export interface ModuleDeps {
 }
 
 export const mountDomainModules = (app: Koa<AppState>, deps: ModuleDeps): void => {
+  const einvoicing = createEInvoicingRouters(deps);
   const routers = [
+    einvoicing.authed,
+    einvoicing.hook,
     createClientsRouter(deps),
     createExpensesRouter(deps),
     createContractsRouter(deps),

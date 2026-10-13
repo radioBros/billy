@@ -33,12 +33,18 @@ export type LoadClient = (ctx: AuthContext, clientId: string) => Promise<ClientR
 /** Minimal client shape issue needs to build a snapshot (mirrors invoices). */
 export interface ClientRecord {
   id: string;
+  type?: string | null;
   displayName: string;
   legalName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   billingAddress?: unknown | null;
   vatNumber?: string | null;
   taxCode?: string | null;
+  recipientCode?: string | null;
+  pecEmail?: string | null;
+  country?: string | null;
   preferredCurrency?: string | null;
   preferredLanguage?: string | null;
   referral?: string | null;
@@ -151,12 +157,18 @@ export class CreditNoteService extends BaseService<CreditNote> {
     if (!client) throw errors.notFound();
     const snapshot: ClientSnapshot = {
       clientId: client.id,
+      type: client.type ?? null,
       displayName: client.displayName,
       legalName: client.legalName ?? null,
+      firstName: client.firstName ?? null,
+      lastName: client.lastName ?? null,
       email: client.email ?? null,
       billingAddress: client.billingAddress ?? null,
       vatNumber: client.vatNumber ?? null,
       taxCode: client.taxCode ?? null,
+      recipientCode: client.recipientCode ?? null,
+      pecEmail: client.pecEmail ?? null,
+      country: client.country ?? null,
       currency: existing.currency,
       preferredLanguage: client.preferredLanguage ?? null,
       referral: client.referral ?? null,
@@ -179,6 +191,10 @@ export class CreditNoteService extends BaseService<CreditNote> {
   /** Void any non-terminal credit note. The row is retained for audit. */
   async void(ctx: AuthContext, id: string, expectedVersion: number): Promise<CreditNote> {
     const existing = await this.get(ctx, id);
+    const es = existing.einvoice?.status;
+    if (existing.einvoice?.legallyIssued || es === "queued" || es === "transmitted" || es === "awaiting_delivery") {
+      throw new AppError("EINVOICE_LEGALLY_ISSUED", "This credit note was sent to SdI and can no longer be voided");
+    }
     assertTransition<CreditNoteStatus>(existing.status, "void", ALLOWED_TRANSITIONS);
     const voided = await this.repo.replaceState(ctx, id, expectedVersion, { status: "void" });
     await this.emit(this.event("creditNote.void", ctx, voided.id));

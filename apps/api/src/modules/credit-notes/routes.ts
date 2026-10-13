@@ -5,6 +5,7 @@ import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
 import { validate } from "@/platform/validate.js";
+import { einvoiceStatusQuery } from "@/platform/list-query.js";
 import { canSeeFinancials, respondCreated, respondList, respondOk } from "@/platform/serializer.js";
 import { formatDocumentNumber, nextSequence, type Counter } from "@/platform/numbering.js";
 import { requireAuth } from "@/modules/auth/middleware.js";
@@ -28,13 +29,9 @@ export const createCreditNotesRouter = (deps: {
     logger: deps.logger,
     // issue reads the clients collection to build the snapshot (mirrors invoices).
     loadClient: async (ctx, clientId): Promise<ClientRecord | null> => {
-      const c = (await clients.findOne(
-        { id: clientId, accountId: ctx.accountId, deletedAt: null },
-        { projection: { _id: 0 } },
-      )) as (ClientRecord & { accountId?: string }) | null;
-      if (c) return c;
+      // Strictly account-scoped: the snapshot becomes the fiscal buyer identity on the document.
       return (await clients.findOne(
-        { id: clientId, deletedAt: null },
+        { id: clientId, accountId: ctx.accountId, deletedAt: null },
         { projection: { _id: 0 } },
       )) as ClientRecord | null;
     },
@@ -52,7 +49,7 @@ export const createCreditNotesRouter = (deps: {
   // GET /api/v1/credit-notes — list
   r.get("/", async (ctx) => {
     const auth = ctx.state.authContext!;
-    const { items, meta } = await service.list(auth, ctx.query);
+    const { items, meta } = await service.list(auth, einvoiceStatusQuery(ctx.query));
     respondList(ctx, items.map((c) => stripCreditNoteFinancial(auth, c)), meta);
   });
 

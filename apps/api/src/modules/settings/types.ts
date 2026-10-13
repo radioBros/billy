@@ -1,6 +1,7 @@
 import type { BaseDoc } from "@billy/types";
 import type { AddressInput } from "@billy/validation";
 import type { LocalizedText } from "@billy/shared";
+import type { EInvoicingSettingsData } from "@billy/einvoice";
 
 /**
  * Settings module entities. Two distinct stores:
@@ -26,7 +27,8 @@ export type SettingsKey =
   | "email"
   | "localization"
   | "documents"
-  | "toggles";
+  | "toggles"
+  | "einvoicing";
 
 export const SETTINGS_KEYS: readonly SettingsKey[] = [
   "business",
@@ -37,6 +39,7 @@ export const SETTINGS_KEYS: readonly SettingsKey[] = [
   "localization",
   "documents",
   "toggles",
+  "einvoicing",
 ] as const;
 
 // ── Business settings ────────────────────────────────────────────────────────
@@ -49,6 +52,8 @@ export interface BankAccount {
   id: string;
   label: string;
   details: string;
+  /** Structured IBAN (optional) — sent to SdI as the payment IBAN; also copied onto the invoice bank snapshot. */
+  iban?: string | null;
 }
 
 /** Domain fields of the business-settings singleton. */
@@ -270,7 +275,14 @@ export interface TogglesSettingsDoc extends SettingsDocBase {
   data: TogglesSettingsData;
 }
 
+/** Italian e-invoicing (PASSO). Secrets are ciphertext; the API only returns a safe view (modules/einvoicing). */
+export interface EInvoicingSettingsDoc extends SettingsDocBase {
+  key: "einvoicing";
+  data: EInvoicingSettingsData;
+}
+
 export type SettingsDoc =
+  | EInvoicingSettingsDoc
   | BusinessSettingsDoc
   | TaxSettingsDoc
   | NumberingSettingsDoc
@@ -290,6 +302,7 @@ export interface SettingsDataByKey {
   localization: LocalizationSettingsData;
   documents: DocumentsSettingsData;
   toggles: TogglesSettingsData;
+  einvoicing: EInvoicingSettingsData;
 }
 
 // ── Per-user UI settings (backs the settings.ts store) ────

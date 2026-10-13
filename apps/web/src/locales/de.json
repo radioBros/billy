@@ -115,7 +115,9 @@
       "addrPostalCode": "Postleitzahl",
       "addrCountry": "Land",
       "preferredLanguage": "Bevorzugte Sprache",
-      "referral": "Ansprechpartner"
+      "referral": "Ansprechpartner",
+      "recipientCode": "SDI-Code (Codice Destinatario)",
+      "pecEmail": "Zertifizierte E-Mail (PEC)"
     },
     "form": {
       "typeCompany": "Unternehmen",
@@ -125,7 +127,8 @@
       "billingAddress": "Rechnungsadresse",
       "countryHint": "2-Buchstaben-Code (z. B. IT).",
       "details": "Details",
-      "languageHint": "Dokumente und E-Mails an diesen Kunden verwenden diese Sprache."
+      "languageHint": "Dokumente und E-Mails an diesen Kunden verwenden diese Sprache.",
+      "recipientCodeHint": "7-stelliger Code, den Ihr Kunde für die italienische elektronische Rechnung angegeben hat (6 bei öffentlicher Verwaltung). Leer lassen, wenn PEC genutzt wird oder es sich um einen Privatkunden handelt."
     },
     "saved": "Kunde gespeichert",
     "showArchived": "Archivierte anzeigen",
@@ -1009,7 +1012,9 @@
       "details": "Details",
       "add": "Bankkonto hinzufügen",
       "remove": "Entfernen",
-      "empty": "Noch keine Bankkonten."
+      "empty": "Noch keine Bankkonten.",
+      "iban": "IBAN (optional)",
+      "ibanHint": "Erforderlich, um die Überweisungsdaten in der E-Rechnung (SdI) anzugeben."
     },
     "company": {
       "businessName": "Firmenname",
@@ -1104,7 +1109,8 @@
     "localizedField": {
       "language": "Sprache",
       "languagesWithContent": "Sprachen mit Inhalt: {locales}"
-    }
+    },
+    "einvoicingTab": "E-Rechnung (SdI)"
   },
   "documentActions": {
     "preview": "Vorschau",
@@ -1321,7 +1327,13 @@
     "lineItemsRequired": "Mindestens eine Position hinzufügen",
     "currencyInvalid": "Gültigen 3-Buchstaben-Währungscode eingeben (z. B. EUR)",
     "dueBeforeIssue": "Das Fälligkeitsdatum darf nicht vor dem Ausstellungsdatum liegen",
-    "failedWithFields": "Validierung fehlgeschlagen — {fields}"
+    "failedWithFields": "Validierung fehlgeschlagen — {fields}",
+    "insertValidRecipientCode": "Gültigen SDI-Code eingeben (6–7 Buchstaben oder Ziffern)",
+    "hostInvalid": "Geben Sie einen gültigen Hostnamen ein (z. B. smtps.pec.example.it), ohne http:// und Leerzeichen",
+    "portInvalid": "Geben Sie einen Port zwischen 1 und 65535 ein",
+    "ibanInvalid": "Geben Sie eine gültige IBAN ein (z. B. IT60 X054 2811 1010 0000 0123 456)",
+    "decimalInvalid": "Geben Sie einen Betrag mit höchstens 2 Nachkommastellen ein (z. B. 77.47)",
+    "intBetween": "Geben Sie eine ganze Zahl zwischen {min} und {max} ein"
   },
   "accounts": {
     "title": "Konten",
@@ -1474,6 +1486,14 @@
       "DATE_RANGE_INVALID": "Der Datumsbereich ist ungültig",
       "DEPENDENCY_UNAVAILABLE": "Ein benötigter Dienst ist nicht verfügbar — Verbindung prüfen und erneut versuchen",
       "DUPLICATE_VALUE": "Dieser Wert existiert bereits",
+      "EINVOICE_ADMIN_KEY_MISSING": "Der Server hat keinen PASSO-Admin-Schlüssel – nutzen Sie den manuellen Modus",
+      "EINVOICE_ALREADY_SUBMITTED": "Dieses Dokument wurde bereits an das SdI gesendet",
+      "EINVOICE_BUSINESS_INCOMPLETE": "Die Firmendaten sind für die E-Rechnung unvollständig",
+      "EINVOICE_DISABLED": "Die E-Rechnung ist ausgeschaltet",
+      "EINVOICE_LEGALLY_ISSUED": "Beim SdI bereits ausgestellt – kann nicht mehr storniert werden, stellen Sie eine Gutschrift aus",
+      "EINVOICE_NOT_CONNECTED": "Die E-Rechnung ist noch nicht mit PASSO verbunden",
+      "EINVOICE_NOT_READY": "Das Dokument ist nicht bereit für den Versand an das SdI – beheben Sie zuerst die aufgeführten Probleme",
+      "EINVOICE_PASSO_UNREACHABLE": "PASSO ist nicht erreichbar – prüfen Sie die API-URL und versuchen Sie es erneut",
       "EMAIL_DELIVERY_FAILED": "Die E-Mail konnte nicht zugestellt werden",
       "EXPENSE_ALREADY_INVOICED": "Die Ausgabe ist bereits in Rechnung gestellt",
       "FILE_TOO_LARGE": "Die Datei ist zu groß",
@@ -1506,6 +1526,581 @@
       "UNSUPPORTED_FILE_TYPE": "Dieser Dateityp wird nicht unterstützt",
       "VALIDATION_FAILED": "Einige Felder sind ungültig",
       "VERSION_CONFLICT": "Dieser Datensatz wurde von jemand anderem geändert — Seite neu laden und erneut versuchen"
+    }
+  },
+  "einvoicing": {
+    "loadError": "E-Rechnungs-Einstellungen konnten nicht geladen werden",
+    "saved": "E-Rechnungs-Einstellungen gespeichert",
+    "saveError": "E-Rechnungs-Einstellungen konnten nicht gespeichert werden",
+    "fix": "Beheben",
+    "clientHint": "E-Rechnung ist aktiv: Hinterlegen Sie einen SDI-Code oder eine PEC-Adresse, damit Rechnungen an diesen Kunden an das SdI gesendet werden können.",
+    "enable": {
+      "title": "Aktivierung",
+      "hint": "Aktiviert den offiziellen Versand von Rechnungen und Gutschriften an das italienische Sistema di Interscambio (SdI) über PASSO.",
+      "label": "Rechnungen an das SdI senden",
+      "incomplete": "Die Einrichtung ist noch nicht abgeschlossen. Offen: {items} (siehe Anleitung unten).",
+      "since": "Aktiv seit {date}"
+    },
+    "readiness": {
+      "business": "Firmendaten",
+      "iban": "IBAN",
+      "connection": "PASSO-Verbindung",
+      "channel": "Übertragungskanal"
+    },
+    "guide": {
+      "title": "Einrichtungsanleitung",
+      "steps": {
+        "company": {
+          "title": "Firmendaten vollständig",
+          "body": "Tab „Unternehmen“: Firmenname, USt-IdNr., Steuernummer und vollständige italienische Adresse mit zweistelligem Provinzkürzel (z. B. MI)."
+        },
+        "taxRegime": {
+          "title": "Steuerregime und Stempelsteuer",
+          "body": "Wählen Sie Ihr Regime (RF01 ordentlich, RF19 Pauschal, …) und die Stempelsteuer-Regel. Pauschalbesteuerte und USt-befreite Beträge über 77,47 € unterliegen 2 € virtueller Stempelsteuer."
+        },
+        "iban": {
+          "title": "IBAN am Bankkonto",
+          "body": "Hinterlegen Sie die IBAN bei einem Bankkonto im Tab „Unternehmen“. Sie wird für Überweisungen (MP05) benötigt."
+        },
+        "connect": {
+          "title": "Mit PASSO verbinden",
+          "body": "Verwaltet: „Mit PASSO verbinden“ drücken. Manuell: API-Schlüssel und Verkäufer-ID Ihres PASSO-Betreibers einfügen."
+        },
+        "channel": {
+          "title": "Übertragungskanal wählen",
+          "body": "PEC wird empfohlen: PEC-Postfach-Zugangsdaten eingeben. Für OpenAPI.it das Token eingeben und die angezeigte Eingangs-URL in die Anbieter-Konsole einfügen."
+        },
+        "clients": {
+          "title": "Kunden vorbereiten",
+          "body": "Jeder Kunde braucht einen SDI-Code (Codice Destinatario) oder eine PEC-Adresse. Ausländische Kunden werden automatisch behandelt."
+        },
+        "test": {
+          "title": "Test",
+          "body": "„Verbindung testen“ drücken, dann eine Rechnung senden und beobachten, dass sie „Zugestellt“ erreicht."
+        },
+        "defaults": {
+          "title": "Standardwerte festlegen",
+          "body": "Legen Sie das Verhalten für geplante und wiederkehrende Rechnungen fest und ob der SdI-Schritt nach dem Abschließen angeboten wird."
+        }
+      },
+      "sendLater": "Später senden: Eine Rechnung gilt erst als rechtlich ausgestellt, wenn sie beim SdI ankommt – senden Sie sie innerhalb der Frist (standardmäßig {days} Tage ab Rechnungsdatum). Das Dashboard listet alles Ausstehende.",
+      "statusesTitle": "Was die Status bedeuten",
+      "ns": "Zurückweisung: NICHT ausgestellt. Fehler beheben und mit neuer Nummer neu ausstellen.",
+      "mc": "Nichtzustellbarkeit: Die Rechnung IST ausgestellt. NICHT erneut senden.",
+      "at": "Übermittlungsbescheinigung: Die Rechnung ist ausgestellt; Ihr Kunde findet sie in seinem Steuerportal."
+    },
+    "connection": {
+      "title": "Verbindung",
+      "hint": "Wo Billy PASSO erreicht – den Dienst, der für Sie mit dem SdI kommuniziert.",
+      "apiUrl": "PASSO-API-URL",
+      "mode": "Modus",
+      "modes": {
+        "managed": "Verwaltet (Billy richtet alles ein)",
+        "manual": "Manuell (API-Schlüssel einfügen)"
+      },
+      "managedUnavailable": "Der verwaltete Modus ist auf diesem Server nicht verfügbar (kein PASSO-Admin-Schlüssel).",
+      "statusConnected": "Verbunden",
+      "statusNotConnected": "Nicht verbunden",
+      "tenant": "PASSO-Konto: {name}",
+      "seller": "Aussteller: {name}",
+      "keyLast4": "Schlüssel ••••{last4}",
+      "webhook": "Webhook aktiv",
+      "pollOnly": "Nur Abfrage (kein Webhook)",
+      "lastCheck": "Letzte Prüfung {date}",
+      "connect": "Mit PASSO verbinden",
+      "connected": "Mit PASSO verbunden",
+      "connectError": "Verbindung mit PASSO fehlgeschlagen",
+      "businessFirst": "Vervollständigen Sie zuerst die Firmendaten (Tab „Unternehmen“): Der Übermittlercode ist nach der Verbindung nicht mehr änderbar.",
+      "apiKey": "API-Schlüssel",
+      "keyStoredHint": "Ein Schlüssel ist gespeichert. Leer lassen, um ihn zu behalten, oder einen neuen eingeben.",
+      "keyUnsetHint": "Wird nach dem Speichern nicht mehr angezeigt.",
+      "sellerId": "Verkäufer-ID",
+      "save": "Verbindung speichern",
+      "saved": "Verbindung gespeichert",
+      "test": "Verbindung testen",
+      "testOk": "Alle Prüfungen bestanden",
+      "testFailed": "Einige Prüfungen sind fehlgeschlagen",
+      "testError": "Der Verbindungstest konnte nicht ausgeführt werden",
+      "checks": {
+        "api": "PASSO erreichbar",
+        "key": "API-Schlüssel gültig",
+        "channel": "Übertragungskanal funktionsfähig",
+        "webhook": "Webhook funktioniert"
+      }
+    },
+    "channel": {
+      "title": "Übertragungskanal",
+      "hint": "Wie PASSO Rechnungen an das SdI übergibt und Quittungen empfängt. Zugangsdaten werden an PASSO weitergeleitet und nie wieder angezeigt.",
+      "type": "Kanal",
+      "types": {
+        "pec": "PEC (zertifizierte E-Mail)",
+        "openapi": "OpenAPI.it",
+        "mock": "Simuliert (nur Tests)"
+      },
+      "pecRecommended": "Empfohlen: kein Drittanbieter-Konto nötig.",
+      "current": "Aktiver Kanal: {type}",
+      "pec": {
+        "smtpHost": "SMTP-Host",
+        "smtpPort": "SMTP-Port",
+        "imapHost": "IMAP-Host",
+        "imapPort": "IMAP-Port",
+        "user": "PEC-Adresse / Benutzer",
+        "password": "PEC-Passwort",
+        "testTitle": "PEC-Postfach prüfen",
+        "testTo": "Test-E-Mail senden an",
+        "testToHint": "Billy sendet eine echte Test-E-Mail von Ihrem PEC-Postfach an diese Adresse.",
+        "testRun": "Verbindung testen & Test-E-Mail senden",
+        "rows": {
+          "smtp": "Anmeldung Postausgang (SMTP)",
+          "imap": "Anmeldung Posteingang (IMAP)",
+          "mail": "Test-E-Mail an {to} gesendet — prüfen Sie dieses Postfach"
+        },
+        "reasons": {
+          "authFailed": "Benutzername oder Passwort falsch.",
+          "hostNotFound": "Server nicht gefunden: Hostnamen prüfen.",
+          "unreachable": "Server nicht erreichbar: Host und Port prüfen.",
+          "tlsFailed": "Sichere Verbindung fehlgeschlagen: Port und Verschlüsselung prüfen."
+        },
+        "passed": "Alle Prüfungen bestanden. Öffnen Sie das Postfach von {to} und bestätigen Sie, dass die Test-E-Mail wirklich angekommen ist, bevor Sie sich auf dieses Postfach verlassen.",
+        "failed": "Der Test ist fehlgeschlagen. Beheben Sie die oben genannten Probleme und wiederholen Sie ihn.",
+        "stale": "Wiederholen Sie den Test nach Änderung der Einstellungen.",
+        "required": "Dieser Test muss erfolgreich sein, bevor der Kanal gespeichert werden kann.",
+        "testRequired": "Führen Sie den Verbindungstest mit genau diesen Einstellungen durch, bevor Sie speichern.",
+        "toRequired": "Geben Sie die Adresse ein, die die Test-E-Mail erhalten soll.",
+        "toInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "recipientForbidden": "Diese Adresse kann die Test-E-Mail nicht empfangen. Verwenden Sie Ihre eigene.",
+        "testError": "Verbindungstest konnte nicht ausgeführt werden",
+        "noticeTitle": "Bevor Sie beginnen",
+        "notice": "Das PEC-Postfach muss ein zertifiziertes, beim SdI akkreditiertes Postfach sein. Die erste Übermittlung geht an die SdI-Adresse; der SdI antwortet mit einer eigenen Adresse, die Billy automatisch übernimmt. PEC funktioniert nur für B2B-Rechnungen. Das PEC-Passwort gewährt vollen Zugriff auf das Postfach: Es wird nur einmal gesendet und nie wieder angezeigt."
+      },
+      "openapi": {
+        "token": "OpenAPI.it-Token",
+        "baseUrl": "Umgebung",
+        "production": "Produktion",
+        "test": "Test (Sandbox)",
+        "requestSigning": "Anfragen signieren",
+        "requestSigningHint": "Muss mit der Option „Signatur anwenden“ in der OpenAPI.it-Konsole übereinstimmen. Für Rechnungen an öffentliche Verwaltungen erforderlich.",
+        "tokenHint": "Erstellen Sie ihn in der OpenAPI-Konsole, siehe Hinweis unten.",
+        "sandbox": "Sandbox (Test)",
+        "prodWarning": "Echte Rechnungen werden an die Steuerbehörde übermittelt. Verwenden Sie ein Produktions-Token und stellen Sie sicher, dass Ihr Unternehmen in der Produktionsumgebung registriert ist.",
+        "signingLabel": "Anbieter signiert die Rechnung (requestSigning)",
+        "signingHint": "Muss mit der Einstellung apply_signature des Verkäufers im Unternehmensregister von OpenAPI.it übereinstimmen. Für Rechnungen an die öffentliche Verwaltung einschalten.",
+        "testTitle": "OpenAPI.it-Einrichtung prüfen",
+        "testRun": "Verbindung testen",
+        "rows": {
+          "token": "API-Token von OpenAPI.it akzeptiert",
+          "registry": "Ihr Unternehmen (USt-IdNr.) ist bei OpenAPI.it registriert",
+          "signing": "Signatur-Einstellung stimmt mit dem Register überein"
+        },
+        "remedies": {
+          "token": "Prüfen Sie, ob das Token korrekt ist und in derselben Umgebung erstellt wurde, die Sie hier gewählt haben (Sandbox oder Produktion).",
+          "registry": "Registrieren Sie Ihr Unternehmen zuerst in der OpenAPI.it-Konsole (Unternehmensregister-Konfigurationen) und testen Sie dann erneut.",
+          "signing": "Stellen Sie den Schalter passend zur Signatur-Option des Registers ein und testen Sie dann erneut."
+        },
+        "details": "Details: {message}",
+        "passed": "Alle Prüfungen bestanden. Sie können den Kanal jetzt speichern.",
+        "failed": "Der Test ist fehlgeschlagen. Beheben Sie die oben genannten Probleme und führen Sie ihn erneut aus.",
+        "stale": "Führen Sie den Test nach Änderungen an den Einstellungen erneut aus.",
+        "required": "Sie müssen diesen Test erfolgreich ausführen, bevor der Kanal gespeichert werden kann.",
+        "testRequired": "Führen Sie vor dem Speichern den Verbindungstest mit genau diesen Einstellungen aus.",
+        "testError": "Der Verbindungstest konnte nicht ausgeführt werden",
+        "notice": {
+          "title": "Was bei OpenAPI.it zu aktivieren ist",
+          "intro": "Gehen Sie diese Schritte in der OpenAPI-Konsole durch. Der Test unten zeigt, was noch fehlt.",
+          "s1": {
+            "title": "Dienst aktivieren und Token erstellen",
+            "body": "Aktivieren Sie in der OpenAPI-Konsole (console.openapi.com: die .com ist die Konsole, der SdI-API-Host ist .it) den Dienst SDI (Sistema di Interscambio, E-Rechnung) und erstellen Sie den API-Schlüssel in derselben Umgebung wie hier gewählt: ein Sandbox-Token für Sandbox, ein Produktions-Token für Produktion. Sie liegen auf verschiedenen Hosts."
+          },
+          "s2": {
+            "title": "Diese API-Aufrufe für das Token freigeben",
+            "body": "Aktivieren Sie diese Endpunkte für den Schlüssel:"
+          },
+          "table": {
+            "call": "API-Aufruf",
+            "purpose": "Zweck",
+            "when": "Erforderlich",
+            "purposes": {
+              "send": "Rechnung senden",
+              "sign": "Vom Anbieter signierte Rechnung senden",
+              "legal": "Varianten mit Langzeitarchivierung",
+              "read": "Rechnungsstatus lesen",
+              "receipts": "SdI-Quittungen lesen",
+              "registry": "Unternehmensregistrierung prüfen und anlegen",
+              "callback": "Callback registrieren"
+            },
+            "whens": {
+              "always": "Immer",
+              "signing": "Nur bei aktivierter Signatur",
+              "legal": "Nur bei Nutzung der Langzeitarchivierung",
+              "callback": "Optional"
+            }
+          },
+          "s3": {
+            "title": "Unternehmen einmalig registrieren",
+            "body": "Öffnen Sie in der Konsole die Unternehmensregister (Business registry configurations) und fügen Sie Ihr Unternehmen hinzu:",
+            "fiscalId": "Steuer-ID: {vat} (Ihre USt-IdNr. ohne das Präfix IT). Geben Sie außerdem den Firmennamen und eine E-Mail-Adresse an.",
+            "fiscalIdExample": "Steuer-ID: Ihre USt-IdNr. ohne das Präfix IT, zum Beispiel {vat}. Geben Sie außerdem den Firmennamen und eine E-Mail-Adresse an.",
+            "signingOn": "Wählen Sie Signatur AN, passend zum Schalter oben.",
+            "signingOff": "Wählen Sie Signatur AUS, passend zum Schalter oben.",
+            "mismatch": "AN akzeptiert nur signierte Übermittlungen, AUS nur unsignierte. Bei Abweichung schlägt jede Rechnung mit Fehler 387 fehl."
+          },
+          "s4": {
+            "title": "Guthaben im OpenAPI-Wallet halten",
+            "body": "Das Senden und Lesen von Rechnungen wird berechnet. Bei leerem Wallet enden Rechnungen als Fehlgeschlagen und können nach dem Aufladen erneut versucht werden."
+          },
+          "s5": {
+            "title": "Optional: Callback einrichten",
+            "body": "Fügen Sie nach dem Speichern die hier angezeigte eingehende URL in der Konsole für das Ereignis customer-notification ein. Sie muss aus dem Internet erreichbar sein."
+          },
+          "tip": "Beginnen Sie mit der Sandbox: Rechnungen werden nicht an die echte Steuerbehörde gesendet."
+        }
+      },
+      "secretHint": "Wird nach dem Speichern nicht mehr angezeigt.",
+      "mockHint": "Der simulierte Kanal bildet SdI-Antworten nach. Nur außerhalb der Produktion verfügbar.",
+      "inboundTitle": "Eingangs-URL – jetzt kopieren, sie wird nur einmal angezeigt",
+      "inboundHint": "Fügen Sie sie in der OpenAPI.it-Konsole als Callback-URL für Rechnungsbenachrichtigungen ein. Bei jedem Speichern des Kanals wird eine neue URL erzeugt.",
+      "copy": "Kopieren",
+      "copied": "In die Zwischenablage kopiert",
+      "save": "Kanal speichern",
+      "saved": "Kanal gespeichert",
+      "saveError": "Kanal konnte nicht gespeichert werden",
+      "needConnection": "Verbinden Sie sich zuerst mit PASSO.",
+      "chooser": {
+        "title": "Wählen Sie, wie Rechnungen übermittelt werden",
+        "pick": "Wählen Sie einen Kanal, um fortzufahren. Sie können ihn später ändern."
+      },
+      "cards": {
+        "openapi": {
+          "subtitle": "Verwalteter Dienst mit API-Schlüssel",
+          "f1": "Verarbeitet auch Rechnungen an die öffentliche Verwaltung (B2G)",
+          "f2": "Quittungen werden an Billy gesendet",
+          "f3": "Kosten pro Rechnung"
+        },
+        "pec": {
+          "subtitle": "Ihr eigenes zertifiziertes E-Mail-Postfach",
+          "f1": "Keine Anbietergebühr",
+          "f2": "Nur B2B-Rechnungen"
+        },
+        "mock": {
+          "subtitle": "Nur für die Entwicklung",
+          "f1": "Simuliert die SdI-Antworten"
+        }
+      },
+      "inboundSteps": "Fügen Sie sie in der OpenAPI-Konsole als Callback für das Ereignis customer-notification ein. Sie muss aus dem Internet erreichbar sein.",
+      "inboundOptional": "Optional: Ohne sie erhält Billy die Quittungen weiterhin durch Abfragen etwa alle 5 Minuten."
+    },
+    "fiscal": {
+      "title": "Steuerprofil",
+      "hint": "Ihr Steuerregime und die Verkäuferdaten, die in jede Rechnung einfließen.",
+      "taxRegime": "Steuerregime",
+      "businessTitle": "Verkäuferdaten (aus dem Tab „Unternehmen“)",
+      "business": {
+        "name": "Name",
+        "vat": "USt-IdNr.",
+        "taxCode": "Steuernummer",
+        "address": "Adresse",
+        "province": "Provinz (2 Buchstaben)"
+      },
+      "openCompany": "Im Tab „Unternehmen“ bearbeiten"
+    },
+    "defaults": {
+      "title": "Standardwerte und Verhalten",
+      "hint": "Wie sich Billy gegenüber dem SdI standardmäßig verhält.",
+      "offerStep": "SdI-Schritt nach dem Abschließen einer Rechnung anbieten",
+      "scheduled": "Geplante Rechnungen werden standardmäßig an das SdI gesendet",
+      "recurring": "Wiederkehrende Rechnungen werden standardmäßig an das SdI gesendet",
+      "paymentConditions": "Zahlungsbedingungen",
+      "paymentMethod": "Zahlungsart",
+      "nature": "Standard-USt-Natur für 0-%-Positionen",
+      "natureHint": "Wird verwendet, wenn eine 0-%-Position keine eigene Natur hat.",
+      "lawReference": "Rechtsgrundlage für 0-%-Positionen",
+      "bolloMode": "Stempelsteuer (Bollo)",
+      "bolloAuto": "Automatisch",
+      "bolloOff": "Aus",
+      "bolloThreshold": "Stempelsteuer-Schwelle",
+      "bolloAmount": "Stempelsteuer-Betrag",
+      "creditNotePrefix": "Präfix der Gutschriftsnummer",
+      "creditNotePrefixHint": "Das SdI verlangt eine von Rechnungen verschiedene Nummer, z. B. NC 1/2026. Das PDF behält die Billy-Nummer.",
+      "deadlineDays": "Sendefrist (Tage)",
+      "deadlineDaysHint": "Ab Rechnungsdatum; gesetzlich sind 12 Tage.",
+      "save": "Einstellungen speichern"
+    },
+    "errors": {
+      "legallyIssued": "Dieses Dokument ist beim SdI bereits ausgestellt und kann nicht mehr storniert werden. Stellen Sie stattdessen eine Gutschrift aus.",
+      "businessIncomplete": "Die Firmendaten sind unvollständig. Es fehlen:",
+      "adminKeyMissing": "Der Server hat keinen PASSO-Admin-Schlüssel: Nutzen Sie den manuellen Modus.",
+      "unreachable": "PASSO ist nicht erreichbar. Prüfen Sie die API-URL und versuchen Sie es erneut."
+    },
+    "status": {
+      "not_sent": "Nicht an das SdI gesendet",
+      "blocked": "Blockiert",
+      "queued": "In Warteschlange",
+      "transmitted": "Übermittelt",
+      "awaiting_delivery": "Zustellung ausstehend",
+      "delivered": "Zugestellt",
+      "undelivered_attested": "Ausgestellt (nicht zugestellt)",
+      "accepted_by_pa": "Von der PA akzeptiert",
+      "rejected_by_pa": "Von der PA abgelehnt",
+      "rejected": "Vom SdI zurückgewiesen",
+      "failed": "Fehlgeschlagen",
+      "channel": "Kanal: {type}"
+    },
+    "receipts": {
+      "RC": "Zustellquittung (RC)",
+      "NS": "Zurückweisung (NS) — nicht ausgestellt",
+      "MC": "Nichtzustellbarkeit (MC) — ausgestellt",
+      "NE": "Ergebnismitteilung der PA (NE)",
+      "DT": "Fristablauf (DT)",
+      "AT": "Übermittlungsbescheinigung (AT) — ausgestellt"
+    },
+    "guidance": {
+      "issued_do_not_resubmit": "Diese Rechnung ist ausgestellt. NICHT erneut senden – bei Fehlern eine Gutschrift ausstellen.",
+      "rejected_reissue": "Das SdI hat diese Rechnung zurückgewiesen, sie ist daher NICHT ausgestellt. Fehler beheben, die Rechnung stornieren und eine neue mit neuer Nummer ausstellen.",
+      "failed_retry": "Der Versand ist fehlgeschlagen, bevor das SdI erreicht wurde. Sie können es erneut versuchen.",
+      "undelivered_tell_client": "Das SdI konnte die Rechnung nicht zustellen, sie IST aber ausgestellt. Der Kunde findet sie in seinem Steuerportal (Cassetto fiscale). NICHT erneut senden."
+    },
+    "panel": {
+      "title": "E-Rechnung (SdI)",
+      "refresh": "Status aktualisieren",
+      "send": "An SdI senden",
+      "retry": "Erneut versuchen",
+      "downloadXml": "XML herunterladen",
+      "viewRendered": "Als AdE-Ansicht anzeigen",
+      "identificativoSdI": "SdI-Kennung",
+      "fileName": "Dateiname",
+      "submittedAt": "Gesendet",
+      "history": "Verlauf",
+      "attempt": "Versuch {n}",
+      "remedy": "Abhilfe",
+      "deadline": "Bis {date} an das SdI senden.",
+      "deadlineOverdue": "Sendefrist abgelaufen am {date}",
+      "finalizedBeforeEnable": "Dieses Dokument wurde vor der Aktivierung der E-Rechnung ausgestellt.",
+      "sentOn": "Am {date} an SdI gesendet"
+    },
+    "submit": {
+      "title": "Offiziell über das SdI senden",
+      "checking": "Rechnung wird geprüft …",
+      "ready": "Bereit zum Senden.",
+      "recipientSdi": "Empfänger: SDI-Code {value}",
+      "recipientPec": "Empfänger: PEC {value}",
+      "format": "Format FPR12",
+      "bollo": "Es fällt Stempelsteuer von {amount} an (virtuelle Marke).",
+      "irreversible": "Sobald das SdI sie akzeptiert, ist die Rechnung rechtlich ausgestellt und kann nicht mehr storniert werden.",
+      "blocked": "Diese Rechnung kann noch nicht gesendet werden. Beheben Sie die folgenden Probleme und prüfen Sie erneut.",
+      "sendNow": "Jetzt an SdI senden",
+      "notNow": "Nicht jetzt – ich mache es später",
+      "recheck": "Erneut prüfen",
+      "continue": "Weiter",
+      "sent": "An das SdI gesendet. Der Status wird hier aktualisiert; Sie können in der Zwischenzeit fortfahren.",
+      "error": "Der Schritt konnte nicht abgeschlossen werden: {error}",
+      "disabled": "Die E-Rechnung ist ausgeschaltet."
+    },
+    "schedule": {
+      "checkbox": "Bei Ausstellung offiziell über das SdI senden",
+      "hint": "Zum geplanten Datum wird die Rechnung automatisch ausgestellt und an das SdI übermittelt.",
+      "routingWarning": "Dieser Kunde kann noch keine E-Rechnungen empfangen, die Rechnung würde bei der Ausstellung blockiert:"
+    },
+    "recurring": {
+      "switch": "Jede erzeugte Rechnung über das SdI senden",
+      "hint": "Jede von diesem Profil erzeugte Rechnung wird direkt nach der Ausstellung an das SdI übermittelt."
+    },
+    "list": {
+      "column": "SdI",
+      "filter": "Nach SdI-Status filtern",
+      "allStatuses": "Alle SdI-Status"
+    },
+    "dashboard": {
+      "title": "Noch nicht an das SdI gesendete Rechnungen",
+      "overdue": "{n} überfällig",
+      "dueBy": "senden bis {date}",
+      "overdueBy": "überfällig seit {date}",
+      "problems": "{n} erfordern Aufmerksamkeit"
+    },
+    "nature": {
+      "column": "USt-Natur",
+      "placeholder": "Warum 0 %?"
+    },
+    "issues": {
+      "invoice": {
+        "number_missing": "Die Rechnung hat noch keine Nummer.",
+        "number_too_long": "Die Rechnungsnummer ist für das SdI zu lang (max. 20 Zeichen).",
+        "date_invalid": "Das Rechnungsdatum ist für das SdI ungültig.",
+        "no_lines": "Die Rechnung hat keine Positionen.",
+        "nature_missing": "Das SdI verlangt auf jeder Zeile ohne MwSt. einen Natura-Code, auch wenn keine Steuer anfällt (z. B. Kunden außerhalb der EU, befreite oder nicht steuerbare Umsätze). Wähle ihn in der Zeile oder lege in den E-Rechnungs-Einstellungen einen Standard fest. Bei der Pauschalregelung (RF19) wird er automatisch gesetzt.",
+        "nature_invalid": "Eine Position hat für ihren Satz eine ungültige USt-Natur (Natura).",
+        "tax_rounding": "Die Steuersumme weicht um mehr als 1 Cent von der Summe der Zeilensteuern ab; das SdI weist das zurück. Beträge der Positionen anpassen.",
+        "iban_missing": "Keine IBAN am Bankkonto: Die Zahlungsdaten sind unvollständig.",
+        "deadline_passed": "Die gesetzliche Frist zum Senden dieser Rechnung an das SdI ist abgelaufen. Bitte so schnell wie möglich senden.",
+        "finalized_before_enable": "Diese Rechnung wurde vor der Aktivierung der E-Rechnung ausgestellt.",
+        "not_finalized": "Die Rechnung ist noch nicht abgeschlossen."
+      },
+      "business": {
+        "vat_missing": "Die USt-IdNr. Ihres Unternehmens fehlt.",
+        "name_missing": "Der Name Ihres Unternehmens fehlt.",
+        "address_incomplete": "Die Adresse Ihres Unternehmens ist unvollständig.",
+        "postal_code_invalid": "Die Postleitzahl Ihres Unternehmens ist ungültig (5 Ziffern für Italien).",
+        "province_missing": "Die Provinz Ihres Unternehmens fehlt (2 Buchstaben, z. B. MI)."
+      },
+      "client": {
+        "tax_id_missing": "Der Kunde hat weder USt-IdNr. noch Steuernummer.",
+        "person_name_missing": "Vor- und Nachname des Kunden fehlen.",
+        "name_missing": "Der Name des Kunden fehlt.",
+        "address_incomplete": "Die Adresse des Kunden ist unvollständig.",
+        "postal_code_invalid": "Die Postleitzahl des Kunden ist ungültig.",
+        "province_missing": "Die Provinz des Kunden fehlt (2 Buchstaben, bei italienischen Kunden).",
+        "recipient_code_invalid": "Der SDI-Code des Kunden ist ungültig (6 oder 7 Buchstaben/Ziffern).",
+        "public_administration_unsupported": "Rechnungen an öffentliche Verwaltungen werden mit diesem Kanal nicht unterstützt.",
+        "routing_missing": "Der Kunde benötigt einen SDI-Code oder eine PEC-Adresse, um E-Rechnungen zu empfangen."
+      },
+      "einvoicing": {
+        "not_connected": "Die E-Rechnung ist noch nicht mit PASSO verbunden. Schließen Sie die Einrichtung in den Einstellungen ab.",
+        "disabled": "Die E-Rechnung ist in den Einstellungen ausgeschaltet."
+      }
+    },
+    "codes": {
+      "taxRegime": {
+        "RF01": "Ordentlich",
+        "RF02": "Minimalsteuerpflichtige (G. 244/2007)",
+        "RF04": "Landwirtschaft und Fischerei (Art. 34, 34-bis)",
+        "RF05": "Verkauf von Salz und Tabak",
+        "RF06": "Handel mit Streichhölzern",
+        "RF07": "Verlagswesen",
+        "RF08": "Öffentliche Telefondienste",
+        "RF09": "Wiederverkauf von Fahr- und Parkscheinen",
+        "RF10": "Unterhaltung, Spiele und ähnliche Tätigkeiten",
+        "RF11": "Reise- und Tourismusagenturen",
+        "RF12": "Agrotourismus",
+        "RF13": "Haustürverkäufe",
+        "RF14": "Wiederverkauf von Gebrauchtwaren, Kunst und Antiquitäten",
+        "RF15": "Auktionshäuser für Kunst und Antiquitäten",
+        "RF16": "USt nach vereinnahmten Entgelten für die öffentliche Hand (Art. 6, Abs. 5)",
+        "RF17": "USt nach vereinnahmten Entgelten (Art. 32-bis)",
+        "RF18": "Sonstiges",
+        "RF19": "Pauschalregime (Forfettario)"
+      },
+      "paymentMethod": {
+        "MP01": "Bargeld",
+        "MP02": "Scheck",
+        "MP03": "Bankscheck",
+        "MP04": "Bargeld bei der Staatskasse",
+        "MP05": "Banküberweisung",
+        "MP06": "Wechsel",
+        "MP07": "Bankeinzahlungsschein",
+        "MP08": "Zahlungskarte",
+        "MP09": "RID",
+        "MP10": "RID Versorgungsleistungen",
+        "MP11": "Schnelles RID",
+        "MP12": "RIBA",
+        "MP13": "MAV",
+        "MP14": "Quittung der Finanzverwaltung",
+        "MP15": "Umbuchung auf Sonderbuchhaltungskonten",
+        "MP16": "Bankeinzug",
+        "MP17": "Postlastschrift",
+        "MP18": "Postscheck-Einzahlungsschein",
+        "MP19": "SEPA-Lastschrift",
+        "MP20": "SEPA-Lastschrift CORE",
+        "MP21": "SEPA-Firmenlastschrift B2B",
+        "MP22": "Einbehalt von bereits eingenommenen Beträgen",
+        "MP23": "PagoPA"
+      },
+      "paymentCondition": {
+        "TP01": "Ratenzahlung",
+        "TP02": "Vollzahlung",
+        "TP03": "Anzahlung"
+      },
+      "natura": {
+        "N1": "Ausgeschlossen (Art. 15 DPR 633/72)",
+        "N2": {
+          "1": "Nicht der USt unterliegend (Art. 7 bis 7-septies)",
+          "2": "Nicht der USt unterliegend – sonstige Fälle"
+        },
+        "N3": {
+          "1": "Nicht steuerbar – Ausfuhren",
+          "2": "Nicht steuerbar – innergemeinschaftliche Lieferungen",
+          "3": "Nicht steuerbar – Lieferungen nach San Marino",
+          "4": "Nicht steuerbar – Ausfuhren gleichgestellte Umsätze",
+          "5": "Nicht steuerbar – aufgrund von Absichtserklärungen",
+          "6": "Nicht steuerbar – sonstige Umsätze außerhalb des Plafonds"
+        },
+        "N4": "Befreit",
+        "N5": "Margenbesteuerung / USt nicht ausgewiesen",
+        "N6": {
+          "1": "Reverse Charge – Schrott und Recyclingmaterial",
+          "2": "Reverse Charge – Gold und Silber, gebrauchter Schmuck",
+          "3": "Reverse Charge – Subunternehmer im Bausektor",
+          "4": "Reverse Charge – Gebäudeverkauf",
+          "5": "Reverse Charge – Mobiltelefone",
+          "6": "Reverse Charge – elektronische Geräte",
+          "7": "Reverse Charge – Bau und verwandte Branchen",
+          "8": "Reverse Charge – Energiesektor",
+          "9": "Reverse Charge – sonstige Fälle"
+        },
+        "N7": "USt in einem anderen EU-Staat entrichtet"
+      }
+    },
+    "reset": {
+      "button": "Verbindung zurücksetzen",
+      "title": "E-Rechnungs-Verbindung zurücksetzen?",
+      "message": "Der Versand an das SdI wird ausgeschaltet und die lokale Verbindung (Verknüpfung mit dem PASSO-Tenant, API-Schlüssel, Verkäufer, Kanal und Webhook) wird gelöscht. Bereits gesendete Rechnungen bleiben unberührt. Der PASSO-Tenant selbst wird NICHT gelöscht: Er wird bei der erneuten Verbindung wiederverwendet.",
+      "confirm": "Verbindung zurücksetzen",
+      "done": "Verbindung zurückgesetzt. Richten Sie sie mit den Schritten unten neu ein.",
+      "error": "Die Verbindung konnte nicht zurückgesetzt werden"
+    },
+    "wizard": {
+      "title": "E-Rechnung einrichten",
+      "hint": "Folgen Sie diesen Schritten, um Rechnungen an das SdI zu senden. Sie können jederzeit zurückkehren.",
+      "next": "Weiter",
+      "back": "Zurück",
+      "steps": {
+        "company": "Firmendaten",
+        "connect": "Verbinden",
+        "channel": "Kanal",
+        "test": "Test",
+        "finish": "Abschluss"
+      },
+      "company": {
+        "hint": "Billy füllt den Verkäuferbereich jeder E-Rechnung aus Ihren Firmendaten aus, daher müssen diese vollständig sein.",
+        "required": "Erforderlich",
+        "recommended": "Empfohlen",
+        "ibanHint": "Ohne IBAN können Rechnungen trotzdem gesendet werden, es fehlen jedoch die Bankdaten. Sie können ihn im Reiter Firma ergänzen.",
+        "recheck": "Erneut prüfen"
+      },
+      "connect": {
+        "managedHint": "Billy legt Ihr PASSO-Konto, den API-Schlüssel und den Webhook mit einem Klick an.",
+        "manualHint": "Bitten Sie den PASSO-Betreiber um einen API-Schlüssel und eine Verkäufer-ID und fügen Sie beides hier ein.",
+        "manualIncomplete": "Gespeichert, aber die Verbindung ist noch nicht vollständig: API-Schlüssel und Verkäufer-ID werden beide benötigt."
+      },
+      "channel": {
+        "required": "Richten Sie den Übertragungskanal ein, um fortzufahren.",
+        "manualNote": "Im manuellen Modus richtet der PASSO-Betreiber den Übertragungskanal ein, hier ist also nichts zu tun. Dieser Schritt wird übersprungen."
+      },
+      "test": {
+        "hint": "Prüfen Sie, ob alles funktioniert, bevor Sie den Versand einschalten. Alle Prüfungen müssen bestehen (ein fehlender Webhook ist in Ordnung: Billy fragt dann regelmäßig ab)."
+      },
+      "finish": {
+        "hint": "Letzte Einstellungen. Alles Weitere lässt sich danach in den vollständigen Einstellungen anpassen.",
+        "finishEnable": "Abschließen und aktivieren",
+        "finishOnly": "Abschließen",
+        "done": "E-Rechnung ist eingerichtet"
+      },
+      "stepHints": {
+        "company": "Verkäuferdaten",
+        "connect": "PASSO verbinden",
+        "channel": "Wie Rechnungen übertragen werden",
+        "test": "Funktion prüfen",
+        "finish": "Live gehen"
+      }
+    },
+    "actions": {
+      "sentToSdi": "An SdI gesendet · {status}",
+      "notSent": "SdI · Nicht gesendet",
+      "sending": "SdI · Wird gesendet…",
+      "rejected": "SdI · Abgelehnt",
+      "failed": "SdI · Fehlgeschlagen",
+      "tipSent": "Am {date} an SdI gesendet",
+      "tipSdiId": "SdI-Kennung: {id}",
+      "tipExpand": "Details zur E-Rechnung (SdI) anzeigen",
+      "tipCollapse": "Details zur E-Rechnung (SdI) ausblenden"
     }
   }
 }

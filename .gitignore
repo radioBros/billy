@@ -28,3 +28,6 @@ deploy/config.js
 
 # Analysis & development docs (local reference, not committed)
 docs/analysis/
+
+# Host-local compose overrides (e.g. attaching a separate PASSO stack); never committed
+deploy/*.local.yml

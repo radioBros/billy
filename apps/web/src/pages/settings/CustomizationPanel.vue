@@ -18,6 +18,7 @@ import DocumentsTab from "@/pages/settings/tabs/DocumentsTab.vue";
 import DocumentDesignTab from "@/pages/settings/tabs/DocumentDesignTab.vue";
 import EmailContractDesignTab from "@/pages/settings/tabs/EmailContractDesignTab.vue";
 import CompanyTab from "@/pages/settings/tabs/CompanyTab.vue";
+import EInvoicingTab from "@/pages/settings/tabs/EInvoicingTab.vue";
 import AdvancedTab from "@/pages/settings/tabs/AdvancedTab.vue";
 import UserSettingsTab from "@/pages/settings/tabs/UserSettingsTab.vue";
 import UsersTab from "@/pages/settings/tabs/UsersTab.vue";
@@ -36,7 +37,7 @@ const router = useRouter();
 const DEFAULT_TAB = "userSettings";
 // Admin customization tabs (gated by canManageSettings) + the always-available user
 // tab + the users tab (gated by canManageUsers). Order is display-only.
-const ADMIN_TABS = ["branding", "email", "localization", "documents", "design", "emailContractDesign", "company", "advanced"];
+const ADMIN_TABS = ["branding", "email", "localization", "documents", "design", "emailContractDesign", "company", "einvoicing", "advanced"];
 
 /** The set of tabs the CURRENT principal may open (capability-gated). */
 const allowedTabs = computed<string[]>(() => {
@@ -138,6 +139,10 @@ provide(SNACKBAR_KEY, notify);
             <template #prepend><v-icon icon="mdi-office-building-outline" color="green" /></template>
             Company
           </v-tab>
+          <v-tab value="einvoicing">
+            <template #prepend><v-icon icon="mdi-file-send-outline" color="red" /></template>
+            {{ t("settings.einvoicingTab") }}
+          </v-tab>
           <v-tab value="advanced">
             <template #prepend><v-icon icon="mdi-tune" color="warning" /></template>
             Advanced
@@ -174,6 +179,9 @@ provide(SNACKBAR_KEY, notify);
           </v-window-item>
           <v-window-item value="company">
             <CompanyTab />
+          </v-window-item>
+          <v-window-item value="einvoicing">
+            <EInvoicingTab />
           </v-window-item>
           <v-window-item value="advanced">
             <AdvancedTab />

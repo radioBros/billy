@@ -6,6 +6,7 @@ import { loadConfig } from "@billy/config";
 import { advanceRecurrence, resolvePlaceholders, type TemplateContext } from "@billy/shared";
 import type { EmailJob, JobPayloads, PdfJob } from "@billy/types";
 import type { ProcessorContext } from "@/processors.js";
+import { enqueueEInvoiceSubmit } from "@/handlers/einvoice.js";
 
 const cryptoRandomId = (): string => {
   return randomBytes(12).toString("hex");
@@ -75,8 +76,47 @@ const getDb = async (): Promise<Db> => {
   return cachedClient.db();
 };
 
-const todayIso = (): string => {
-  return new Date().toISOString().slice(0, 10);
+/** `YYYY-MM-DD` for "now" in an IANA timezone (falls back to UTC on a bad zone). */
+export const todayIn = (timeZone: string | null | undefined, now: Date = new Date()): string => {
+  try {
+    // en-CA formats as YYYY-MM-DD.
+    return new Intl.DateTimeFormat("en-CA", { timeZone: timeZone || "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+};
+
+/** The latest "today" anywhere on earth (UTC+14) — a superset bound for the
+ *  due-scans; each candidate is then re-checked against ITS account's timezone. */
+const latestTodayIso = (): string => todayIn("Pacific/Kiritimati");
+
+/** Whole days between two DateOnly strings (b - a). */
+const daysBetween = (a: string, b: string): number =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+const addDays = (iso: string, days: number): string =>
+  new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+/** Per-tick cache of each account's business timezone (default Europe/Rome). */
+const makeTimezoneResolver = (db: Db): ((accountId: string | undefined) => Promise<string>) => {
+  const cache = new Map<string, string>();
+  return async (accountId) => {
+    const key = accountId ?? "";
+    const hit = cache.get(key);
+    if (hit) return hit;
+    let tz = "Europe/Rome";
+    try {
+      const doc = (await db
+        .collection("settings")
+        .findOne({ key: "business", ...(accountId ? { accountId } : {}) } as never, { projection: { _id: 0, "data.timezone": 1 } })) as
+        | { data?: { timezone?: string | null } }
+        | null;
+      if (doc?.data?.timezone) tz = doc.data.timezone;
+    } catch {
+      /* default */
+    }
+    cache.set(key, tz);
+    return tz;
+  };
 };
 
 // ── Numbering (replicates platform/numbering.ts EXACTLY — gap-free, atomic) ────
@@ -84,59 +124,85 @@ interface Counter {
   _id: string;
   seq: number;
 }
-const nextInvoiceNumber = async (counters: Collection<Counter>, year: number): Promise<string> => {
-  const r = await counters.findOneAndUpdate(
-    { _id: `invoice-${year}` },
-    { $inc: { seq: 1 } },
-    { upsert: true, returnDocument: "after" },
-  );
-  const seq = r?.seq ?? 1;
-  // `{seq}/{year}` (e.g. 20/2026) — matches the api's slashYear format; the
-  // "Invoice no. … of …" wording is display-only (i18n), never stored.
-  return `${seq}/${year}`;
-};
 
 interface ClientDoc {
   id: string;
+  type?: string | null;
   displayName: string;
   legalName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   billingAddress?: unknown;
   vatNumber?: string | null;
+  taxCode?: string | null;
+  recipientCode?: string | null;
+  pecEmail?: string | null;
+  country?: string | null;
+  preferredLanguage?: string | null;
+  referral?: string | null;
 }
+
+/**
+ * Immutable client snapshot — MIRRORS the api's finalize snapshot
+ * (invoices/service.ts) field-for-field, so a worker-finalized invoice carries
+ * the same fiscal identity (SDI code, PEC, CF, …) the e-invoice mapper needs.
+ */
+export const buildClientSnapshot = (client: ClientDoc, currency: string): Record<string, unknown> => ({
+  clientId: client.id,
+  type: client.type ?? null,
+  displayName: client.displayName,
+  legalName: client.legalName ?? null,
+  firstName: client.firstName ?? null,
+  lastName: client.lastName ?? null,
+  email: client.email ?? null,
+  billingAddress: client.billingAddress ?? null,
+  vatNumber: client.vatNumber ?? null,
+  taxCode: client.taxCode ?? null,
+  recipientCode: client.recipientCode ?? null,
+  pecEmail: client.pecEmail ?? null,
+  country: client.country ?? null,
+  currency,
+  preferredLanguage: client.preferredLanguage ?? null,
+  referral: client.referral ?? null,
+});
+
 interface InvoiceDoc {
   id: string;
   version: number;
+  accountId: string;
   clientId: string;
   currency: string;
   issueDate: string;
+  dueDate?: string | null;
   status: string;
   scheduledSendDate?: string | null;
   invoiceNumber?: string | null;
+  /** E-invoicing: send to SdI as soon as the scheduled invoice is finalized. */
+  einvoice?: { submitOnFinalize?: boolean } | null;
 }
 
 const nowTs = (): string => new Date().toISOString();
 
-const finalizeScheduled = async (db: Db, inv: InvoiceDoc, ctx: ProcessorContext): Promise<string | null> => {
+const finalizeScheduled = async (db: Db, inv: InvoiceDoc, issueDate: string, ctx: ProcessorContext): Promise<string | null> => {
   const clients = db.collection<ClientDoc>("clients");
   const invoices = db.collection<InvoiceDoc>("invoices");
   const counters = db.collection<Counter>("counters");
 
-  const client = await clients.findOne({ id: inv.clientId, deletedAt: null } as never, { projection: { _id: 0 } });
-  const snapshot = client
-    ? {
-        clientId: client.id,
-        displayName: client.displayName,
-        legalName: client.legalName ?? null,
-        email: client.email ?? null,
-        billingAddress: client.billingAddress ?? null,
-        vatNumber: client.vatNumber ?? null,
-        currency: inv.currency,
-      }
-    : null;
+  // Account-scoped lookup — never resolve another account's client.
+  const client = await clients.findOne({ id: inv.clientId, accountId: inv.accountId, deletedAt: null } as never, { projection: { _id: 0 } });
+  const snapshot = client ? buildClientSnapshot(client, inv.currency) : null;
 
-  const year = Number(inv.issueDate.slice(0, 4));
-  const invoiceNumber = await nextInvoiceNumber(counters, year);
+  // The invoice is ISSUED today (account timezone), not on the date it was drafted:
+  // FatturaPA `Data` and the number's year must be the real issue date. The
+  // payment term (issue→due gap) is preserved.
+  const termDays = inv.dueDate ? Math.max(0, daysBetween(inv.issueDate, inv.dueDate)) : 0;
+  const dueDate = addDays(issueDate, termDays);
+  const year = Number(issueDate.slice(0, 4));
+  // Per-account series — the SAME counter the api's finalize uses
+  // (`${accountId}:invoice-${year}`), so scheduled + manual invoices share one
+  // gap-free, non-colliding sequence per account.
+  const invoiceNumber = await nextDocNumber(counters, inv.accountId, `invoice-${year}`, "INV", year, true);
 
   // Guard on the CURRENT version + still-scheduled status → exactly-once.
   const res = await invoices.findOneAndUpdate(
@@ -145,6 +211,8 @@ const finalizeScheduled = async (db: Db, inv: InvoiceDoc, ctx: ProcessorContext)
       $set: {
         status: "finalized",
         invoiceNumber,
+        issueDate,
+        dueDate,
         scheduledSendDate: null,
         ...(snapshot ? { clientSnapshot: snapshot } : {}),
         updatedAt: nowTs(),
@@ -200,6 +268,8 @@ interface ProfileDoc {
   notes?: string | null;
   lineItems: LineComputed[];
   autoSend?: RecurringAutoSend | null;
+  /** E-invoicing: send each generated invoice to SdI. */
+  einvoice?: { autoSubmit?: boolean } | null;
 }
 
 /** Auto-send config stored on the profile (mirrors api recurring-billing/types.ts). */
@@ -259,7 +329,7 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
   const tax = p.lineItems.reduce((s, l) => s + (l.lineTaxMinor ?? 0), 0);
   const grand = p.lineItems.reduce((s, l) => s + (l.lineTotalMinor ?? 0), 0);
 
-  const client = await clients.findOne({ id: p.clientId, deletedAt: null } as never, { projection: { _id: 0 } });
+  const client = await clients.findOne({ id: p.clientId, accountId: p.accountId, deletedAt: null } as never, { projection: { _id: 0 } });
   const issueDate = p.nextRunAt;
   const year = Number(issueDate.slice(0, 4));
   const docNumber = await nextDocNumber(counters, p.accountId, cfg.series(year), cfg.prefix, year, cfg.slashYear);
@@ -293,17 +363,7 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
     return null;
   }
 
-  const clientSnapshot = client
-    ? {
-        clientId: client.id,
-        displayName: client.displayName,
-        legalName: client.legalName ?? null,
-        email: client.email ?? null,
-        billingAddress: client.billingAddress ?? null,
-        vatNumber: client.vatNumber ?? null,
-        currency: p.currency,
-      }
-    : null;
+  const clientSnapshot = client ? buildClientSnapshot(client, p.currency) : null;
   const base = {
     id: docId,
     version: 1,
@@ -351,6 +411,8 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
       status: docType === "invoice" ? "finalized" : "issued",
       [docType === "invoice" ? "invoiceNumber" : "proformaNumber"]: docNumber,
       ...(autoSendPending ? { autoSendPending: true, autoSendAt: null } : {}),
+      // E-invoicing flag; the submit job (enqueued below) re-checks that the integration is on.
+      ...(docType === "invoice" && p.einvoice?.autoSubmit ? { einvoice: { status: "not_sent", legallyIssued: false, submitOnFinalize: true } } : {}),
     };
   }
   await target.insertOne(doc as never);
@@ -362,6 +424,14 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
     /* non-fatal */
   }
   ctx.logger.info({ profileId: p.id, documentType: docType, docId, docNumber, exhausted }, "recurring occurrence generated");
+
+  if (docType === "invoice" && p.einvoice?.autoSubmit) {
+    try {
+      await enqueueEInvoiceSubmit(p.accountId, "invoice", docId, "recurring");
+    } catch (err) {
+      ctx.logger.warn({ err, docId }, "einvoice enqueue failed for recurring occurrence (send manually)");
+    }
+  }
 
   // Kick off the PDF render for an auto-send occurrence so it is ready to email
   // on a following tick. Best-effort: a failure here just means Scan 3 finds no
@@ -631,20 +701,37 @@ const autoSendScan = async (db: Db, ctx: ProcessorContext): Promise<number> => {
 export const recurringTickHandler = async (_payload: JobPayloads["recurring"], ctx: ProcessorContext): Promise<{ finalized: number; generated: number; autoSent: number }> => {
   const db = await getDb();
   const invoices = db.collection<InvoiceDoc>("invoices");
-  const today = todayIso();
+  // Dates are evaluated in EACH ACCOUNT's business timezone (an invoice due "today"
+  // in Rome must not wait for UTC midnight, nor fire early). Query with the latest
+  // possible "today" on earth, then re-check per account.
+  const today = latestTodayIso();
+  const tzOf = makeTimezoneResolver(db);
 
   // Scan 1 — scheduled-send: scheduled invoices whose date has arrived.
   const due = (await invoices
     .find({ status: "scheduled", scheduledSendDate: { $lte: today }, deletedAt: null } as never, {
-      projection: { _id: 0, id: 1, version: 1, clientId: 1, currency: 1, issueDate: 1, status: 1, scheduledSendDate: 1, invoiceNumber: 1 },
+      projection: { _id: 0, id: 1, version: 1, accountId: 1, clientId: 1, currency: 1, issueDate: 1, dueDate: 1, status: 1, scheduledSendDate: 1, invoiceNumber: 1, einvoice: 1 },
     })
     .toArray()) as InvoiceDoc[];
 
   let finalized = 0;
   for (const inv of due) {
     try {
-      const num = await finalizeScheduled(db, inv, ctx);
-      if (num) finalized++;
+      const accountToday = todayIn(await tzOf(inv.accountId));
+      if (!inv.scheduledSendDate || inv.scheduledSendDate > accountToday) continue;
+      const num = await finalizeScheduled(db, inv, accountToday, ctx);
+      if (num) {
+        finalized++;
+        // E-invoicing: the worker finalizes directly in Mongo (no API event), so it enqueues
+        // the SdI submission itself. The handler re-checks enablement + readiness.
+        if (inv.einvoice?.submitOnFinalize) {
+          try {
+            await enqueueEInvoiceSubmit(inv.accountId, "invoice", inv.id, "scheduled");
+          } catch (err) {
+            ctx.logger.warn({ err, invoiceId: inv.id }, "einvoice enqueue failed for scheduled invoice (send manually)");
+          }
+        }
+      }
     } catch (err) {
       ctx.logger.error({ err, invoiceId: inv.id }, "scheduled finalize failed (will retry next tick)");
     }
@@ -659,6 +746,7 @@ export const recurringTickHandler = async (_payload: JobPayloads["recurring"], c
   let generated = 0;
   for (const p of dueProfiles) {
     try {
+      if (p.nextRunAt > todayIn(await tzOf(p.accountId))) continue;
       const num = await generateFromProfile(db, p, ctx);
       if (num) generated++;
     } catch (err) {

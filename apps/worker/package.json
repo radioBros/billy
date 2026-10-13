@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@billy/config": "workspace:*",
+    "@billy/einvoice": "workspace:*",
     "@billy/shared": "workspace:*",
     "@billy/types": "workspace:*",
     "bullmq": "^5.80.4",

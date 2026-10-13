@@ -23,15 +23,18 @@ import type { Client } from "@/types/domain";
 import AppCard from "@/components/AppCard.vue";
 import CountrySelect from "@/components/CountrySelect.vue";
 import AddressAutocomplete, { type ResolvedAddress } from "@/components/AddressAutocomplete.vue";
+import validations from "@/constants/validations";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
 import { useAuthStore } from "@/stores/auth";
+import { useEInvoicing } from "@/stores/einvoicing";
 import { confirm } from "@/composables/useConfirm";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const einvoicing = useEInvoicing();
 
 const canDelete = computed<boolean>(
   () => auth.principal?.capabilities.canPermanentlyDelete === true,
@@ -56,6 +59,13 @@ const email = ref("");
 const phone = ref("");
 const vatNumber = ref("");
 const taxCode = ref("");
+// Italian e-invoicing routing: SDI destination code and/or certified email (PEC).
+const recipientCode = ref("");
+// E-invoicing on and no way to route an invoice to this client yet → nudge.
+const showRoutingHint = computed<boolean>(
+  () => einvoicing.enabled && recipientCode.value.trim() === "" && pecEmail.value.trim() === "",
+);
+const pecEmail = ref("");
 const preferredCurrency = ref("");
 // The client's language — their documents + emails render in it (falls back to
 // the company default, then English).
@@ -98,8 +108,6 @@ const isIndividual = computed(() => type.value === "individual");
 
 const required = (v: unknown): boolean | string =>
   (!!v && String(v).trim().length > 0) || t("common.required");
-const emailRule = (v: string): boolean | string =>
-  !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(v) || t("clients.form.emailRule");
 const currencyRule = (v: string): boolean | string =>
   !v || /^[A-Z]{3}$/u.test(v) || t("common.currencyRule");
 
@@ -136,6 +144,8 @@ const loadClient = async (): Promise<void> => {
     phone.value = client.phone ?? "";
     vatNumber.value = client.vatNumber ?? "";
     taxCode.value = client.taxCode ?? "";
+    recipientCode.value = client.recipientCode ?? "";
+    pecEmail.value = client.pecEmail ?? "";
     preferredCurrency.value = client.preferredCurrency ?? "";
     preferredLanguage.value = client.preferredLanguage ?? null;
     referral.value = client.referral ?? "";
@@ -180,6 +190,14 @@ const buildPayload = (): Record<string, unknown> => {
   if (phone.value.trim()) payload.phone = phone.value.trim();
   if (vatNumber.value.trim()) payload.vatNumber = vatNumber.value.trim();
   if (taxCode.value.trim()) payload.taxCode = taxCode.value.trim();
+  // SDI code is stored uppercase. Edit mode sends an explicit null for an emptied
+  // field so a stale code / PEC can actually be cleared.
+  const rc = recipientCode.value.trim().toUpperCase();
+  if (rc) payload.recipientCode = rc;
+  else if (isEdit.value) payload.recipientCode = null;
+  const pec = pecEmail.value.trim();
+  if (pec) payload.pecEmail = pec;
+  else if (isEdit.value) payload.pecEmail = null;
   if (preferredCurrency.value.trim()) payload.preferredCurrency = preferredCurrency.value.trim();
   if (preferredLanguage.value) payload.preferredLanguage = preferredLanguage.value;
   if (referral.value.trim()) payload.referral = referral.value.trim();
@@ -298,6 +316,7 @@ const save = async (): Promise<void> => {
 };
 
 onMounted(() => {
+  void einvoicing.load();
   void loadClient();
 });
 </script>
@@ -376,7 +395,7 @@ onMounted(() => {
               v-model="email"
               :label="t('clients.fields.email')"
               type="email"
-              :rules="[emailRule]"
+              :rules="validations.email"
               :error-messages="fieldErrors.email"
               density="comfortable"
             />
@@ -402,6 +421,33 @@ onMounted(() => {
               v-model="taxCode"
               :label="t('clients.fields.taxCode')"
               :error-messages="fieldErrors.taxCode"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col v-if="showRoutingHint" cols="12">
+            <v-alert type="info" variant="tonal" density="compact" data-test="client-routing-hint">
+              {{ t("einvoicing.clientHint") }}
+            </v-alert>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="recipientCode"
+              :label="t('clients.fields.recipientCode')"
+              :hint="t('clients.form.recipientCodeHint')"
+              persistent-hint
+              :rules="validations.recipientCode"
+              :error-messages="fieldErrors.recipientCode"
+              maxlength="7"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="pecEmail"
+              :label="t('clients.fields.pecEmail')"
+              type="email"
+              :rules="validations.email"
+              :error-messages="fieldErrors.pecEmail"
               density="comfortable"
             />
           </v-col>

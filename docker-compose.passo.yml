@@ -1,0 +1,23 @@
+# Opt-in override: lets billy's api + worker reach a SEPARATE PASSO stack (Italian e-invoicing
+# relay, its own repo and compose project) over a shared Docker network.
+#
+#   docker network create billy_passo          # once per host
+#   # in the PASSO checkout, attach its `api` service to the same external network
+#   # (host-local override, never committed to billy), then in billy:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.passo.yml docker compose up -d api worker
+#
+# Billy reaches PASSO at http://<passo-api-container>:3000 (set PASSO_API_URL in .env). Use the
+# unambiguous container name (e.g. passo-api), NOT the service alias `api`, which collides with
+# billy's own api service on a shared network. See docs/integrations/passo.md.
+services:
+  api:
+    networks:
+      - passo
+  worker:
+    networks:
+      - passo
+
+networks:
+  passo:
+    external: true
+    name: ${PASSO_NETWORK:-billy_passo}

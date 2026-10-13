@@ -1,3 +1,4 @@
+import type { EInvoiceDocState } from "@billy/einvoice";
 import type { BaseDoc } from "@billy/types";
 import type { LineItemComputed } from "@/platform/money.js";
 
@@ -67,12 +68,22 @@ export type PaymentMethod =
  */
 export interface ClientSnapshot {
   clientId: string;
+  /** "company" | "individual" — drives the e-invoice buyer shape (denomination vs first/last name). */
+  type?: string | null;
   displayName: string;
   legalName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   billingAddress?: unknown | null;
   vatNumber?: string | null;
   taxCode?: string | null;
+  /** SDI destination code (Codice Destinatario) — frozen at issue for e-invoicing. */
+  recipientCode?: string | null;
+  /** Certified e-mail (PEC) of the client — frozen at issue for e-invoicing. */
+  pecEmail?: string | null;
+  /** ISO-3166 alpha-2 country of the client (fiscal residence). */
+  country?: string | null;
   currency: string;
   /** Client's language at issue — FROZEN here so the doc's rendered language
    *  (and email) never changes if the client later switches language. */
@@ -90,9 +101,13 @@ export interface ClientSnapshot {
 export interface BankSnapshot {
   label: string;
   details: string;
+  /** Structured IBAN, when the settings bank account has one (used for e-invoice payment data). */
+  iban?: string | null;
 }
 
 export interface Invoice extends BaseDoc {
+  /** Italian e-invoicing state (SdI via PASSO). Absent until the integration touches the document. */
+  einvoice?: EInvoiceDocState | null;
   clientId: string;
   /** Optional project assignment (account-scoped projects entity). */
   projectId?: string | null;

@@ -489,6 +489,41 @@ describe("invoice void", () => {
     expect(events.map((e) => e.name)).toContain("invoice.void");
   });
 
+  it("cannot void an invoice that SdI holds or may hold → EINVOICE_LEGALLY_ISSUED (issue a credit note)", async () => {
+    for (const einvoice of [
+      { status: "awaiting_delivery", legallyIssued: true },
+      { status: "delivered", legallyIssued: true },
+      { status: "queued", legallyIssued: false },
+      { status: "transmitted", legallyIssued: false },
+    ] as const) {
+      const { svc, repo } = newService();
+      const draft = await makeDraft(svc, repo);
+      const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+      const sent = await repo.replaceState(ADMIN, finalized.id, finalized.version, { einvoice } as never);
+      await expect(svc.void(ADMIN, sent.id, sent.version)).rejects.toMatchObject({ code: "EINVOICE_LEGALLY_ISSUED" });
+    }
+  });
+
+  it("CAN still void after SdI rejected it (NS: legally not issued) or while merely blocked", async () => {
+    for (const status of ["rejected", "blocked", "failed", "not_sent"] as const) {
+      const { svc, repo } = newService();
+      const draft = await makeDraft(svc, repo);
+      const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+      const sent = await repo.replaceState(ADMIN, finalized.id, finalized.version, { einvoice: { status, legallyIssued: false } } as never);
+      expect((await svc.void(ADMIN, sent.id, sent.version)).status).toBe("void");
+    }
+  });
+
+  it("finalize freezes the fiscal client identity (type, SDI code, PEC, CF, country)", async () => {
+    const { svc, repo } = newService();
+    const draft = await makeDraft(svc, repo);
+    const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+    expect(finalized.clientSnapshot).toMatchObject({ clientId: CLIENT.id, recipientCode: null, pecEmail: null });
+    expect(Object.keys(finalized.clientSnapshot!)).toEqual(
+      expect.arrayContaining(["type", "firstName", "lastName", "taxCode", "recipientCode", "pecEmail", "country"]),
+    );
+  });
+
   it("cannot void a paid invoice → INVOICE_ALREADY_PAID", async () => {
     const { svc, repo } = newService();
     const draft = await makeDraft(svc, repo);

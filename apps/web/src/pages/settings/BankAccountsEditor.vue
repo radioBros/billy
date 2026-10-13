@@ -7,6 +7,7 @@
  * light-grey-bordered rows, no shadow.
  */
 import { useI18n } from "vue-i18n";
+import validations from "@/constants/validations";
 import type { BankAccount } from "@/types/domain";
 
 const model = defineModel<BankAccount[]>({ required: true });
@@ -30,6 +31,10 @@ const updateLabel = (index: number, value: string): void => {
   model.value = model.value.map((a, i) => (i === index ? { ...a, label: value } : a));
 };
 
+const updateIban = (index: number, value: string): void => {
+  model.value = model.value.map((a, i) => (i === index ? { ...a, iban: value.trim() === "" ? null : value } : a));
+};
+
 const updateDetails = (index: number, value: string): void => {
   model.value = model.value.map((a, i) => (i === index ? { ...a, details: value } : a));
 };
@@ -46,8 +51,9 @@ const updateDetails = (index: number, value: string): void => {
         <v-text-field
           :model-value="account.label"
           :label="t('settings.bankAccounts.label')"
+          :rules="validations.required.any"
           density="comfortable"
-          hide-details
+          hide-details="auto"
           class="flex-grow-1"
           @update:model-value="(v: string) => updateLabel(i, v)"
         />
@@ -60,6 +66,17 @@ const updateDetails = (index: number, value: string): void => {
           @click="removeAccount(i)"
         />
       </div>
+      <v-text-field
+        :model-value="account.iban ?? ''"
+        :label="t('settings.bankAccounts.iban')"
+        :hint="t('settings.bankAccounts.ibanHint')"
+        persistent-hint
+        :rules="validations.iban"
+        density="comfortable"
+        class="mt-2"
+        data-test="bank-iban"
+        @update:model-value="(v: string) => updateIban(i, v)"
+      />
       <v-textarea
         :model-value="account.details"
         :label="t('settings.bankAccounts.details')"

@@ -91,6 +91,15 @@ async function registerRepeatables(): Promise<void> {
       },
     );
     logger.info("repeatable jobs registered (recurring-tick every 15m)");
+    // E-invoicing status sync fan-out (handlers/einvoice.ts). Cheap when idle: one distinct()
+    // query. Interval follows PASSO_POLL_INTERVAL_SEC.
+    const einvoiceQueue = new Queue("einvoice", { connection: redis });
+    await einvoiceQueue.add(
+      "einvoice-tick",
+      { kind: "tick", accountId: "*" } as never,
+      { repeat: { every: config.PASSO_POLL_INTERVAL_SEC * 1000 }, jobId: "einvoice-tick", removeOnComplete: true, removeOnFail: 100 },
+    );
+    logger.info({ everySec: config.PASSO_POLL_INTERVAL_SEC }, "repeatable job registered (einvoice-tick)");
   } catch (err) {
     logger.warn({ err }, "repeatable job registration skipped (Redis unavailable at boot)");
   }

@@ -108,6 +108,17 @@ const EnvSchema = z.object({
   // Geoapify geocoding API key (address autocomplete). Server-side only — the web
   // app calls the /api/v1/geo proxy, never Geoapify directly. Empty → feature off.
   GEOAPIFY_API_KEY: optionalEnv(z.string()),
+  // ── Italian e-invoicing (PASSO relay). All per-account configuration lives in the
+  // Settings → E-invoicing tab; these are only instance-level wiring.
+  // Default PASSO API base URL (prefills the per-account setting), e.g. http://passo-api:3000.
+  PASSO_API_URL: optionalEnv(z.string().url()),
+  // Instance admin key of PASSO. ENV ONLY by design: it can create tenants for ANY account,
+  // so it is never stored in the DB nor shown in the UI. Unset → only "manual" mode is offered.
+  PASSO_ADMIN_KEY: optionalEnv(z.string().min(24)),
+  // Public base URL PASSO's webhooks can reach (https). Unset → poll-only.
+  PASSO_WEBHOOK_BASE_URL: optionalEnv(z.string().url()),
+  // Seconds between status syncs of in-flight submissions.
+  PASSO_POLL_INTERVAL_SEC: z.coerce.number().int().min(30).default(120),
   VAPID_SUBJECT: withDefault(z.string(), "mailto:admin@billy.local"),
 
   // First-run admin bootstrap (one-time, document rotating after boot).

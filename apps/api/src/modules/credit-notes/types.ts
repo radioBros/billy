@@ -1,3 +1,4 @@
+import type { EInvoiceDocState } from "@billy/einvoice";
 import type { BaseDoc } from "@billy/types";
 import type { LineItemComputed } from "@/platform/money.js";
 
@@ -35,18 +36,26 @@ export type CreditNoteStatus = "draft" | "issued" | "void";
  */
 export interface ClientSnapshot {
   clientId: string;
+  type?: string | null;
   displayName: string;
   legalName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   billingAddress?: unknown | null;
   vatNumber?: string | null;
   taxCode?: string | null;
+  recipientCode?: string | null;
+  pecEmail?: string | null;
+  country?: string | null;
   currency: string;
   preferredLanguage?: string | null;
   referral?: string | null;
 }
 
 export interface CreditNote extends BaseDoc {
+  /** Italian e-invoicing state (SdI via PASSO). */
+  einvoice?: EInvoiceDocState | null;
   clientId: string;
   projectId?: string | null;
   clientSnapshot?: ClientSnapshot | null;

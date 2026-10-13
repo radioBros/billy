@@ -12,6 +12,8 @@ export interface LineItemInput {
   discountRate?: number;
   /** Percentage tax on the (post-discount) line, 0–100 (optional). */
   taxRate?: number;
+  /** FatturaPA Natura code for 0% lines (carried through; does not affect the maths). */
+  nature?: string | null;
 }
 
 export interface LineItemComputed extends LineItemInput {

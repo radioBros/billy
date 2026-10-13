@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
+import { api } from "@/api/client";
 import { mount } from "@vue/test-utils";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
@@ -24,10 +26,18 @@ beforeAll(() => {
   }
 });
 
+// The editor reads the e-invoicing flag from a Pinia store (Natura column).
+let pinia = createPinia();
+beforeEach(() => {
+  pinia = createPinia();
+  setActivePinia(pinia);
+  vi.spyOn(api, "get").mockResolvedValue({ enabled: false } as never);
+});
+
 const mountEditor = (modelValue: LineItemInput[]) => {
   return mount(LineItemEditor, {
     props: { modelValue, currency: "EUR" },
-    global: { plugins: [vuetify, i18n] },
+    global: { plugins: [vuetify, i18n, pinia] },
   });
 };
 

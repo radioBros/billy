@@ -17,6 +17,8 @@ import { majorToMinor, minorToMajor, minorToDisplay, computeDisplayTotals } from
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
+import { useEInvoicing } from "@/stores/einvoicing";
+import { codeItems } from "@/utils/einvoicingCodes";
 
 /**
  * Editor-local row. The price is held as a raw string so intermediate decimal
@@ -31,6 +33,8 @@ interface EditorRow {
   unitPriceMajor: string;
   discountRate: number | null;
   taxRate: number | null;
+  /** FatturaPA Natura (why 0% VAT) — kept while taxRate is 0, dropped otherwise. */
+  nature: string | null;
 }
 
 const props = defineProps<{
@@ -43,11 +47,22 @@ const props = defineProps<{
   /** Server-side field errors keyed `${rowIndex}.${field}` (already translated),
    *  e.g. `{ "0.description": "This field is required" }`. */
   errors?: Record<string, string>;
+  /** Offer the Natura (0% VAT reason) column — invoices / credit notes only, and
+   *  only while e-invoicing is enabled. */
+  showNature?: boolean;
 }>();
 
 const emit = defineEmits<{ "update:modelValue": [LineItemInput[]] }>();
 
 const { t } = useI18n();
+
+// Italian e-invoicing: a 0% VAT line must say WHY (Natura). The extra column and
+// select exist only while e-invoicing is enabled.
+const einvoicing = useEInvoicing();
+void einvoicing.load();
+const natureOn = computed<boolean>(() => props.showNature === true && einvoicing.enabled);
+const natureItems = computed(() => codeItems(t, "natura"));
+const isZeroRate = (r: EditorRow): boolean => r.taxRate !== null && Number(r.taxRate) === 0;
 
 // Rules mirror the backend LineItemSchema (@billy/validation): description is
 // required, quantity must be > 0 — so the form blocks the submit instead of
@@ -66,7 +81,7 @@ const cellError = (index: number, field: string): string | undefined =>
 const { onContextMenu, menuState, insertToken } = usePlaceholderInsert();
 
 const emptyRow = (): EditorRow => {
-  return { description: "", quantity: 1, unitPriceMajor: "", discountRate: null, taxRate: null };
+  return { description: "", quantity: 1, unitPriceMajor: "", discountRate: null, taxRate: null, nature: null };
 };
 
 const toRow = (li: LineItemInput): EditorRow => {
@@ -77,6 +92,7 @@ const toRow = (li: LineItemInput): EditorRow => {
     unitPriceMajor: major === null ? "" : String(major),
     discountRate: li.discountRate ?? null,
     taxRate: li.taxRate ?? null,
+    nature: li.nature ?? null,
   };
 };
 
@@ -109,6 +125,7 @@ const rowToInput = (r: EditorRow): LineItemInput => {
   };
   if (r.discountRate != null) line.discountRate = Number(r.discountRate);
   if (r.taxRate != null) line.taxRate = Number(r.taxRate);
+  if (r.nature && isZeroRate(r)) line.nature = r.nature;
   return line;
 };
 
@@ -199,6 +216,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
           <th style="width: 160px">Unit price ({{ currency }})</th>
           <th style="width: 90px">Disc %</th>
           <th style="width: 90px">Tax %</th>
+          <th v-if="natureOn" style="min-width: 180px">{{ t("einvoicing.nature.column") }}</th>
           <th style="width: 120px" class="text-right">Total</th>
           <th style="width: 48px" />
         </tr>
@@ -277,6 +295,23 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
               hide-details
               aria-label="Tax rate"
               @update:model-value="(v) => updateRow(i, { taxRate: v === '' ? null : Number(v) })"
+            />
+          </td>
+          <td v-if="natureOn">
+            <v-select
+              v-if="isZeroRate(row)"
+              :model-value="row.nature"
+              :items="natureItems"
+              :disabled="disabled"
+              density="compact"
+              variant="plain"
+              hide-details="auto"
+              clearable
+              :placeholder="t('einvoicing.nature.placeholder')"
+              :aria-label="t('einvoicing.nature.column')"
+              :error-messages="cellError(i, 'nature')"
+              data-test="line-nature"
+              @update:model-value="(v) => updateRow(i, { nature: v ?? null })"
             />
           </td>
           <td class="text-right">{{ minorToDisplay(lineTotalMinor(row), currency) }}</td>

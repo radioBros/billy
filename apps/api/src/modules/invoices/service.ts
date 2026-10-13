@@ -35,12 +35,18 @@ export type LoadClient = (ctx: AuthContext, clientId: string) => Promise<ClientR
 /** Minimal client shape finalize needs to build a snapshot. */
 export interface ClientRecord {
   id: string;
+  type?: string | null;
   displayName: string;
   legalName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   billingAddress?: unknown | null;
   vatNumber?: string | null;
   taxCode?: string | null;
+  recipientCode?: string | null;
+  pecEmail?: string | null;
+  country?: string | null;
   preferredCurrency?: string | null;
   preferredLanguage?: string | null;
   referral?: string | null;
@@ -54,6 +60,7 @@ export interface BankAccountRecord {
   id: string;
   label: string;
   details: string;
+  iban?: string | null;
 }
 
 /**
@@ -155,7 +162,7 @@ export class InvoiceService extends BaseService<Invoice> {
     } else if (accounts.length === 1) {
       chosen = accounts[0];
     }
-    return chosen ? { label: chosen.label, details: chosen.details } : null;
+    return chosen ? { label: chosen.label, details: chosen.details, ...(chosen.iban ? { iban: chosen.iban } : {}) } : null;
   }
 
   /** Draft-only edit. Totals recomputed; non-draft rejected with INVOICE_NOT_EDITABLE. */
@@ -207,12 +214,18 @@ export class InvoiceService extends BaseService<Invoice> {
     if (!client) throw errors.notFound();
     const snapshot: ClientSnapshot = {
       clientId: client.id,
+      type: client.type ?? null,
       displayName: client.displayName,
       legalName: client.legalName ?? null,
+      firstName: client.firstName ?? null,
+      lastName: client.lastName ?? null,
       email: client.email ?? null,
       billingAddress: client.billingAddress ?? null,
       vatNumber: client.vatNumber ?? null,
       taxCode: client.taxCode ?? null,
+      recipientCode: client.recipientCode ?? null,
+      pecEmail: client.pecEmail ?? null,
+      country: client.country ?? null,
       currency: existing.currency,
       preferredLanguage: client.preferredLanguage ?? null,
       referral: client.referral ?? null,
@@ -238,7 +251,7 @@ export class InvoiceService extends BaseService<Invoice> {
    * finalizes it on `scheduledSendDate` (assigning the number THEN, so numbering
    * stays ordered by issue date, a tax-compliance requirement). draft→scheduled.
    */
-  async schedule(ctx: AuthContext, id: string, expectedVersion: number, scheduledSendDate: string): Promise<Invoice> {
+  async schedule(ctx: AuthContext, id: string, expectedVersion: number, scheduledSendDate: string, submitOnFinalize?: boolean): Promise<Invoice> {
     const existing = await this.get(ctx, id);
     if (existing.status !== "draft" || existing.invoiceNumber) {
       throw new AppError("INVALID_STATE_TRANSITION", "Only an un-finalized draft can be scheduled");
@@ -247,6 +260,9 @@ export class InvoiceService extends BaseService<Invoice> {
     const updated = await this.repo.replaceState(ctx, id, expectedVersion, {
       status: "scheduled",
       scheduledSendDate,
+      ...(submitOnFinalize !== undefined
+        ? { einvoice: { status: "not_sent" as const, legallyIssued: false, submitOnFinalize } }
+        : {}),
     });
     await this.emit(this.event("invoice.scheduled", ctx, updated.id, { scheduledSendDate }));
     return updated;
@@ -262,6 +278,7 @@ export class InvoiceService extends BaseService<Invoice> {
     const updated = await this.repo.replaceState(ctx, id, expectedVersion, {
       status: "draft",
       scheduledSendDate: null,
+      ...(existing.einvoice ? { einvoice: null } : {}),
     });
     await this.emit(this.event("invoice.unscheduled", ctx, updated.id, {}));
     return updated;
@@ -362,6 +379,12 @@ export class InvoiceService extends BaseService<Invoice> {
     const existing = await this.get(ctx, id);
     if (existing.status === "paid") {
       throw new AppError("INVOICE_ALREADY_PAID", "Cannot void a fully-paid invoice");
+    }
+    // Once SdI holds (or may hold) the invoice it cannot be voided locally: the correction path
+    // is a credit note. In-flight submissions are blocked too (the outcome is not known yet).
+    const es = existing.einvoice?.status;
+    if (existing.einvoice?.legallyIssued || es === "queued" || es === "transmitted" || es === "awaiting_delivery") {
+      throw new AppError("EINVOICE_LEGALLY_ISSUED", "This invoice was sent to SdI; issue a credit note instead of voiding it");
     }
     assertTransition<InvoiceStatus>(existing.status, "void", ALLOWED_TRANSITIONS);
     const voided = await this.repo.replaceState(ctx, id, expectedVersion, { status: "void" });

@@ -6,6 +6,7 @@ import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
 import type { QueueRegistry } from "@/platform/queue.js";
 import { validate } from "@/platform/validate.js";
+import { einvoiceStatusQuery } from "@/platform/list-query.js";
 import { canSeeFinancials, respondCreated, respondList, respondOk } from "@/platform/serializer.js";
 import { formatDocumentNumber, nextSequence, type Counter } from "@/platform/numbering.js";
 import { requireAuth } from "@/modules/auth/middleware.js";
@@ -51,15 +52,10 @@ export const createInvoicesRouter = (deps: {
     logger: deps.logger,
     // finalize reads the clients collection to build the snapshot.
     loadClient: async (ctx, clientId): Promise<ClientRecord | null> => {
-      const c = (await clients.findOne(
-        { id: clientId, accountId: ctx.accountId, deletedAt: null },
-        { projection: { _id: 0 } },
-      )) as (ClientRecord & { accountId?: string }) | null;
-      // Fall back to an unscoped-by-accountId match if clients aren't scoped
-      // that way (clients module currently has no scopeField).
-      if (c) return c;
+      // Strictly account-scoped: a finalize must never snapshot another account's
+      // client (the snapshot becomes the fiscal buyer identity on the invoice).
       return (await clients.findOne(
-        { id: clientId, deletedAt: null },
+        { id: clientId, accountId: ctx.accountId, deletedAt: null },
         { projection: { _id: 0 } },
       )) as ClientRecord | null;
     },
@@ -75,12 +71,11 @@ export const createInvoicesRouter = (deps: {
     overpaymentToleranceMinor: 0,
     // Hashed share-token store for /share.
     shareTokens: new ShareTokenStore(deps.db),
-    // Multi-bank: read the business-settings singleton's bankAccounts. The settings
-    // doc is single-tenant (`{ key: "business", data }`) — no accountId filter.
-    // Missing/legacy docs have no bankAccounts → [].
-    loadBankAccounts: async (): Promise<BankAccountRecord[]> => {
+    // Multi-bank: read THIS account's business-settings bankAccounts
+    // (`{ key: "business", accountId }`). Missing/legacy docs have none → [].
+    loadBankAccounts: async (ctx): Promise<BankAccountRecord[]> => {
       const doc = (await settings.findOne(
-        { key: "business" },
+        { key: "business", accountId: ctx.accountId },
         { projection: { _id: 0, "data.bankAccounts": 1 } },
       )) as { data?: { bankAccounts?: BankAccountRecord[] } } | null;
       return doc?.data?.bankAccounts ?? [];
@@ -130,7 +125,7 @@ export const createInvoicesRouter = (deps: {
   // GET /api/v1/invoices — list
   r.get("/", async (ctx) => {
     const auth = ctx.state.authContext!;
-    const { items, meta } = await service.list(auth, ctx.query);
+    const { items, meta } = await service.list(auth, einvoiceStatusQuery(ctx.query));
     respondList(ctx, items.map((i) => stripInvoiceFinancial(auth, i)), meta);
   });
 
@@ -208,10 +203,10 @@ export const createInvoicesRouter = (deps: {
   // POST /api/v1/invoices/:id/schedule — draft → scheduled (worker finalizes on the date)
   r.post("/:id/schedule", async (ctx) => {
     const auth = ctx.state.authContext!;
-    const body = ctx.request.body as { scheduledSendDate?: unknown; version?: unknown };
+    const body = ctx.request.body as { scheduledSendDate?: unknown; version?: unknown; submitOnFinalize?: unknown };
     const version = resolveVersion(ctx.get("if-match"), bodyVersion(body));
-    const parsed = validate(ScheduleSchema, { scheduledSendDate: body.scheduledSendDate });
-    const scheduled = await service.schedule(auth, ctx.params.id!, version, parsed.scheduledSendDate);
+    const parsed = validate(ScheduleSchema, { scheduledSendDate: body.scheduledSendDate, submitOnFinalize: body.submitOnFinalize });
+    const scheduled = await service.schedule(auth, ctx.params.id!, version, parsed.scheduledSendDate, parsed.submitOnFinalize);
     respondOk(ctx, stripInvoiceFinancial(auth, scheduled));
   });
 

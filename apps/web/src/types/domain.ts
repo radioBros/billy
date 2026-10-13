@@ -21,6 +21,10 @@ export interface Client extends BaseDoc {
   phone?: string | null;
   vatNumber?: string | null;
   taxCode?: string | null;
+  /** SDI destination code (Codice Destinatario) for Italian e-invoicing. */
+  recipientCode?: string | null;
+  /** Certified email (PEC) for Italian e-invoicing. */
+  pecEmail?: string | null;
   billingAddress?: Address | null;
   country?: string | null;
   preferredCurrency?: string | null;
@@ -108,6 +112,8 @@ export interface LineItemInput {
   unitPriceMinor: number;
   discountRate?: number;
   taxRate?: number;
+  /** FatturaPA Natura code — why the line has 0% VAT (e-invoicing; only when taxRate is 0). */
+  nature?: string;
 }
 
 /** Server-computed line item returned in responses (money fields stripped when restricted). */
@@ -176,6 +182,8 @@ export interface Invoice extends BaseDoc {
   status: InvoiceStatus;
   /** YYYY-MM-DD the invoice will auto-finalize on; present when status is `scheduled`. */
   scheduledSendDate?: string | null;
+  /** List rows only: SdI status (absent when e-invoicing is off). */
+  einvoice?: EInvoiceListState;
   convertedFromQuoteId?: string | null;
   notes?: string | null;
 }
@@ -326,6 +334,8 @@ export interface RecurrenceConfig {
   maxOccurrences?: number | null;
   /** Per-occurrence auto-send email config set at creation; null = off. */
   autoSend?: RecurringAutoSend | null;
+  /** Send each generated invoice via SdI (e-invoicing). */
+  einvoice?: { autoSubmit: boolean } | null;
 }
 
 export interface RecurringProfile extends BaseDoc {
@@ -354,6 +364,8 @@ export interface RecurringProfile extends BaseDoc {
   notes?: string | null;
   /** Per-occurrence auto-send email config (see RecurringAutoSend). */
   autoSend?: RecurringAutoSend | null;
+  /** Send each generated invoice via SdI (e-invoicing). */
+  einvoice?: { autoSubmit: boolean } | null;
 }
 
 /** Auto-send email configuration on a recurring profile. When `enabled`, each
@@ -408,6 +420,8 @@ export interface CreditNote extends BaseDoc {
   taxMinor?: number;
   grandTotalMinor?: number;
   status: CreditNoteStatus;
+  /** List rows only: SdI status (absent when e-invoicing is off). */
+  einvoice?: EInvoiceListState;
   reason?: string | null;
   subject?: string | null;
   notes?: string | null;
@@ -548,6 +562,8 @@ export interface BankAccount {
   id: string;
   label: string;
   details: string;
+  /** Optional IBAN (required for SdI bank-transfer payment data). */
+  iban?: string | null;
 }
 
 /** Structured postal address. `country` is an ISO-3166-1 alpha-2 code. */
@@ -652,4 +668,179 @@ export interface WsEvent {
   entityId: string;
   timestamp: string;
   payload: Record<string, unknown>;
+}
+
+// ── E-invoicing (SdI via PASSO) ──────────────────────────────────────────────
+//
+// Modelled from docs/analysis/PASSO_WEB_CONTRACT.md. Code lists (RF/MP/TP/Natura)
+// come from `@billy/einvoice/codes`, never the package barrel.
+
+export type EInvoiceStatus =
+  | "not_sent"
+  | "blocked"
+  | "queued"
+  | "transmitted"
+  | "awaiting_delivery"
+  | "delivered"
+  | "undelivered_attested"
+  | "accepted_by_pa"
+  | "rejected_by_pa"
+  | "rejected"
+  | "failed";
+
+/** The `einvoice` slice on invoice / credit-note list rows. */
+export interface EInvoiceListState {
+  status: EInvoiceStatus;
+  legallyIssued: boolean;
+}
+
+export type EInvoiceKind = "invoices" | "credit-notes";
+export type EInvoiceChannelType = "pec" | "openapi" | "mock";
+
+export interface EInvoicingSettings {
+  enabled: boolean;
+  mode: "managed" | "manual";
+  apiBaseUrl: string | null;
+  envApiUrl: string | null;
+  adminKeyAvailable: boolean;
+  connected: boolean;
+  apiKeyConfigured: boolean;
+  apiKeyLast4: string | null;
+  passoTenantId: string | null;
+  passoSellerId: string | null;
+  /** Human-readable tenant / seller labels (company name · VAT); ids are tooltips only. */
+  passoTenantName: string | null;
+  passoSellerName: string | null;
+  webhook: { mode: "webhook" | "poll"; reason?: string | null };
+  channel: {
+    type: EInvoiceChannelType;
+    configuredAt: string;
+    publicConfig: Record<string, string | number | boolean>;
+  } | null;
+  taxRegime: string;
+  offerStepAfterFinalize: boolean;
+  scheduledDefaultSubmit: boolean;
+  recurringDefaultSubmit: boolean;
+  defaultPaymentConditions: "TP01" | "TP02" | "TP03";
+  defaultPaymentMethod: string;
+  defaultZeroRateNature: string | null;
+  zeroRateLawReference: string | null;
+  bollo: { mode: "auto" | "off"; threshold: string; amount: string };
+  creditNoteNumberPrefix: string;
+  sendDeadlineDays: number;
+  enabledAt: string | null;
+  lastHealth: { ok: boolean; checkedAt: string; message?: string | null } | null;
+  readiness: { key: string; ok: boolean; fix: "business" | "settings" | "none" }[];
+  mockAllowed: boolean;
+}
+
+/** PATCH /settings/einvoicing body (all optional; write-only secrets included). */
+export type EInvoicingSettingsUpdate = Partial<
+  Pick<
+    EInvoicingSettings,
+    | "enabled"
+    | "mode"
+    | "apiBaseUrl"
+    | "taxRegime"
+    | "offerStepAfterFinalize"
+    | "scheduledDefaultSubmit"
+    | "recurringDefaultSubmit"
+    | "defaultPaymentConditions"
+    | "defaultPaymentMethod"
+    | "defaultZeroRateNature"
+    | "zeroRateLawReference"
+    | "bollo"
+    | "creditNoteNumberPrefix"
+    | "sendDeadlineDays"
+  >
+> & { apiKey?: string; passoSellerId?: string };
+
+export interface EInvoicingTestResult {
+  ok: boolean;
+  checks: { key: "api" | "key" | "channel" | "webhook"; ok: boolean; message?: string }[];
+}
+
+export interface EInvoicingChannelResult {
+  view: EInvoicingSettings;
+  inboundWebhookUrl?: string;
+}
+
+export interface EInvoicingSummaryItem {
+  kind: "invoice" | "credit_note";
+  /** not_sent, or a state that needs attention. */
+  status?: "not_sent" | "blocked" | "failed" | "rejected";
+  id: string;
+  number: string;
+  clientName: string;
+  issueDate: string;
+  dueBy: string;
+  overdue: boolean;
+}
+
+/** GET /einvoicing/summary — also the non-admin "is it enabled?" probe. */
+export interface EInvoicingSummary {
+  enabled: boolean;
+  notSent: number;
+  /** Documents stuck in blocked / failed / rejected (need attention). */
+  problems?: number;
+  overdue: number;
+  items: EInvoicingSummaryItem[];
+  /** Optional hints a non-admin cannot read from the settings route. */
+  offerStepAfterFinalize?: boolean;
+  scheduledDefaultSubmit?: boolean;
+  recurringDefaultSubmit?: boolean;
+}
+
+export type EInvoiceReceiptType = "RC" | "NS" | "MC" | "NE" | "DT" | "AT";
+export type EInvoiceGuidance =
+  | "none"
+  | "issued_do_not_resubmit"
+  | "rejected_reissue"
+  | "failed_retry"
+  | "undelivered_tell_client";
+
+export interface EInvoiceReceipt {
+  type: EInvoiceReceiptType;
+  receivedAt: string;
+  errors?: { code: string; description?: string; remedy?: string }[];
+}
+
+export interface EInvoiceAttempt {
+  attempt: number;
+  at: string;
+  status: EInvoiceStatus;
+  receipts: EInvoiceReceipt[];
+}
+
+/** GET /:kind/:id/einvoice */
+export interface EInvoiceInfo {
+  enabled: boolean;
+  status: EInvoiceStatus;
+  legallyIssued: boolean;
+  inFlight: boolean;
+  canSubmit: boolean;
+  canRetry: boolean;
+  submitOnFinalize: boolean;
+  identificativoSdI: string | null;
+  fileName: string | null;
+  submittedAt: string | null;
+  lastEventAt: string | null;
+  lastError: { code: string; message: string } | null;
+  guidance: EInvoiceGuidance;
+  deadline: { dueBy: string; overdue: boolean; finalizedBeforeEnable: boolean } | null;
+  attempts: EInvoiceAttempt[];
+  hasXml: boolean;
+}
+
+export interface EInvoicePreflightIssue {
+  code: string;
+  severity: "error" | "warning";
+  fix: "client" | "business" | "settings" | "invoice" | "none";
+  params?: Record<string, string | number>;
+}
+
+export interface EInvoicePreflight {
+  ok: boolean;
+  issues: EInvoicePreflightIssue[];
+  bolloMinor: number;
 }

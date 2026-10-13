@@ -16,6 +16,12 @@ export const LineItemSchema = z.object({
   unitPriceMinor: Money,
   discountRate: z.number().min(0).max(100).optional(),
   taxRate: z.number().min(0).max(100).optional(),
+  /** FatturaPA Natura (N1, N2.1 …) — why a 0% line has no VAT. Only meaningful at taxRate 0. */
+  nature: z
+    .string()
+    .regex(/^N[1-7](\.[1-9])?$/u, { message: "nature.invalid" })
+    .nullable()
+    .optional(),
 });
 export type LineItemSchemaType = z.infer<typeof LineItemSchema>;
 

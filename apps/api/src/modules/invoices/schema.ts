@@ -73,6 +73,8 @@ export const InvoiceCreateSchema = z
 /** Schedule payload (POST /invoices/:id/schedule). The worker finalizes on this date. */
 export const ScheduleSchema = z.object({
   scheduledSendDate: DateOnly,
+  /** Italian e-invoicing: send to SdI as soon as the worker issues it on the date. */
+  submitOnFinalize: z.boolean().optional(),
 });
 export type ScheduleInput = z.infer<typeof ScheduleSchema>;
 
@@ -108,11 +110,18 @@ export const AddPaymentSchema = z
  */
 export const ClientSnapshotSchema = z.object({
   clientId: ObjectIdString,
+  type: z.string().trim().nullable().optional(),
   displayName: NonEmptyString,
   legalName: z.string().trim().nullable().optional(),
+  firstName: z.string().trim().nullable().optional(),
+  lastName: z.string().trim().nullable().optional(),
   email: z.string().email().nullable().optional(),
   billingAddress: z.unknown().nullable().optional(),
   vatNumber: z.string().trim().nullable().optional(),
+  taxCode: z.string().trim().nullable().optional(),
+  recipientCode: z.string().trim().nullable().optional(),
+  pecEmail: z.string().trim().nullable().optional(),
+  country: z.string().trim().nullable().optional(),
   currency: CurrencyCode,
   preferredLanguage: z.string().trim().nullable().optional(),
   referral: z.string().trim().nullable().optional(),
@@ -142,6 +151,6 @@ export type CreateFromQuoteInput = z.infer<typeof CreateFromQuoteSchema>;
  */
 export const INVOICE_LIST_WHITELIST: ListWhitelist = {
   sortable: ["issueDate", "dueDate", "createdAt", "updatedAt", "grandTotalMinor", "status", "invoiceNumber"],
-  filterable: ["status", "clientId", "currency", "dueDate", "issueDate", "convertedFromQuoteId", "sourceRecurringProfileId"],
+  filterable: ["status", "clientId", "currency", "dueDate", "issueDate", "convertedFromQuoteId", "sourceRecurringProfileId", "einvoice.status"],
   searchable: ["invoiceNumber", "notes"],
 };

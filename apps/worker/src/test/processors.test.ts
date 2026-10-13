@@ -11,9 +11,9 @@ function stubCtx(): ProcessorContext {
 }
 
 describe("queue contract (Billy.md §27 subset)", () => {
-  it("exposes the six framework queue names", () => {
+  it("exposes the framework queue names", () => {
     expect([...QUEUE_NAME_LIST].sort()).toEqual(
-      ["backup", "cleanup", "email", "notifications", "pdf", "recurring"].sort(),
+      ["backup", "cleanup", "einvoice", "email", "notifications", "pdf", "recurring"].sort(),
     );
   });
 

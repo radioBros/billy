@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrandingStore } from "@/stores/branding";
 import { useRealtimeStore } from "@/stores/realtime";
 import { useSettingsStore } from "@/stores/settings";
+import { useEInvoicing } from "@/stores/einvoicing";
 import { logoUrlFor } from "@/api/files";
 import NotificationBell from "@/components/NotificationBell.vue";
 import GlobalYearSelect from "@/components/GlobalYearSelect.vue";
@@ -31,6 +32,7 @@ const auth = useAuthStore();
 const branding = useBrandingStore();
 const realtime = useRealtimeStore();
 const settings = useSettingsStore();
+const einvoicing = useEInvoicing();
 const vuetifyTheme = useTheme();
 const pwaInstall = usePwaInstall();
 const { t } = useI18n();
@@ -91,7 +93,10 @@ onBeforeUnmount(() => realtime.disconnect());
 // authed-lifecycle pattern as realtime above.
 const syncSettings = (authed: boolean): void => {
   if (authed) void settings.load();
-  else settings.reset();
+  else {
+    settings.reset();
+    einvoicing.reset();
+  }
 };
 onMounted(() => syncSettings(auth.isAuthenticated));
 watch(() => auth.isAuthenticated, (authed) => syncSettings(authed));

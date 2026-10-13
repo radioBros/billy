@@ -36,6 +36,7 @@ import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart.vue"
 import MonthlyCountsChart from "@/components/dashboard/MonthlyCountsChart.vue";
 import PeriodBar from "@/components/PeriodBar.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
+import EInvoiceNotSentCard from "@/components/dashboard/EInvoiceNotSentCard.vue";
 import type { MoneyByCurrency, MonthlyCount, RevenueMonth } from "@/components/dashboard/types";
 
 const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue"));
@@ -412,6 +413,9 @@ onMounted(() => {
       <div class="refetch-slot mb-2">
         <v-progress-linear v-show="yearLoading" indeterminate color="primary" />
       </div>
+
+      <!-- ── Action list: documents not yet sent to SdI (e-invoicing only) ──── -->
+      <EInvoiceNotSentCard />
 
       <!-- ── KPI: counts (year-scoped) ─────────────────────────────────────── -->
       <v-row class="mb-1">

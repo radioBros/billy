@@ -38,6 +38,7 @@ export const ACCOUNT_SCOPED_COLLECTIONS: readonly string[] = [
   "counters",
   "shareTokens",
   "pushSubscriptions",
+  "einvoiceSubmissions",
 ];
 
 const slugify = (s: string): string =>

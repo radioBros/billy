@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:docker": "vite --mode docker",
     "build": "vue-tsc -b && vite build",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@billy/einvoice": "workspace:*",
     "@billy/shared": "workspace:*",
     "@billy/types": "workspace:*",
     "@billy/validation": "workspace:*",

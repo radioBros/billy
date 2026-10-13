@@ -64,6 +64,8 @@ export interface RecurringProfile extends BaseDoc {
    *  emails each generated occurrence's PDF using these fields. Absent/disabled ⇒
    *  no email. Subject/body keep `{{...}}` tokens RAW (resolved per-occurrence). */
   autoSend?: RecurringAutoSend | null;
+  /** E-invoicing: when `autoSubmit`, each generated invoice is sent to SdI by the worker. */
+  einvoice?: { autoSubmit: boolean } | null;
 }
 
 /** Auto-send email configuration stored on a recurring profile. */

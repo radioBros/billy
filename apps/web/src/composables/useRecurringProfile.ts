@@ -64,6 +64,8 @@ export const useRecurringProfile = () => {
       ...(args.autoSend ?? recurrence.autoSend
         ? { autoSend: args.autoSend ?? recurrence.autoSend }
         : {}),
+      // SdI submission of each generated invoice (only present while e-invoicing is on).
+      ...(recurrence.einvoice ? { einvoice: recurrence.einvoice } : {}),
     };
     try {
       await api.post<RecurringProfile>("/v1/recurring-profiles", payload);

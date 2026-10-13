@@ -17,10 +17,19 @@ import StatusChip from "@/components/StatusChip.vue";
 import AppCard from "@/components/AppCard.vue";
 import DocumentActions from "@/components/DocumentActions.vue";
 import { confirm } from "@/composables/useConfirm";
+import { useToast } from "@/composables/useToast";
+import { useEInvoicing } from "@/stores/einvoicing";
+import { isApiCode } from "@/composables/useEInvoice";
+import EInvoicePanel from "@/components/einvoicing/EInvoicePanel.vue";
+import EInvoiceSentChip from "@/components/einvoicing/EInvoiceSentChip.vue";
+import EInvoiceActionButton from "@/components/einvoicing/EInvoiceActionButton.vue";
+import type { EInvoiceInfo } from "@/types/domain";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const einvoicing = useEInvoicing();
+const { toast } = useToast();
 const id = computed<string>(() => route.params.id as string);
 
 const creditNote = ref<CreditNote | null>(null);
@@ -33,6 +42,21 @@ const loading = ref(false);
 const errorMessage = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 const acting = ref(false);
+
+// A credit note already issued at SdI cannot be voided (issue a new document instead).
+const legallyIssued = ref(false);
+const einvoiceInfo = ref<EInvoiceInfo | null>(null);
+// The SdI panel is collapsed by default; it opens by itself (once) when something needs attention.
+const einvoiceOpen = ref(false);
+let einvoiceAutoOpened = false;
+const onEInvoiceLoaded = (info: EInvoiceInfo): void => {
+  legallyIssued.value = info.legallyIssued;
+  einvoiceInfo.value = info;
+  if (!einvoiceAutoOpened && (info.status === "rejected" || info.status === "failed")) {
+    einvoiceAutoOpened = true;
+    einvoiceOpen.value = true;
+  }
+};
 
 const isDraft = computed<boolean>(() => creditNote.value?.status === "draft");
 const canVoid = computed<boolean>(
@@ -59,7 +83,12 @@ const runAction = async (fn: () => Promise<CreditNote>): Promise<void> => {
   try {
     creditNote.value = await fn();
   } catch (err) {
-    actionError.value = err instanceof ApiError ? t("common.actionFailed", { code: apiErrorReason(err) }) : t("common.actionFailedGeneric");
+    if (isApiCode(err, "EINVOICE_LEGALLY_ISSUED")) {
+      legallyIssued.value = true;
+      toast.error(t("einvoicing.errors.legallyIssued"));
+    } else {
+      actionError.value = err instanceof ApiError ? t("common.actionFailed", { code: apiErrorReason(err) }) : t("common.actionFailedGeneric");
+    }
   } finally {
     acting.value = false;
   }
@@ -92,6 +121,7 @@ const voidNote = async (): Promise<void> => {
 };
 
 onMounted(() => {
+  void einvoicing.load();
   void load();
 });
 </script>
@@ -123,6 +153,7 @@ onMounted(() => {
         <template #header>
           <div class="text-h6 mr-3">{{ creditNote.creditNoteNumber ?? t("creditNotes.draftUnnumbered") }}</div>
           <StatusChip :status="creditNote.status" />
+          <EInvoiceSentChip v-if="einvoicing.enabled" :info="einvoiceInfo" @click="einvoiceOpen = !einvoiceOpen" />
         </template>
 
         <v-row>
@@ -149,12 +180,38 @@ onMounted(() => {
               {{ t("common.edit") }}
             </v-btn>
             <v-btn v-if="isDraft" color="primary" :loading="acting" @click="issue">{{ t("creditNotes.issue") }}</v-btn>
-            <v-btn v-if="canVoid" color="error" :loading="acting" @click="voidNote">
+            <EInvoiceActionButton
+              v-if="einvoicing.enabled && !isDraft"
+              :info="einvoiceInfo"
+              :open="einvoiceOpen"
+              @toggle="einvoiceOpen = !einvoiceOpen"
+            />
+            <v-btn
+              v-if="canVoid"
+              color="error"
+              :loading="acting"
+              :disabled="legallyIssued"
+              :title="legallyIssued ? t('einvoicing.errors.legallyIssued') : undefined"
+              @click="voidNote"
+            >
               {{ t("creditNotes.void") }}
             </v-btn>
           </div>
         </template>
       </AppCard>
+
+      <v-expand-transition>
+        <div v-show="einvoiceOpen" data-test="einvoice-collapse">
+        <EInvoicePanel
+          v-if="einvoicing.enabled && !isDraft"
+          kind="credit-notes"
+          :document-id="creditNote.id"
+          :client-id="creditNote.clientId"
+          :refresh-key="creditNote.version"
+          @loaded="onEInvoiceLoaded"
+        />
+        </div>
+      </v-expand-transition>
 
       <v-card variant="outlined" rounded="lg">
         <v-card-text>

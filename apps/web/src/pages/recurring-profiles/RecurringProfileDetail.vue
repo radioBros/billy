@@ -31,6 +31,7 @@ import StatusChip from "@/components/StatusChip.vue";
 import AppCard from "@/components/AppCard.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import AutoSendConfigModal from "@/components/AutoSendConfigModal.vue";
+import { useEInvoicing } from "@/stores/einvoicing";
 import LineItemEditor from "@/components/LineItemEditor.vue";
 
 const { t, locale } = useI18n();
@@ -220,6 +221,28 @@ const autoSendDocType = computed<PlaceholderDocType>(() =>
 );
 const canAutoSend = computed<boolean>(() => profile.value?.documentType !== "expense");
 const autoSendModalOpen = ref(false);
+
+// ── SdI submission of each generated invoice (e-invoicing only) ───────────────
+const einvoicing = useEInvoicing();
+void einvoicing.load();
+const showSdi = computed<boolean>(() => einvoicing.enabled && profile.value?.documentType === "invoice");
+const sdiSaving = ref(false);
+const saveAutoSubmit = async (value: boolean | null): Promise<void> => {
+  if (!profile.value) return;
+  sdiSaving.value = true;
+  actionError.value = null;
+  try {
+    profile.value = await api.patch<RecurringProfile>(
+      `/v1/recurring-profiles/${id.value}`,
+      { einvoice: { autoSubmit: value === true } },
+      { ifMatch: profile.value.version },
+    );
+  } catch (err) {
+    actionError.value = err instanceof ApiError ? t("common.actionFailed", { code: apiErrorReason(err) }) : t("common.actionFailedGeneric");
+  } finally {
+    sdiSaving.value = false;
+  }
+};
 const autoSendSaving = ref(false);
 
 const saveAutoSend = async (config: RecurringAutoSend): Promise<void> => {
@@ -372,6 +395,7 @@ const openEdit = (): void => {
     unitPriceMinor: li.unitPriceMinor,
     ...(li.discountRate != null ? { discountRate: li.discountRate } : {}),
     ...(li.taxRate != null ? { taxRate: li.taxRate } : {}),
+    ...(li.nature ? { nature: li.nature } : {}),
   }));
   editError.value = null;
   editOpen.value = true;
@@ -599,6 +623,23 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
+      <!-- Send each generated invoice officially via SdI (e-invoicing only). -->
+      <v-card v-if="showSdi" variant="outlined" rounded="lg" class="mb-4">
+        <v-card-text>
+          <v-switch
+            :model-value="profile.einvoice?.autoSubmit === true"
+            color="primary"
+            hide-details
+            :loading="sdiSaving"
+            :disabled="sdiSaving"
+            :label="t('einvoicing.recurring.switch')"
+            data-test="recurring-sdi-switch"
+            @update:model-value="saveAutoSubmit"
+          />
+          <div class="text-caption text-medium-emphasis">{{ t("einvoicing.recurring.hint") }}</div>
+        </v-card-text>
+      </v-card>
+
       <!-- Documents already generated from this profile (createdInvoiceIds). -->
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
@@ -731,6 +772,7 @@ onMounted(() => {
             v-model="editLineItems"
             :currency="profile.currency"
             :doc-type="autoSendDocType"
+            :show-nature="profile.documentType === 'invoice'"
           />
 
           <v-textarea

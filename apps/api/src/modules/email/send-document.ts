@@ -96,10 +96,10 @@ export interface SendDocumentDeps {
   docKind: "invoice" | "contract";
 }
 
-const businessName = async (db: Db): Promise<string> => {
+const businessName = async (db: Db, accountId: string): Promise<string> => {
   const doc = (await db
-    .collection<{ key: string; data?: { businessName?: string | null } }>(SETTINGS_COLLECTION)
-    .findOne({ key: "business" }, { projection: { _id: 0 } })) as
+    .collection<{ key: string; accountId?: string | null; data?: { businessName?: string | null } }>(SETTINGS_COLLECTION)
+    .findOne({ key: "business", accountId } as never, { projection: { _id: 0 } })) as
     | { data?: { businessName?: string | null } }
     | null;
   return doc?.data?.businessName ?? "";
@@ -312,7 +312,7 @@ const resolveMessagePlaceholders = (message: ComposedMessage, tctx: TemplateCont
 export const previewDocumentSend = async (deps: SendDocumentDeps, ctx: AuthContext, docId: string, kind: SendKind, loadCompose: (ctx: AuthContext, docId: string) => Promise<SendComposeContext | null>): Promise<{ to: string; subject: string; html: string }> => {
   const compose = await loadCompose(ctx, docId);
   if (!compose) throw errors.notFound(`${deps.ownerType} not found`);
-  const bn = await businessName(deps.db);
+  const bn = await businessName(deps.db, ctx.accountId);
   const to = compose.defaultTo ?? "";
   const composed = composeDefault(deps.emailService, to, deps.docKind, kind, {
     businessName: bn,
@@ -366,7 +366,7 @@ export const sendDocument = async (deps: SendDocumentDeps, ctx: AuthContext, doc
     for (const e of extras) attachments.push({ fileId: e.fileId, filename: e.filename });
   }
 
-  const bn = await businessName(deps.db);
+  const bn = await businessName(deps.db, ctx.accountId);
   const templateData = { businessName: bn, ...compose.templateData };
 
   // "Copy to company" → BCC the business's own email. Missing company email is a

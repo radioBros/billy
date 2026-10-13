@@ -143,7 +143,7 @@ describe("Dashboard — global year drives re-fetch", () => {
 
     const getSpy = apiClient.api.get as unknown as ReturnType<typeof vi.fn>;
     const callsFor = (frag: string): unknown[][] =>
-      getSpy.mock.calls.filter((c: unknown[]) => String(c[0]).includes(frag));
+      getSpy.mock.calls.filter((c: unknown[]) => String(c[0]).includes(frag) && !String(c[0]).includes("einvoicing"));
 
     // Default year = maxYear (2026) drives the first per-year fetch.
     expect(callsFor("summary").some((c) => (c[1] as { year: number }).year === 2026)).toBe(true);

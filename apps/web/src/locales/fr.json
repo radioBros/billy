@@ -115,7 +115,9 @@
       "addrPostalCode": "Code postal",
       "addrCountry": "Pays",
       "preferredLanguage": "Langue préférée",
-      "referral": "Personne de contact"
+      "referral": "Personne de contact",
+      "recipientCode": "Code SDI (Codice Destinatario)",
+      "pecEmail": "E-mail certifié (PEC)"
     },
     "form": {
       "typeCompany": "Entreprise",
@@ -125,7 +127,8 @@
       "billingAddress": "Adresse de facturation",
       "countryHint": "Code à 2 lettres (ex. IT).",
       "details": "Détails",
-      "languageHint": "Les documents et e-mails destinés à ce client utiliseront cette langue."
+      "languageHint": "Les documents et e-mails destinés à ce client utiliseront cette langue.",
+      "recipientCodeHint": "Code à 7 caractères communiqué par votre client pour la facturation électronique italienne (6 pour l'administration publique). Laissez vide s'il utilise la PEC ou s'il est un particulier."
     },
     "saved": "Client enregistre",
     "showArchived": "Afficher les archivés",
@@ -1009,7 +1012,9 @@
       "details": "Détails",
       "add": "Ajouter un compte bancaire",
       "remove": "Supprimer",
-      "empty": "Aucun compte bancaire pour le moment."
+      "empty": "Aucun compte bancaire pour le moment.",
+      "iban": "IBAN (facultatif)",
+      "ibanHint": "Nécessaire pour indiquer les données du virement dans la facture électronique (SdI)."
     },
     "company": {
       "businessName": "Nom commercial",
@@ -1104,7 +1109,8 @@
     "localizedField": {
       "language": "Langue",
       "languagesWithContent": "Langues avec contenu : {locales}"
-    }
+    },
+    "einvoicingTab": "Facturation électronique (SdI)"
   },
   "documentActions": {
     "preview": "Aperçu",
@@ -1321,7 +1327,13 @@
     "lineItemsRequired": "Ajoutez au moins une ligne",
     "currencyInvalid": "Saisissez un code devise valide à 3 lettres (ex. EUR)",
     "dueBeforeIssue": "La date d'échéance ne peut pas précéder la date d'émission",
-    "failedWithFields": "Échec de la validation — {fields}"
+    "failedWithFields": "Échec de la validation — {fields}",
+    "insertValidRecipientCode": "Saisissez un code SDI valide (6–7 lettres ou chiffres)",
+    "hostInvalid": "Saisissez un hôte valide (p. ex. smtps.pec.example.it), sans http:// ni espaces",
+    "portInvalid": "Saisissez un port entre 1 et 65535",
+    "ibanInvalid": "Saisissez un IBAN valide (p. ex. IT60 X054 2811 1010 0000 0123 456)",
+    "decimalInvalid": "Saisissez un montant avec 2 décimales maximum (p. ex. 77.47)",
+    "intBetween": "Saisissez un nombre entier entre {min} et {max}"
   },
   "accounts": {
     "title": "Comptes",
@@ -1474,6 +1486,14 @@
       "DATE_RANGE_INVALID": "La plage de dates est invalide",
       "DEPENDENCY_UNAVAILABLE": "Un service requis est indisponible — vérifiez votre connexion et réessayez",
       "DUPLICATE_VALUE": "Cette valeur existe déjà",
+      "EINVOICE_ADMIN_KEY_MISSING": "Le serveur n'a pas de clé admin PASSO : utilisez le mode manuel",
+      "EINVOICE_ALREADY_SUBMITTED": "Ce document a déjà été envoyé au SdI",
+      "EINVOICE_BUSINESS_INCOMPLETE": "Les données de l'entreprise sont incomplètes pour la facturation électronique",
+      "EINVOICE_DISABLED": "La facturation électronique est désactivée",
+      "EINVOICE_LEGALLY_ISSUED": "Déjà émise auprès du SdI : elle ne peut plus être annulée, émettez un avoir",
+      "EINVOICE_NOT_CONNECTED": "La facturation électronique n'est pas encore connectée à PASSO",
+      "EINVOICE_NOT_READY": "Le document n'est pas prêt pour l'envoi au SdI : corrigez d'abord les problèmes indiqués",
+      "EINVOICE_PASSO_UNREACHABLE": "PASSO est injoignable : vérifiez l'URL de l'API et réessayez",
       "EMAIL_DELIVERY_FAILED": "L'e-mail n'a pas pu être distribué",
       "EXPENSE_ALREADY_INVOICED": "La dépense est déjà facturée",
       "FILE_TOO_LARGE": "Le fichier est trop volumineux",
@@ -1506,6 +1526,581 @@
       "UNSUPPORTED_FILE_TYPE": "Ce type de fichier n'est pas pris en charge",
       "VALIDATION_FAILED": "Certains champs sont invalides",
       "VERSION_CONFLICT": "Cet enregistrement a été modifié par quelqu'un d'autre — rechargez la page et réessayez"
+    }
+  },
+  "einvoicing": {
+    "loadError": "Impossible de charger les paramètres de facturation électronique",
+    "saved": "Paramètres de facturation électronique enregistrés",
+    "saveError": "Impossible d'enregistrer les paramètres de facturation électronique",
+    "fix": "Corriger",
+    "clientHint": "La facturation électronique est activée : ajoutez un code SDI ou une adresse PEC pour pouvoir envoyer les factures de ce client au SdI.",
+    "enable": {
+      "title": "Activation",
+      "hint": "Active l'envoi officiel des factures et avoirs au Sistema di Interscambio (SdI) via PASSO.",
+      "label": "Envoyer les factures au SdI",
+      "incomplete": "La configuration n'est pas terminée. Reste à faire : {items} (voir le guide ci-dessous).",
+      "since": "Activée depuis le {date}"
+    },
+    "readiness": {
+      "business": "Données de l'entreprise",
+      "iban": "IBAN",
+      "connection": "Connexion à PASSO",
+      "channel": "Canal de transmission"
+    },
+    "guide": {
+      "title": "Guide de configuration",
+      "steps": {
+        "company": {
+          "title": "Données de l'entreprise complètes",
+          "body": "Onglet Entreprise : raison sociale, numéro de TVA, code fiscal et adresse italienne complète avec province sur 2 lettres (ex. MI)."
+        },
+        "taxRegime": {
+          "title": "Régime fiscal et droit de timbre",
+          "body": "Choisissez votre régime (RF01 ordinaire, RF19 forfaitaire, …) et la règle du timbre. Les forfaitaires et les montants exonérés de TVA supérieurs à 77,47 € doivent 2 € de timbre virtuel."
+        },
+        "iban": {
+          "title": "IBAN sur votre compte bancaire",
+          "body": "Ajoutez l'IBAN à un compte bancaire dans l'onglet Entreprise. Il est requis pour les paiements par virement (MP05)."
+        },
+        "connect": {
+          "title": "Connexion à PASSO",
+          "body": "Gérée : cliquez sur « Se connecter à PASSO ». Manuelle : collez la clé API et l'ID vendeur fournis par votre opérateur PASSO."
+        },
+        "channel": {
+          "title": "Choisir le canal de transmission",
+          "body": "La PEC est recommandée : saisissez les identifiants de votre boîte PEC. Pour OpenAPI.it, saisissez son jeton puis collez l'URL entrante affichée dans la console du fournisseur."
+        },
+        "clients": {
+          "title": "Préparer vos clients",
+          "body": "Chaque client doit avoir un code SDI (codice destinatario) ou une adresse PEC. Les clients étrangers sont gérés automatiquement."
+        },
+        "test": {
+          "title": "Test",
+          "body": "Cliquez sur « Tester la connexion », puis envoyez une facture et vérifiez qu'elle atteint « Remise »."
+        },
+        "defaults": {
+          "title": "Choisir vos valeurs par défaut",
+          "body": "Définissez le comportement des factures programmées et récurrentes et si l'étape SdI est proposée après la finalisation."
+        }
+      },
+      "sendLater": "Envoi différé : une facture n'est légalement émise qu'une fois arrivée au SdI ; envoyez-la dans le délai ({days} jours à compter de la date de facture par défaut). Le tableau de bord liste tout ce qui reste à envoyer.",
+      "statusesTitle": "Signification des statuts",
+      "ns": "Notification de rejet : NON émise. Corrigez le problème et réémettez avec un nouveau numéro.",
+      "mc": "Impossibilité de remise : la facture EST émise. NE la renvoyez PAS.",
+      "at": "Attestation de transmission : la facture est émise ; votre client la trouve dans son portail fiscal."
+    },
+    "connection": {
+      "title": "Connexion",
+      "hint": "L'adresse à laquelle Billy joint PASSO, le service qui dialogue avec le SdI pour vous.",
+      "apiUrl": "URL de l'API PASSO",
+      "mode": "Mode",
+      "modes": {
+        "managed": "Géré (Billy configure tout)",
+        "manual": "Manuel (coller la clé API)"
+      },
+      "managedUnavailable": "Le mode géré n'est pas disponible sur ce serveur (clé admin PASSO absente).",
+      "statusConnected": "Connecté",
+      "statusNotConnected": "Non connecté",
+      "tenant": "Compte PASSO : {name}",
+      "seller": "Émetteur : {name}",
+      "keyLast4": "Clé ••••{last4}",
+      "webhook": "Webhook actif",
+      "pollOnly": "Interrogation seule (sans webhook)",
+      "lastCheck": "Dernier contrôle {date}",
+      "connect": "Se connecter à PASSO",
+      "connected": "Connecté à PASSO",
+      "connectError": "Impossible de se connecter à PASSO",
+      "businessFirst": "Complétez d'abord les données de l'entreprise (onglet Entreprise) : le code émetteur ne peut plus être modifié après la connexion.",
+      "apiKey": "Clé API",
+      "keyStoredHint": "Une clé est enregistrée. Laissez vide pour la conserver ou saisissez-en une nouvelle pour la remplacer.",
+      "keyUnsetHint": "N'est plus affichée après l'enregistrement.",
+      "sellerId": "ID vendeur",
+      "save": "Enregistrer la connexion",
+      "saved": "Connexion enregistrée",
+      "test": "Tester la connexion",
+      "testOk": "Tous les contrôles sont réussis",
+      "testFailed": "Certains contrôles ont échoué",
+      "testError": "Le test de connexion n'a pas pu être exécuté",
+      "checks": {
+        "api": "PASSO joignable",
+        "key": "Clé API valide",
+        "channel": "Canal de transmission opérationnel",
+        "webhook": "Webhook fonctionnel"
+      }
+    },
+    "channel": {
+      "title": "Canal de transmission",
+      "hint": "La manière dont PASSO remet les factures au SdI et reçoit les accusés. Les identifiants sont transmis à PASSO et ne sont plus jamais affichés.",
+      "type": "Canal",
+      "types": {
+        "pec": "PEC (courriel certifié)",
+        "openapi": "OpenAPI.it",
+        "mock": "Simulé (tests uniquement)"
+      },
+      "pecRecommended": "Recommandé : ne nécessite aucun compte tiers.",
+      "current": "Canal actif : {type}",
+      "pec": {
+        "smtpHost": "Hôte SMTP",
+        "smtpPort": "Port SMTP",
+        "imapHost": "Hôte IMAP",
+        "imapPort": "Port IMAP",
+        "user": "Adresse PEC / utilisateur",
+        "password": "Mot de passe PEC",
+        "testTitle": "Vérifiez votre boîte PEC",
+        "testTo": "Envoyer l'e-mail de test à",
+        "testToHint": "Billy envoie un vrai e-mail de test depuis votre boîte PEC vers cette adresse.",
+        "testRun": "Tester la connexion et envoyer un e-mail de test",
+        "rows": {
+          "smtp": "Connexion au courrier sortant (SMTP)",
+          "imap": "Connexion au courrier entrant (IMAP)",
+          "mail": "E-mail de test envoyé à {to} — vérifiez cette boîte"
+        },
+        "reasons": {
+          "authFailed": "Identifiant ou mot de passe incorrect.",
+          "hostNotFound": "Serveur introuvable : vérifiez le nom d'hôte.",
+          "unreachable": "Serveur injoignable : vérifiez l'hôte et le port.",
+          "tlsFailed": "La connexion sécurisée a échoué : vérifiez le port et le chiffrement."
+        },
+        "passed": "Toutes les vérifications ont réussi. Ouvrez la boîte de {to} et confirmez que l'e-mail de test est bien arrivé avant de vous fier à cette boîte.",
+        "failed": "Le test a échoué. Corrigez les problèmes indiqués puis relancez-le.",
+        "stale": "Relancez le test après avoir modifié les paramètres.",
+        "required": "Vous devez réussir ce test avant de pouvoir enregistrer le canal.",
+        "testRequired": "Lancez le test de connexion avec exactement ces paramètres avant d'enregistrer.",
+        "toRequired": "Saisissez l'adresse qui doit recevoir l'e-mail de test.",
+        "toInvalid": "Saisissez une adresse e-mail valide.",
+        "recipientForbidden": "Cette adresse ne peut pas recevoir l'e-mail de test. Utilisez la vôtre.",
+        "testError": "Impossible d'exécuter le test de connexion",
+        "noticeTitle": "Avant de commencer",
+        "notice": "La boîte PEC doit être une boîte certifiée accréditée auprès du SdI. Le premier envoi part vers l'adresse du SdI ; le SdI répond avec une adresse dédiée, que Billy apprend automatiquement. La PEC ne convient qu'aux factures B2B. Le mot de passe PEC donne un accès complet à la boîte : il est envoyé une seule fois et n'est plus jamais affiché."
+      },
+      "openapi": {
+        "token": "Jeton OpenAPI.it",
+        "baseUrl": "Environnement",
+        "production": "Production",
+        "test": "Test (sandbox)",
+        "requestSigning": "Signer les requêtes",
+        "requestSigningHint": "Doit correspondre à l'option « appliquer la signature » de la console OpenAPI.it. Requise pour les factures aux administrations publiques.",
+        "tokenHint": "Créez-le dans la console OpenAPI, voir l'avis ci-dessous.",
+        "sandbox": "Sandbox (test)",
+        "prodWarning": "Les factures réelles seront transmises à l'administration fiscale. Utilisez un jeton de production et vérifiez que votre société est enregistrée dans l'environnement de production.",
+        "signingLabel": "Le prestataire signe la facture (requestSigning)",
+        "signingHint": "Doit correspondre au réglage apply_signature du vendeur dans le registre d'entreprises d'OpenAPI.it. À activer pour les factures destinées à l'administration publique.",
+        "testTitle": "Vérifiez votre configuration OpenAPI.it",
+        "testRun": "Tester la connexion",
+        "rows": {
+          "token": "Jeton API accepté par OpenAPI.it",
+          "registry": "Votre société (numéro de TVA) est enregistrée chez OpenAPI.it",
+          "signing": "Le réglage de signature correspond au registre"
+        },
+        "remedies": {
+          "token": "Vérifiez que le jeton est correct et qu'il a été créé dans le même environnement que celui choisi ici (sandbox ou production).",
+          "registry": "Enregistrez d'abord votre société dans la console OpenAPI.it (configurations du registre d'entreprises), puis relancez le test.",
+          "signing": "Réglez l'interrupteur pour qu'il corresponde à l'option de signature du registre, puis relancez le test."
+        },
+        "details": "Détails : {message}",
+        "passed": "Toutes les vérifications ont réussi. Vous pouvez maintenant enregistrer le canal.",
+        "failed": "Le test a échoué. Corrigez les problèmes ci-dessus et relancez-le.",
+        "stale": "Relancez le test après avoir modifié les réglages.",
+        "required": "Vous devez réussir ce test avant de pouvoir enregistrer le canal.",
+        "testRequired": "Lancez le test de connexion avec exactement ces réglages avant d'enregistrer.",
+        "testError": "Impossible d'exécuter le test de connexion",
+        "notice": {
+          "title": "À activer chez OpenAPI.it",
+          "intro": "Suivez ces étapes dans la console OpenAPI. Le test ci-dessous vous indique ce qui manque encore.",
+          "s1": {
+            "title": "Activez le service et créez le jeton",
+            "body": "Dans la console OpenAPI (console.openapi.com : le .com est la console, l'hôte de l'API SdI est .it), activez le service SDI (Sistema di Interscambio, facturation électronique) et créez la clé API dans le même environnement que celui choisi ici : un jeton sandbox pour Sandbox, un jeton de production pour Production. Ils sont sur des hôtes différents."
+          },
+          "s2": {
+            "title": "Autorisez ces appels API sur le jeton",
+            "body": "Activez ces endpoints sur la clé :"
+          },
+          "table": {
+            "call": "Appel API",
+            "purpose": "Sert à",
+            "when": "Quand",
+            "purposes": {
+              "send": "Envoyer la facture",
+              "sign": "Envoyer la facture signée par le prestataire",
+              "legal": "Variantes d'archivage légal",
+              "read": "Lire l'état de la facture",
+              "receipts": "Lire les accusés du SdI",
+              "registry": "Vérifier et créer l'enregistrement de la société",
+              "callback": "Enregistrer le callback"
+            },
+            "whens": {
+              "always": "Toujours",
+              "signing": "Seulement avec signature activée",
+              "legal": "Seulement si vous utilisez l'archivage légal",
+              "callback": "Facultatif"
+            }
+          },
+          "s3": {
+            "title": "Enregistrez votre société une seule fois",
+            "body": "Dans la console, ouvrez les registres d'entreprises (Business registry configurations) et ajoutez votre société :",
+            "fiscalId": "Identifiant fiscal : {vat} (votre numéro de TVA sans le préfixe IT). Indiquez aussi la raison sociale et une adresse e-mail.",
+            "fiscalIdExample": "Identifiant fiscal : votre numéro de TVA sans le préfixe IT, par exemple {vat}. Indiquez aussi la raison sociale et une adresse e-mail.",
+            "signingOn": "Choisissez signature activée, pour correspondre à l'interrupteur ci-dessus.",
+            "signingOff": "Choisissez signature désactivée, pour correspondre à l'interrupteur ci-dessus.",
+            "mismatch": "Activée, seuls les envois signés sont acceptés ; désactivée, seuls les envois non signés. En cas de différence, chaque facture échoue avec l'erreur 387."
+          },
+          "s4": {
+            "title": "Gardez du crédit dans le portefeuille OpenAPI",
+            "body": "L'envoi et la lecture des factures sont facturés. Avec un portefeuille vide, les factures passent en Échec et peuvent être relancées après recharge."
+          },
+          "s5": {
+            "title": "Facultatif : configurez le callback",
+            "body": "Après l'enregistrement, collez dans la console l'URL entrante affichée ici pour l'événement customer-notification. Elle doit être accessible depuis internet."
+          },
+          "tip": "Commencez par la Sandbox : les factures ne sont pas envoyées à la véritable administration fiscale."
+        }
+      },
+      "secretHint": "N'est plus affichée après l'enregistrement.",
+      "mockHint": "Le canal simulé reproduit les réponses du SdI. Il n'est disponible qu'hors production.",
+      "inboundTitle": "URL entrante — copiez-la maintenant, elle n'est affichée qu'une fois",
+      "inboundHint": "Collez-la dans la console OpenAPI.it comme URL de rappel des notifications de factures. Une nouvelle URL est émise à chaque enregistrement du canal.",
+      "copy": "Copier",
+      "copied": "Copié dans le presse-papiers",
+      "save": "Enregistrer le canal",
+      "saved": "Canal enregistré",
+      "saveError": "Impossible d'enregistrer le canal",
+      "needConnection": "Connectez-vous d'abord à PASSO.",
+      "chooser": {
+        "title": "Choisissez comment transmettre les factures",
+        "pick": "Choisissez un canal pour continuer. Vous pourrez le modifier plus tard."
+      },
+      "cards": {
+        "openapi": {
+          "subtitle": "Service géré avec clé API",
+          "f1": "Gère aussi les factures destinées à l'administration publique (B2G)",
+          "f2": "Les accusés sont transmis à Billy",
+          "f3": "Coût par facture"
+        },
+        "pec": {
+          "subtitle": "Votre propre boîte e-mail certifiée",
+          "f1": "Aucun frais du prestataire",
+          "f2": "Factures B2B uniquement"
+        },
+        "mock": {
+          "subtitle": "Développement uniquement",
+          "f1": "Simule les réponses du SdI"
+        }
+      },
+      "inboundSteps": "Collez-la dans la console OpenAPI comme callback de l'événement customer-notification. Elle doit être accessible depuis internet.",
+      "inboundOptional": "Facultatif : sans elle, Billy reçoit tout de même les accusés par interrogation toutes les 5 minutes environ."
+    },
+    "fiscal": {
+      "title": "Profil fiscal",
+      "hint": "Votre régime fiscal et les données du vendeur qui figurent sur chaque facture.",
+      "taxRegime": "Régime fiscal",
+      "businessTitle": "Données du vendeur (onglet Entreprise)",
+      "business": {
+        "name": "Nom",
+        "vat": "N° de TVA",
+        "taxCode": "Code fiscal",
+        "address": "Adresse",
+        "province": "Province (2 lettres)"
+      },
+      "openCompany": "Modifier dans l'onglet Entreprise"
+    },
+    "defaults": {
+      "title": "Valeurs par défaut et comportement",
+      "hint": "Comportement par défaut de Billy vis-à-vis du SdI.",
+      "offerStep": "Proposer l'étape SdI après la finalisation d'une facture",
+      "scheduled": "Les factures programmées sont envoyées au SdI par défaut",
+      "recurring": "Les factures récurrentes sont envoyées au SdI par défaut",
+      "paymentConditions": "Conditions de paiement",
+      "paymentMethod": "Mode de paiement",
+      "nature": "Nature de TVA par défaut pour les lignes à 0 %",
+      "natureHint": "Utilisée lorsqu'une ligne à 0 % n'a pas de nature propre.",
+      "lawReference": "Référence légale pour les lignes à 0 %",
+      "bolloMode": "Droit de timbre (bollo)",
+      "bolloAuto": "Automatique",
+      "bolloOff": "Désactivé",
+      "bolloThreshold": "Seuil du timbre",
+      "bolloAmount": "Montant du timbre",
+      "creditNotePrefix": "Préfixe du numéro d'avoir",
+      "creditNotePrefixHint": "Le SdI exige un numéro distinct de celui des factures, p. ex. NC 1/2026. Le PDF conserve le numéro Billy.",
+      "deadlineDays": "Délai d'envoi (jours)",
+      "deadlineDaysHint": "À compter de la date de facture ; le délai légal est de 12.",
+      "save": "Enregistrer les paramètres"
+    },
+    "errors": {
+      "legallyIssued": "Ce document est déjà émis auprès du SdI et ne peut plus être annulé. Émettez plutôt un avoir.",
+      "businessIncomplete": "Les données de l'entreprise sont incomplètes. Manquent :",
+      "adminKeyMissing": "Le serveur n'a pas de clé admin PASSO : utilisez le mode manuel.",
+      "unreachable": "PASSO est injoignable. Vérifiez l'URL de l'API et réessayez."
+    },
+    "status": {
+      "not_sent": "Non envoyée au SdI",
+      "blocked": "Bloquée",
+      "queued": "En file d'attente",
+      "transmitted": "Transmise",
+      "awaiting_delivery": "En attente de remise",
+      "delivered": "Remise",
+      "undelivered_attested": "Émise (non remise)",
+      "accepted_by_pa": "Acceptée par la PA",
+      "rejected_by_pa": "Refusée par la PA",
+      "rejected": "Rejetée par le SdI",
+      "failed": "Échec",
+      "channel": "Canal : {type}"
+    },
+    "receipts": {
+      "RC": "Accusé de remise (RC)",
+      "NS": "Notification de rejet (NS) — non émise",
+      "MC": "Impossibilité de remise (MC) — émise",
+      "NE": "Notification de résultat de la PA (NE)",
+      "DT": "Expiration du délai (DT)",
+      "AT": "Attestation de transmission (AT) — émise"
+    },
+    "guidance": {
+      "issued_do_not_resubmit": "Cette facture est émise. NE l'envoyez PAS à nouveau : en cas d'erreur, émettez un avoir.",
+      "rejected_reissue": "Le SdI a rejeté cette facture : elle n'est PAS émise. Corrigez le problème, annulez-la puis émettez une nouvelle facture avec un nouveau numéro.",
+      "failed_retry": "L'envoi a échoué avant d'atteindre le SdI. Vous pouvez réessayer.",
+      "undelivered_tell_client": "Le SdI n'a pas pu remettre la facture, mais elle EST émise. Dites à votre client de la récupérer dans son portail fiscal (cassetto fiscale). NE la renvoyez PAS."
+    },
+    "panel": {
+      "title": "Facture électronique (SdI)",
+      "refresh": "Actualiser le statut",
+      "send": "Envoyer au SdI",
+      "retry": "Réessayer",
+      "downloadXml": "Télécharger le XML",
+      "viewRendered": "Afficher comme l'AdE",
+      "identificativoSdI": "Identifiant SdI",
+      "fileName": "Nom du fichier",
+      "submittedAt": "Envoyée",
+      "history": "Historique",
+      "attempt": "Tentative {n}",
+      "remedy": "Remède",
+      "deadline": "À envoyer au SdI avant le {date}.",
+      "deadlineOverdue": "Délai d'envoi dépassé le {date}",
+      "finalizedBeforeEnable": "Ce document a été émis avant l'activation de la facturation électronique.",
+      "sentOn": "Envoyée à SdI le {date}"
+    },
+    "submit": {
+      "title": "Envoyer officiellement via le SdI",
+      "checking": "Vérification de la facture…",
+      "ready": "Prête à être envoyée.",
+      "recipientSdi": "Destinataire : code SDI {value}",
+      "recipientPec": "Destinataire : PEC {value}",
+      "format": "Format FPR12",
+      "bollo": "Un droit de timbre de {amount} s'applique (timbre virtuel).",
+      "irreversible": "Une fois acceptée par le SdI, la facture est légalement émise et ne peut plus être annulée.",
+      "blocked": "Cette facture ne peut pas encore être envoyée. Corrigez les problèmes ci-dessous puis revérifiez.",
+      "sendNow": "Envoyer au SdI maintenant",
+      "notNow": "Pas maintenant — je le ferai plus tard",
+      "recheck": "Revérifier",
+      "continue": "Continuer",
+      "sent": "Envoyée au SdI. Le statut se met à jour ici ; vous pouvez continuer entre-temps.",
+      "error": "Impossible de terminer l'étape : {error}",
+      "disabled": "La facturation électronique est désactivée."
+    },
+    "schedule": {
+      "checkbox": "Envoyer officiellement via le SdI à l'émission",
+      "hint": "À la date prévue, la facture est émise et envoyée automatiquement au SdI.",
+      "routingWarning": "Ce client ne peut pas encore recevoir de factures électroniques : la facture serait bloquée à l'émission :"
+    },
+    "recurring": {
+      "switch": "Envoyer chaque facture générée via le SdI",
+      "hint": "Chaque facture générée par ce profil est envoyée au SdI juste après son émission."
+    },
+    "list": {
+      "column": "SdI",
+      "filter": "Filtrer par statut SdI",
+      "allStatuses": "Tous les statuts SdI"
+    },
+    "dashboard": {
+      "title": "Factures pas encore envoyées au SdI",
+      "overdue": "{n} en retard",
+      "dueBy": "à envoyer avant le {date}",
+      "overdueBy": "en retard depuis le {date}",
+      "problems": "{n} à vérifier"
+    },
+    "nature": {
+      "column": "Nature TVA",
+      "placeholder": "Pourquoi 0 % ?"
+    },
+    "issues": {
+      "invoice": {
+        "number_missing": "La facture n'a pas encore de numéro.",
+        "number_too_long": "Le numéro de facture est trop long pour le SdI (20 caractères max.).",
+        "date_invalid": "La date de la facture n'est pas valide pour le SdI.",
+        "no_lines": "La facture n'a aucune ligne.",
+        "nature_missing": "Le SdI exige un code Natura sur chaque ligne sans TVA, même lorsqu'aucune taxe ne s'applique (ex. clients hors UE, opérations exonérées ou hors champ). Choisissez-le sur la ligne ou définissez une valeur par défaut dans les réglages de facturation électronique. Le régime forfaitaire (RF19) l'applique automatiquement.",
+        "nature_invalid": "Une ligne a une nature de TVA (Natura) invalide pour son taux.",
+        "tax_rounding": "Le total de TVA diffère de la somme des taxes de ligne de plus de 1 centime, ce que le SdI rejette. Ajustez les montants des lignes.",
+        "iban_missing": "Aucun IBAN sur le compte bancaire : les données de paiement seront incomplètes.",
+        "deadline_passed": "Le délai légal d'envoi de cette facture au SdI est dépassé. Envoyez-la au plus vite.",
+        "finalized_before_enable": "Cette facture a été émise avant l'activation de la facturation électronique.",
+        "not_finalized": "La facture n'est pas encore finalisée."
+      },
+      "business": {
+        "vat_missing": "Le numéro de TVA de votre entreprise est manquant.",
+        "name_missing": "Le nom de votre entreprise est manquant.",
+        "address_incomplete": "L'adresse de votre entreprise est incomplète.",
+        "postal_code_invalid": "Le code postal de votre entreprise n'est pas valide (5 chiffres pour l'Italie).",
+        "province_missing": "La province de votre entreprise est manquante (2 lettres, ex. MI)."
+      },
+      "client": {
+        "tax_id_missing": "Le client n'a ni numéro de TVA ni code fiscal.",
+        "person_name_missing": "Le prénom et le nom du client sont manquants.",
+        "name_missing": "Le nom du client est manquant.",
+        "address_incomplete": "L'adresse du client est incomplète.",
+        "postal_code_invalid": "Le code postal du client n'est pas valide.",
+        "province_missing": "La province du client est manquante (2 lettres, pour les clients italiens).",
+        "recipient_code_invalid": "Le code SDI du client n'est pas valide (6 ou 7 lettres/chiffres).",
+        "public_administration_unsupported": "Les factures aux administrations publiques ne sont pas prises en charge avec ce canal.",
+        "routing_missing": "Le client a besoin d'un code SDI ou d'une adresse PEC pour recevoir des factures électroniques."
+      },
+      "einvoicing": {
+        "not_connected": "La facturation électronique n'est pas encore connectée à PASSO. Terminez la configuration dans les Paramètres.",
+        "disabled": "La facturation électronique est désactivée dans les paramètres."
+      }
+    },
+    "codes": {
+      "taxRegime": {
+        "RF01": "Ordinaire",
+        "RF02": "Contribuables minimaux (L. 244/2007)",
+        "RF04": "Agriculture et pêche (art. 34, 34-bis)",
+        "RF05": "Vente de sel et de tabac",
+        "RF06": "Commerce d'allumettes",
+        "RF07": "Édition",
+        "RF08": "Services de téléphonie publique",
+        "RF09": "Revente de titres de transport public et de stationnement",
+        "RF10": "Spectacles, jeux et autres activités",
+        "RF11": "Agences de voyage et de tourisme",
+        "RF12": "Agritourisme",
+        "RF13": "Ventes à domicile",
+        "RF14": "Revente de biens d'occasion, objets d'art et antiquités",
+        "RF15": "Agences de ventes aux enchères d'art et d'antiquités",
+        "RF16": "TVA de caisse pour la PA (art. 6, c. 5)",
+        "RF17": "TVA de caisse (art. 32-bis)",
+        "RF18": "Autre",
+        "RF19": "Régime forfaitaire (forfettario)"
+      },
+      "paymentMethod": {
+        "MP01": "Espèces",
+        "MP02": "Chèque",
+        "MP03": "Chèque de banque",
+        "MP04": "Espèces à la Trésorerie",
+        "MP05": "Virement bancaire",
+        "MP06": "Billet à ordre",
+        "MP07": "Bulletin bancaire",
+        "MP08": "Carte de paiement",
+        "MP09": "RID",
+        "MP10": "RID services publics",
+        "MP11": "RID rapide",
+        "MP12": "RIBA",
+        "MP13": "MAV",
+        "MP14": "Quittance du Trésor",
+        "MP15": "Virement sur comptes de comptabilité spéciale",
+        "MP16": "Prélèvement bancaire",
+        "MP17": "Prélèvement postal",
+        "MP18": "Bulletin de compte courant postal",
+        "MP19": "Prélèvement SEPA",
+        "MP20": "Prélèvement SEPA CORE",
+        "MP21": "Prélèvement SEPA B2B",
+        "MP22": "Retenue sur sommes déjà encaissées",
+        "MP23": "PagoPA"
+      },
+      "paymentCondition": {
+        "TP01": "Paiement échelonné",
+        "TP02": "Paiement complet",
+        "TP03": "Acompte"
+      },
+      "natura": {
+        "N1": "Exclues (art. 15 DPR 633/72)",
+        "N2": {
+          "1": "Hors champ de la TVA (art. 7 à 7-septies)",
+          "2": "Hors champ de la TVA — autres cas"
+        },
+        "N3": {
+          "1": "Non imposables — exportations",
+          "2": "Non imposables — livraisons intracommunautaires",
+          "3": "Non imposables — livraisons vers Saint-Marin",
+          "4": "Non imposables — opérations assimilées à des exportations",
+          "5": "Non imposables — suite à des lettres d'intention",
+          "6": "Non imposables — autres opérations hors plafond"
+        },
+        "N4": "Exonérées",
+        "N5": "Régime de la marge / TVA non détaillée",
+        "N6": {
+          "1": "Autoliquidation — ferrailles et matériaux de récupération",
+          "2": "Autoliquidation — or et argent, bijoux d'occasion",
+          "3": "Autoliquidation — sous-traitance dans le bâtiment",
+          "4": "Autoliquidation — cession de bâtiments",
+          "5": "Autoliquidation — téléphones mobiles",
+          "6": "Autoliquidation — produits électroniques",
+          "7": "Autoliquidation — bâtiment et secteurs connexes",
+          "8": "Autoliquidation — secteur de l'énergie",
+          "9": "Autoliquidation — autres cas"
+        },
+        "N7": "TVA acquittée dans un autre État de l'UE"
+      }
+    },
+    "reset": {
+      "button": "Réinitialiser la connexion",
+      "title": "Réinitialiser la connexion de facturation électronique ?",
+      "message": "L'envoi au SdI est désactivé et la connexion locale (lien avec le tenant PASSO, clé API, vendeur, canal et webhook) est effacée. Les factures déjà envoyées ne sont pas touchées. Le tenant PASSO lui-même n'est PAS supprimé : il sera réutilisé à la reconnexion.",
+      "confirm": "Réinitialiser la connexion",
+      "done": "Connexion réinitialisée. Reconfigurez-la avec les étapes ci-dessous.",
+      "error": "Impossible de réinitialiser la connexion"
+    },
+    "wizard": {
+      "title": "Configurer la facturation électronique",
+      "hint": "Suivez ces étapes pour commencer à envoyer vos factures au SdI. Vous pouvez revenir à tout moment.",
+      "next": "Suivant",
+      "back": "Retour",
+      "steps": {
+        "company": "Données société",
+        "connect": "Connexion",
+        "channel": "Canal",
+        "test": "Test",
+        "finish": "Terminer"
+      },
+      "company": {
+        "hint": "Billy remplit la section vendeur de chaque facture électronique à partir des données de votre société, qui doivent donc être complètes.",
+        "required": "Obligatoire",
+        "recommended": "Recommandé",
+        "ibanHint": "Sans IBAN, les factures peuvent quand même être envoyées, mais les coordonnées bancaires manqueront. Vous pouvez l'ajouter dans l'onglet Société.",
+        "recheck": "Revérifier"
+      },
+      "connect": {
+        "managedHint": "Billy crée votre compte PASSO, la clé API et le webhook en un clic.",
+        "manualHint": "Demandez à l'opérateur PASSO une clé API et un ID vendeur, puis collez-les ici.",
+        "manualIncomplete": "Enregistré, mais la connexion n'est pas encore complète : la clé API et l'ID vendeur sont tous deux nécessaires."
+      },
+      "channel": {
+        "required": "Configurez le canal de transmission pour continuer.",
+        "manualNote": "En mode manuel, l'opérateur PASSO configure le canal de transmission : il n'y a rien à faire ici. Cette étape est ignorée."
+      },
+      "test": {
+        "hint": "Vérifiez que tout fonctionne avant d'activer l'envoi. Tous les contrôles doivent réussir (l'absence de webhook n'est pas gênante : Billy interrogera périodiquement)."
+      },
+      "finish": {
+        "hint": "Derniers choix. Le reste peut être ajusté ensuite dans les paramètres complets.",
+        "finishEnable": "Terminer et activer",
+        "finishOnly": "Terminer",
+        "done": "La facturation électronique est configurée"
+      },
+      "stepHints": {
+        "company": "Données du vendeur",
+        "connect": "Lier PASSO",
+        "channel": "Comment circulent les factures",
+        "test": "Vérifier le fonctionnement",
+        "finish": "Mise en service"
+      }
+    },
+    "actions": {
+      "sentToSdi": "Envoyée à SdI · {status}",
+      "notSent": "SdI · Non envoyée",
+      "sending": "SdI · Envoi en cours…",
+      "rejected": "SdI · Rejetée",
+      "failed": "SdI · Échec",
+      "tipSent": "Envoyée à SdI le {date}",
+      "tipSdiId": "Identifiant SdI : {id}",
+      "tipExpand": "Afficher les détails de la facture électronique (SdI)",
+      "tipCollapse": "Masquer les détails de la facture électronique (SdI)"
     }
   }
 }
