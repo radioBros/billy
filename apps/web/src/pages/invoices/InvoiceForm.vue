@@ -264,6 +264,9 @@ const save = async (): Promise<void> => {
         notes: notes.value.trim() || null,
         // Keep the form's payment term on every generated invoice.
         paymentTermDays: Math.max(0, daysBetween(issueDate.value, dueDate.value)),
+        // Every occurrence carries the chosen payment method + project.
+        bankAccountId: bankAccountId.value,
+        projectId: projectId.value || null,
       });
       if (profileError) {
         errorMessage.value = profileError;
@@ -298,6 +301,9 @@ const save = async (): Promise<void> => {
         notes: notes.value.trim() || null,
         // Keep the form's payment term on every generated invoice.
         paymentTermDays: Math.max(0, daysBetween(issueDate.value, dueDate.value)),
+        // Every occurrence carries the chosen payment method + project.
+        bankAccountId: bankAccountId.value,
+        projectId: projectId.value || null,
       });
       if (profileError) errorMessage.value = profileError;
     } else {

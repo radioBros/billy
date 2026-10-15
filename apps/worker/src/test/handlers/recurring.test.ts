@@ -5,7 +5,7 @@ import type { ProcessorContext } from "@/processors.js";
 const makeDb = (
   scheduledInvoices: Record<string, unknown>[],
   profiles: Record<string, unknown>[] = [],
-  extra: { files?: Record<string, unknown>[]; settings?: Record<string, unknown>[]; proformas?: Record<string, unknown>[] } = {},
+  extra: { files?: Record<string, unknown>[]; settings?: Record<string, unknown>[]; proformas?: Record<string, unknown>[]; clientMissing?: boolean } = {},
 ) => {
   const counters = new Map<string, number>();
   const clientLookups: Record<string, unknown>[] = [];
@@ -70,6 +70,7 @@ const makeDb = (
         return {
           findOne: (filter: { accountId?: string }) => {
             clientLookups.push(filter);
+            if (extra.clientMissing) return Promise.resolve(null);
             return Promise.resolve({
               id: "c1", type: "company", displayName: "Acme", legalName: "Acme S.r.l.", email: "a@b.c", vatNumber: "IT01234567890",
               taxCode: "01234567890", recipientCode: "ABC1234", pecEmail: "acme@pec.it", country: "IT",
@@ -201,6 +202,10 @@ vi.mock("bullmq", () => ({
 }));
 vi.mock("ioredis", () => ({ Redis: class {} }));
 
+/** "Today" in the default business timezone (no settings ⇒ Europe/Rome). */
+const TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const plusDays = (iso: string, n: number): string => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
 const stubCtx = (): ProcessorContext => {
   const noop = () => undefined;
   return { logger: { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger };
@@ -261,7 +266,9 @@ describe("recurringTickHandler — recurring-profile auto-generate", () => {
     // one finalized invoice created, money summed from the computed lines
     expect(insertedInvoices).toHaveLength(1);
     expect(insertedInvoices[0]).toMatchObject({ status: "finalized", grandTotalMinor: 12200, sourceRecurringProfileId: "p1" });
-    expect(insertedInvoices[0]!.invoiceNumber).toBe("1/2026");
+    // Backdated occurrence → issued today (account tz), numbered in today's year.
+    expect(insertedInvoices[0]!.invoiceNumber).toBe(`1/${TODAY.slice(0, 4)}`);
+    expect(insertedInvoices[0]!.issueDate).toBe(TODAY);
     // profile advanced monthly + occurrence counted
     expect(profiles[0]!.nextRunAt).toBe("2026-08-01");
     expect(profiles[0]!.occurrencesGenerated).toBe(1);
@@ -303,7 +310,7 @@ describe("recurringTickHandler — recurring-profile auto-generate", () => {
     expect(insertedInvoices[0]).toMatchObject({
       __collection: "proformas",
       status: "issued",
-      proformaNumber: "1/2026",
+      proformaNumber: `1/${TODAY.slice(0, 4)}`,
       grandTotalMinor: 7000,
     });
     // NOT an invoice
@@ -324,7 +331,7 @@ describe("recurringTickHandler — recurring-profile auto-generate", () => {
     const { recurringTickHandler } = await import("@/handlers/recurring.js");
     const result = await recurringTickHandler({} as never, stubCtx());
     expect(result.generated).toBe(1);
-    expect(insertedInvoices[0]).toMatchObject({ __collection: "expenses", amountMinor: 3000, expenseNumber: "EXP-2026-0001" });
+    expect(insertedInvoices[0]).toMatchObject({ __collection: "expenses", amountMinor: 3000, expenseNumber: `EXP-${TODAY.slice(0, 4)}-0001` });
   });
 });
 
@@ -533,24 +540,24 @@ describe("recurringTickHandler — payment term + generate-now", () => {
   });
 
   it("dates a generated invoice due 7 days after issue when the profile stores no term", async () => {
-    const { db, insertedInvoices } = makeDb([], [baseProfile()]);
+    const { db, insertedInvoices } = makeDb([], [baseProfile({ nextRunAt: TODAY })]);
     currentDb = db;
     const { recurringTickHandler } = await import("@/handlers/recurring.js");
     await recurringTickHandler({} as never, stubCtx());
-    expect(insertedInvoices[0]).toMatchObject({ issueDate: "2026-07-15", dueDate: "2026-07-22" });
+    expect(insertedInvoices[0]).toMatchObject({ issueDate: TODAY, dueDate: plusDays(TODAY, 7) });
   });
 
   it("uses the profile's stored paymentTermDays (0 = due on issue)", async () => {
-    const profiles = [baseProfile({ paymentTermDays: 30 }), baseProfile({ id: "p2", paymentTermDays: 0 })];
+    const profiles = [baseProfile({ nextRunAt: TODAY, paymentTermDays: 30 }), baseProfile({ id: "p2", nextRunAt: TODAY, paymentTermDays: 0 })];
     const { db, insertedInvoices } = makeDb([], profiles);
     currentDb = db;
     const { recurringTickHandler } = await import("@/handlers/recurring.js");
     await recurringTickHandler({} as never, stubCtx());
-    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p1")).toMatchObject({ dueDate: "2026-08-14" });
-    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p2")).toMatchObject({ dueDate: "2026-07-15" });
+    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p1")).toMatchObject({ dueDate: plusDays(TODAY, 30) });
+    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p2")).toMatchObject({ dueDate: TODAY });
   });
 
-  it("generate-now creates the NEXT occurrence even before it is due, and advances the profile", async () => {
+  it("generate-now creates the NEXT occurrence even before it is due (issued today), and advances the profile", async () => {
     const profiles = [baseProfile({ nextRunAt: "2999-01-15" })];
     const { db, insertedInvoices } = makeDb([], profiles);
     currentDb = db;
@@ -561,7 +568,11 @@ describe("recurringTickHandler — payment term + generate-now", () => {
     );
     expect(res.generated).toBe(1);
     expect(insertedInvoices).toHaveLength(1);
-    expect(insertedInvoices[0]).toMatchObject({ issueDate: "2999-01-15", dueDate: "2999-01-22", sourceRecurringProfileId: "p1" });
+    // Issued TODAY (chronological numbering), term counted from today; the
+    // schedule still advances from the occurrence date.
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const due = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
+    expect(insertedInvoices[0]).toMatchObject({ issueDate: today, dueDate: due, sourceRecurringProfileId: "p1" });
     expect(profiles[0]!.nextRunAt).toBe("2999-02-15");
     expect(profiles[0]!.occurrencesGenerated).toBe(1);
   });
@@ -577,5 +588,171 @@ describe("recurringTickHandler — payment term + generate-now", () => {
     );
     expect(res.generated).toBe(0);
     expect(insertedInvoices).toHaveLength(0);
+  });
+});
+
+describe("recurringTickHandler — audit fixes (bank/notes/project, exhaustion, numbering, catch-up, proforma, expense, deleted client)", () => {
+  const prof = (over: Record<string, unknown> = {}) => ({
+    id: "p1", version: 1, accountId: "default", clientId: "c1", currency: "EUR",
+    interval: "monthly", intervalCount: 1, nextRunAt: TODAY,
+    endDate: null, maxOccurrences: null, occurrencesGenerated: 0, status: "active",
+    lineItems: [{ description: "Hosting", lineSubtotalMinor: 10000, lineDiscountMinor: 0, lineTaxMinor: 0, lineTotalMinor: 10000 }],
+    ...over,
+  });
+  const BANKS = [
+    { id: "b1", label: "Main EUR", details: "IBAN IT00\nBIC ABCDIT22", iban: "IT60X0542811101000000123456" },
+    { id: "b2", label: "USD", details: "ACC 123" },
+  ];
+  const bizSettings = (bankAccounts: unknown[]) => [{ key: "business", accountId: "default", data: { bankAccounts } }];
+
+  it("copies notes, subject and project, and snapshots the chosen bank (with iban) onto an invoice", async () => {
+    const profiles = [prof({ notes: "Thanks!", subject: "Hosting", projectId: "proj1", bankAccountId: "b1" })];
+    const { db, insertedInvoices } = makeDb([], profiles, { settings: bizSettings(BANKS) });
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices[0]).toMatchObject({
+      notes: "Thanks!",
+      subject: "Hosting",
+      projectId: "proj1",
+      bankSnapshot: { label: "Main EUR", details: "IBAN IT00\nBIC ABCDIT22", iban: "IT60X0542811101000000123456" },
+    });
+  });
+
+  it("defaults to the single bank account when the profile stores none; null when ambiguous", async () => {
+    const { resolveBankSnapshot } = await import("@/handlers/recurring.js");
+    expect(resolveBankSnapshot([BANKS[1]!], null, "invoice")).toEqual({ label: "USD", details: "ACC 123" });
+    expect(resolveBankSnapshot(BANKS, null, "invoice")).toBeNull();
+    expect(resolveBankSnapshot(BANKS, "gone", "invoice")).toBeNull();
+    expect(resolveBankSnapshot([], null, "invoice")).toBeNull();
+    // Proforma snapshot has no iban (its type is { label, details }).
+    expect(resolveBankSnapshot(BANKS, "b1", "proforma")).toEqual({ label: "Main EUR", details: "IBAN IT00\nBIC ABCDIT22" });
+  });
+
+  it("pre-checks exhaustion: maxOccurrences already reached → completed, no document, no number", async () => {
+    const profiles = [prof({ maxOccurrences: 2, occurrencesGenerated: 2 })];
+    const { db, insertedInvoices, counters } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const res = await recurringTickHandler({} as never, stubCtx());
+    expect(res.generated).toBe(0);
+    expect(insertedInvoices).toHaveLength(0);
+    expect(counters.size).toBe(0);
+    expect(profiles[0]!.status).toBe("completed");
+  });
+
+  it("pre-checks exhaustion: nextRunAt already past endDate → completed, no document", async () => {
+    const profiles = [prof({ endDate: plusDays(TODAY, -1) })];
+    const { db, insertedInvoices, counters } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices).toHaveLength(0);
+    expect(counters.size).toBe(0);
+    expect(profiles[0]!.status).toBe("completed");
+  });
+
+  it("allocates no number when the version-guarded advance loses the race", async () => {
+    // The listed profile is stale (version 1) but the stored one moved on (version 2).
+    const stored = prof({ version: 2 });
+    const { db, insertedInvoices, counters } = makeDb([], [stored]);
+    const stale = { ...stored, version: 1 };
+    const realCollection = db.collection.bind(db);
+    db.collection = ((name: string) => {
+      const c = realCollection(name) as Record<string, unknown>;
+      if (name === "recurringProfiles") return { ...c, find: () => ({ toArray: () => Promise.resolve([stale]) }) };
+      return c;
+    }) as typeof db.collection;
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const res = await recurringTickHandler({} as never, stubCtx());
+    expect(res.generated).toBe(0);
+    expect(insertedInvoices).toHaveLength(0);
+    expect(counters.size).toBe(0);
+  });
+
+  it("backdated occurrence is issued TODAY with the term counted from today; schedule advances from the occurrence date", async () => {
+    const past = plusDays(TODAY, -40);
+    const profiles = [prof({ nextRunAt: past, paymentTermDays: 10 })];
+    const { db, insertedInvoices, counters } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices[0]).toMatchObject({ issueDate: TODAY, dueDate: plusDays(TODAY, 10), invoiceNumber: `1/${TODAY.slice(0, 4)}` });
+    expect([...counters.keys()]).toEqual([`default:invoice-${TODAY.slice(0, 4)}`]);
+    const { advanceRecurrence } = await import("@billy/shared");
+    expect(profiles[0]!.nextRunAt).toBe(advanceRecurrence(past, "monthly", 1));
+  });
+
+  it("proforma: writes expiryDate = issue + term and NO invoice payment fields", async () => {
+    const profiles = [prof({ documentType: "proforma", paymentTermDays: 15, notes: "N", bankAccountId: "b1" })];
+    const { db, insertedInvoices } = makeDb([], profiles, { settings: bizSettings(BANKS) });
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    const doc = insertedInvoices[0]!;
+    expect(doc).toMatchObject({ __collection: "proformas", status: "issued", issueDate: TODAY, expiryDate: plusDays(TODAY, 15), notes: "N" });
+    expect(doc.bankSnapshot).toEqual({ label: "Main EUR", details: "IBAN IT00\nBIC ABCDIT22" });
+    for (const k of ["dueDate", "amountPaidMinor", "amountDueMinor", "payments", "invoiceNumber"]) expect(doc).not.toHaveProperty(k);
+  });
+
+  it("expense: draft status, carries category/vendor/description/billable/project, no invoice-only fields", async () => {
+    const profiles = [prof({
+      documentType: "expense", projectId: "proj9",
+      expense: { category: "Software", vendor: "Hetzner", description: "VPS", billable: true },
+      lineItems: [{ description: "VPS", lineSubtotalMinor: 2500, lineDiscountMinor: 0, lineTaxMinor: 0, lineTotalMinor: 2500 }],
+    })];
+    const { db, insertedInvoices } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    const doc = insertedInvoices[0]!;
+    expect(doc).toMatchObject({
+      __collection: "expenses", status: "draft", amountMinor: 2500, date: TODAY,
+      category: "Software", vendor: "Hetzner", description: "VPS", billable: true,
+      projectId: "proj9", clientId: "c1", sourceRecurringProfileId: "p1", invoiceId: null,
+    });
+    for (const k of ["lineItems", "clientSnapshot", "grandTotalMinor", "subtotalMinor", "taxMinor", "issueDate", "subject"]) expect(doc).not.toHaveProperty(k);
+  });
+
+  it("expense from a legacy profile (no expense block) still gets a non-empty vendor/category", async () => {
+    const profiles = [prof({ documentType: "expense", notes: "Office rent" })];
+    const { db, insertedInvoices } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices[0]).toMatchObject({ status: "draft", category: "recurring", vendor: "Hosting", description: "Office rent", billable: false });
+  });
+
+  it("deleted client: skips the occurrence (no document, no number, profile not advanced)", async () => {
+    const profiles = [prof()];
+    const { db, insertedInvoices, counters } = makeDb([], profiles, { clientMissing: true });
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const res = await recurringTickHandler({} as never, stubCtx());
+    expect(res.generated).toBe(0);
+    expect(insertedInvoices).toHaveLength(0);
+    expect(counters.size).toBe(0);
+    expect(profiles[0]!).toMatchObject({ nextRunAt: TODAY, occurrencesGenerated: 0, status: "active", version: 1 });
+  });
+
+  it("auto-send of a proforma resolves {{expiryDate}} from its expiry date", async () => {
+    const occ = {
+      id: "pro1", version: 1, accountId: "default", currency: "EUR", issueDate: "2026-07-01", expiryDate: "2026-07-31",
+      proformaNumber: "3/2026", grandTotalMinor: 100, sourceRecurringProfileId: "pAS",
+      clientSnapshot: { displayName: "Acme", email: "a@b.c" }, autoSendPending: true,
+    };
+    const profiles = [prof({ id: "pAS", documentType: "proforma", nextRunAt: "2099-01-01", autoSend: { enabled: true, to: "x@y.z", subject: "Valid until {{expiryDate}}", body: "B" } })];
+    const files = [{ id: "fp", ownerType: "proforma", ownerId: "pro1", contentType: "application/pdf", filename: "p.pdf", scanStatus: "clean", deletedAt: null, createdAt: "2026-07-01T01:00:00Z" }];
+    const { db } = makeDb([], profiles, { files, proformas: [occ] });
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    const emailJob = enqueuedJobs.find((j) => j.queue === "email");
+    const subject = (emailJob!.payload as { data: { subject: string } }).data.subject;
+    expect(subject).not.toContain("{{");
+    // Rendered from the proforma's expiry (2026-07-31), never empty.
+    expect(subject).toMatch(/31/);
+    expect(subject).not.toBe("Valid until ");
   });
 });

@@ -160,6 +160,14 @@ const save = async (): Promise<void> => {
         ],
         recurrence: recurrence.value,
         notes: description.value.trim() || null,
+        projectId: projectId.value || null,
+        // Every generated expense carries the form's category/vendor/description/billable.
+        expense: {
+          category: category.value.trim(),
+          vendor: vendor.value.trim(),
+          description: description.value.trim(),
+          billable: billable.value,
+        },
       });
       if (profileError) errorMessage.value = profileError;
       return; // stay on the form; snackbar links to the recurring list

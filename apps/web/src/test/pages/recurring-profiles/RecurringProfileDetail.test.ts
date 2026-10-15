@@ -132,4 +132,111 @@ describe("RecurringProfileDetail", () => {
     expect(wrapper.find("[data-test='recurring-edit']").exists()).toBe(true);
     wrapper.unmount();
   });
+
+  it("shows the payment method by its label and the project by its name (never raw ids)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/recurring-profiles/rp_1"))
+          return jsonResponse({ data: { ...profile, bankAccountId: "bank_usd", projectId: "pr_1" }, meta: {}, error: null });
+        if (url.includes("/v1/clients/cl_1")) return jsonResponse({ data: { id: "cl_1", displayName: "Globex Srl" }, meta: {}, error: null });
+        if (url.includes("/v1/settings/business"))
+          return jsonResponse({
+            data: { bankAccounts: [{ id: "bank_eur", label: "Main EUR", details: "IBAN IT00" }, { id: "bank_usd", label: "USD account", details: "ACC 1" }] },
+            meta: {},
+            error: null,
+          });
+        if (url.includes("/v1/projects/pr_1")) return jsonResponse({ data: { id: "pr_1", name: "Website relaunch" }, meta: {}, error: null });
+        if (url.includes("/v1/invoices?")) return list([generated]);
+        return list([]);
+      }),
+    );
+    const wrapper = mount(RecurringProfileDetail, {
+      global: { plugins: [vuetifyAt(1280), i18n], stubs: { RouterLink: RouterLinkStub } },
+    });
+    await flushPromises();
+    expect(wrapper.find("[data-test='recurring-bank']").text()).toBe("USD account");
+    expect(wrapper.find("[data-test='recurring-project']").text()).toBe("Website relaunch");
+    expect(wrapper.text()).not.toContain("bank_usd");
+    expect(wrapper.text()).not.toContain("pr_1");
+    wrapper.unmount();
+  });
+
+  it("edit saves bank account + project with the profile patch", async () => {
+    const calls: { url: string; method: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (method === "PATCH") {
+          const body = JSON.parse(String(init?.body ?? "{}"));
+          calls.push({ url, method, body });
+          return jsonResponse({ data: { ...profile, ...body, version: 5 }, meta: {}, error: null });
+        }
+        if (url.includes("/v1/recurring-profiles/rp_1"))
+          return jsonResponse({ data: { ...profile, bankAccountId: "bank_eur" }, meta: {}, error: null });
+        if (url.includes("/v1/clients/cl_1")) return jsonResponse({ data: { id: "cl_1", displayName: "Globex Srl" }, meta: {}, error: null });
+        if (url.includes("/v1/settings/business"))
+          return jsonResponse({
+            data: { bankAccounts: [{ id: "bank_eur", label: "Main EUR", details: "IBAN IT00" }, { id: "bank_usd", label: "USD account", details: "ACC 1" }] },
+            meta: {},
+            error: null,
+          });
+        if (url.includes("/v1/invoices?")) return list([generated]);
+        return list([]);
+      }),
+    );
+    const wrapper = mount(RecurringProfileDetail, {
+      attachTo: document.body,
+      global: { plugins: [vuetifyAt(1280), i18n], stubs: { RouterLink: RouterLinkStub } },
+    });
+    await flushPromises();
+    await wrapper.find("[data-test='recurring-edit']").trigger("click");
+    await flushPromises();
+    expect(document.querySelector("[data-test='recurring-edit-bank']")).not.toBeNull();
+    (document.querySelector("[data-test='recurring-edit-save']") as HTMLElement).click();
+    await flushPromises();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({ bankAccountId: "bank_eur", projectId: null });
+    wrapper.unmount();
+  });
+
+  it("clearing the end date in the edit dialog sends endDate: null (removes the bound)", async () => {
+    const calls: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if ((init?.method ?? "GET") === "PATCH") {
+          const body = JSON.parse(String(init?.body ?? "{}"));
+          calls.push(body);
+          return jsonResponse({ data: { ...profile, ...body, version: 5 }, meta: {}, error: null });
+        }
+        if (url.includes("/v1/recurring-profiles/rp_1"))
+          return jsonResponse({ data: { ...profile, endDate: "2026-12-31", maxOccurrences: 6 }, meta: {}, error: null });
+        if (url.includes("/v1/clients/cl_1")) return jsonResponse({ data: { id: "cl_1", displayName: "Globex Srl" }, meta: {}, error: null });
+        if (url.includes("/v1/invoices?")) return list([generated]);
+        return list([]);
+      }),
+    );
+    const wrapper = mount(RecurringProfileDetail, {
+      attachTo: document.body,
+      global: { plugins: [vuetifyAt(1280), i18n], stubs: { RouterLink: RouterLinkStub } },
+    });
+    await flushPromises();
+    await wrapper.find("[data-test='recurring-edit']").trigger("click");
+    await flushPromises();
+    // Vuetify's clear icons set the v-model to null.
+    const clears = document.querySelectorAll(".v-dialog .v-field__clearable .v-icon");
+    expect(clears.length).toBeGreaterThan(0);
+    clears.forEach((el) => (el as HTMLElement).click());
+    await flushPromises();
+    (document.querySelector("[data-test='recurring-edit-save']") as HTMLElement).click();
+    await flushPromises();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ endDate: null, maxOccurrences: null });
+    wrapper.unmount();
+  });
 });

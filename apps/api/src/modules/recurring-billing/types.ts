@@ -49,6 +49,14 @@ export interface RecurringProfile extends BaseDoc {
   /** Days from issue to due on each generated invoice/proforma. Absent ⇒
    *  DEFAULT_PAYMENT_TERM_DAYS (7, the invoice form's default). */
   paymentTermDays?: number | null;
+  /** Business-settings bank account id; each generated invoice/proforma gets a
+   *  `bankSnapshot` resolved from it at generation (absent ⇒ the single account,
+   *  when exactly one exists — same rule as invoice create). */
+  bankAccountId?: string | null;
+  /** Optional project copied onto every generated document. */
+  projectId?: string | null;
+  /** Expense profiles only: the template fields of each generated expense. */
+  expense?: RecurringExpenseTemplate | null;
 
   occurrencesGenerated: number;
   status: RecurringProfileStatus;
@@ -69,6 +77,14 @@ export interface RecurringProfile extends BaseDoc {
   autoSend?: RecurringAutoSend | null;
   /** E-invoicing: when `autoSubmit`, each generated invoice is sent to SdI by the worker. */
   einvoice?: { autoSubmit: boolean } | null;
+}
+
+/** Expense-only template fields copied onto each generated expense. */
+export interface RecurringExpenseTemplate {
+  category: string;
+  vendor: string;
+  description?: string;
+  billable?: boolean;
 }
 
 /** Auto-send email configuration stored on a recurring profile. */

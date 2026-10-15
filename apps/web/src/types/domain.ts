@@ -353,6 +353,13 @@ export interface RecurringProfile extends BaseDoc {
   maxOccurrences?: number | null;
   /** Days from issue to due on each generated document (null ⇒ default 7). */
   paymentTermDays?: number | null;
+  /** Business-settings bank account snapshotted onto each generated invoice/proforma
+   *  (null ⇒ the single account when exactly one exists). */
+  bankAccountId?: string | null;
+  /** Project copied onto every generated document. */
+  projectId?: string | null;
+  /** Expense profiles: template fields of each generated expense. */
+  expense?: RecurringExpenseTemplate | null;
   occurrencesGenerated: number;
   status: RecurringProfileStatus;
   lastRunAt?: string | null;
@@ -368,6 +375,14 @@ export interface RecurringProfile extends BaseDoc {
   autoSend?: RecurringAutoSend | null;
   /** Send each generated invoice via SdI (e-invoicing). */
   einvoice?: { autoSubmit: boolean } | null;
+}
+
+/** Expense-only template fields stored on an expense recurring profile. */
+export interface RecurringExpenseTemplate {
+  category: string;
+  vendor: string;
+  description?: string;
+  billable?: boolean;
 }
 
 /** Auto-send email configuration on a recurring profile. When `enabled`, each

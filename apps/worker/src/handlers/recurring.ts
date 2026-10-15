@@ -267,8 +267,15 @@ interface ProfileDoc {
   subject?: string | null;
   notes?: string | null;
   lineItems: LineComputed[];
-  /** Days from issue to due (absent ⇒ DEFAULT_PAYMENT_TERM_DAYS). */
+  /** Days from issue to due (absent ⇒ DEFAULT_PAYMENT_TERM_DAYS). For a
+   *  proforma it is the issue→expiry gap (a proforma has no due date). */
   paymentTermDays?: number | null;
+  /** Business-settings bank account id, resolved to a `bankSnapshot` at generation. */
+  bankAccountId?: string | null;
+  /** Optional project copied onto each generated document. */
+  projectId?: string | null;
+  /** Expense-only template fields (expense profiles). */
+  expense?: { category?: string | null; vendor?: string | null; description?: string | null; billable?: boolean | null } | null;
   autoSend?: RecurringAutoSend | null;
   /** E-invoicing: send each generated invoice to SdI. */
   einvoice?: { autoSubmit?: boolean } | null;
@@ -317,13 +324,96 @@ const nextDocNumber = async (
   return slashYear ? `${seq}/${year}` : `${prefix}-${year}-${String(seq).padStart(4, "0")}`;
 };
 
-const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext): Promise<string | null> => {
+/** A business-settings bank account (mirrors api settings `BankAccount`). */
+interface BankAccountRecord {
+  id: string;
+  label: string;
+  details: string;
+  iban?: string | null;
+}
+
+/**
+ * Resolve the profile's bank account into the immutable `bankSnapshot` the PDF
+ * (and, for invoices, e-invoicing via `bankSnapshot.iban`) reads. MIRRORS the api
+ * invoice create (invoices/service.ts resolveBankSnapshot): a stored id → that
+ * account (null if it no longer exists); no id + exactly one account → that one;
+ * otherwise null. Proformas carry `{ label, details }` only (their type has no iban).
+ */
+export const resolveBankSnapshot = (
+  accounts: BankAccountRecord[],
+  bankAccountId: string | null | undefined,
+  docType: "invoice" | "proforma",
+): Record<string, unknown> | null => {
+  let chosen: BankAccountRecord | undefined;
+  if (bankAccountId != null) chosen = accounts.find((a) => a.id === bankAccountId);
+  else if (accounts.length === 1) chosen = accounts[0];
+  if (!chosen) return null;
+  if (docType === "proforma") return { label: chosen.label, details: chosen.details };
+  return { label: chosen.label, details: chosen.details, ...(chosen.iban ? { iban: chosen.iban } : {}) };
+};
+
+const loadBankAccounts = async (db: Db, accountId: string): Promise<BankAccountRecord[]> => {
+  const doc = (await db
+    .collection("settings")
+    .findOne({ key: "business", accountId } as never, { projection: { _id: 0, "data.bankAccounts": 1 } })) as
+    | { data?: { bankAccounts?: BankAccountRecord[] } }
+    | null;
+  return doc?.data?.bankAccounts ?? [];
+};
+
+/** True when the profile may not generate another occurrence (count reached or
+ *  the occurrence date is past endDate). Same rule as the api `isExhausted`. */
+const isExhausted = (p: Pick<ProfileDoc, "maxOccurrences" | "occurrencesGenerated" | "endDate">, date: string): boolean =>
+  (p.maxOccurrences != null && p.occurrencesGenerated >= p.maxOccurrences) || (p.endDate != null && date > p.endDate);
+
+/**
+ * Generate ONE occurrence from a due profile. `today` is the account's
+ * business-timezone date. Order matters:
+ *   1. pre-check exhaustion → mark completed (version-guarded), no document;
+ *   2. client must still exist (deleted → skip + warn; the api refuses finalize
+ *      without a client too) — checked BEFORE the advance so the occurrence is
+ *      not consumed;
+ *   3. advance the profile (version-guarded, exactly-once);
+ *   4. ONLY THEN allocate the number (a lost race mints no gap);
+ *   5. write the document.
+ * A backdated occurrence (date before today) is ISSUED TODAY — like scheduled
+ * finalize — so numbering stays chronological; the term counts from today.
+ */
+const generateFromProfile = async (
+  db: Db,
+  p: ProfileDoc,
+  ctx: ProcessorContext,
+  today: string,
+  /** "Generate now": always issue today — a future occurrence date with a
+   *  number minted today would break chronological numbering. */
+  issueToday = false,
+): Promise<string | null> => {
   const docType = p.documentType ?? "invoice";
   const cfg = DOC_CONFIG[docType];
   const profiles = db.collection<ProfileDoc>("recurringProfiles");
   const clients = db.collection<ClientDoc>("clients");
   const counters = db.collection<Counter>("counters");
   const target = db.collection<Record<string, unknown>>(cfg.collection);
+  const occurrenceDate = p.nextRunAt;
+
+  // 1. Already exhausted (e.g. maxOccurrences lowered / endDate moved before
+  //    nextRunAt) → complete without generating.
+  if (isExhausted(p, occurrenceDate)) {
+    const done = await profiles.findOneAndUpdate(
+      { id: p.id, version: p.version, status: "active" } as never,
+      { $set: { status: "completed", updatedAt: nowTs() }, $inc: { version: 1 } } as never,
+      { returnDocument: "after" },
+    );
+    ctx.logger.info({ profileId: p.id, completed: !!done }, "recurring profile exhausted — completed without generating");
+    return null;
+  }
+
+  // 2. Account-scoped client lookup; a deleted client blocks generation.
+  const client = await clients.findOne({ id: p.clientId, accountId: p.accountId, deletedAt: null } as never, { projection: { _id: 0 } });
+  if (!client) {
+    ctx.logger.warn({ profileId: p.id, clientId: p.clientId }, "recurring: client not found (deleted?) — skipping occurrence");
+    return null;
+  }
 
   // Sum the pre-computed line money into document totals (no re-derivation).
   const subtotal = p.lineItems.reduce((s, l) => s + (l.lineSubtotalMinor ?? 0), 0);
@@ -331,21 +421,16 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
   const tax = p.lineItems.reduce((s, l) => s + (l.lineTaxMinor ?? 0), 0);
   const grand = p.lineItems.reduce((s, l) => s + (l.lineTotalMinor ?? 0), 0);
 
-  const client = await clients.findOne({ id: p.clientId, accountId: p.accountId, deletedAt: null } as never, { projection: { _id: 0 } });
-  const issueDate = p.nextRunAt;
-  const year = Number(issueDate.slice(0, 4));
-  const docNumber = await nextDocNumber(counters, p.accountId, cfg.series(year), cfg.prefix, year, cfg.slashYear);
+  // Backdated catch-up → issue today (chronological numbering, real issue date).
+  const issueDate = issueToday || occurrenceDate < today ? today : occurrenceDate;
   const now = nowTs();
   const docId = cryptoRandomId();
 
-  // Advance/exhaust the profile FIRST, version-guarded → exactly-once. If another
-  // tick already advanced it (version bumped), we skip (return null) BEFORE writing
-  // a doc, so no duplicate is created.
-  const nextRun = advanceDate(p.nextRunAt, p.interval, p.intervalCount, p.dayOfMonth);
+  // 3. Advance/exhaust the profile FIRST, version-guarded → exactly-once. If
+  //    another tick already advanced it, skip BEFORE minting a number.
+  const nextRun = advanceDate(occurrenceDate, p.interval, p.intervalCount, p.dayOfMonth);
   const generated = p.occurrencesGenerated + 1;
-  const exhausted =
-    (p.maxOccurrences != null && generated >= p.maxOccurrences) ||
-    (p.endDate != null && nextRun > p.endDate);
+  const exhausted = isExhausted({ ...p, occurrencesGenerated: generated }, nextRun);
   const advance = await profiles.findOneAndUpdate(
     { id: p.id, version: p.version, status: "active" } as never,
     {
@@ -365,8 +450,11 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
     return null;
   }
 
-  const clientSnapshot = client ? buildClientSnapshot(client, p.currency) : null;
-  const base = {
+  // 4. Number in the ISSUE year, only now that this run owns the occurrence.
+  const year = Number(issueDate.slice(0, 4));
+  const docNumber = await nextDocNumber(counters, p.accountId, cfg.series(year), cfg.prefix, year, cfg.slashYear);
+
+  const common = {
     id: docId,
     version: 1,
     createdAt: now,
@@ -375,48 +463,74 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
     deletedAt: null,
     accountId: p.accountId,
     clientId: p.clientId,
+    projectId: p.projectId ?? null,
     currency: p.currency,
-    issueDate,
-    subject: p.subject ?? null,
-    lineItems: p.lineItems,
-    subtotalMinor: subtotal,
-    discountMinor: discount,
-    taxMinor: tax,
-    grandTotalMinor: grand,
     sourceRecurringProfileId: p.id,
-    clientSnapshot,
   };
 
   let doc: Record<string, unknown>;
   if (docType === "expense") {
-    // Expenses are simpler: a single amount, no line-payment/finalize lifecycle.
+    // Expense shape (api expenses/types.ts): a single amount, no line items,
+    // client snapshot or invoice totals; status `draft` (not yet invoiced).
+    const firstLine = (p.lineItems[0] as { description?: string } | undefined)?.description?.trim() || "";
+    const e = p.expense ?? {};
     doc = {
-      ...base,
+      ...common,
       expenseNumber: docNumber,
       amountMinor: grand,
-      status: "recorded",
-      category: "recurring",
       date: issueDate,
+      category: e.category?.trim() || "recurring",
+      vendor: e.vendor?.trim() || firstLine || client.displayName,
+      description: e.description?.trim() ?? p.notes?.trim() ?? firstLine,
+      billable: e.billable === true,
+      status: "draft",
+      invoicedAt: null,
+      invoiceId: null,
     };
   } else {
-    // invoice + proforma share the finalized-document shape.
+    const bankSnapshot = resolveBankSnapshot(await loadBankAccounts(db, p.accountId), p.bankAccountId, docType);
+    // Issue + the profile's term (default 7 days, like the invoice form).
+    const termEnd = addDays(issueDate, p.paymentTermDays ?? DEFAULT_PAYMENT_TERM_DAYS);
     // Auto-send: when the profile has it enabled, mark the occurrence pending so a
     // later tick (Scan 3) emails it once its PDF is clean, and kick off the render
     // now. Only invoice/proforma reach here (expense is schema-blocked from autoSend).
     const autoSendPending = p.autoSend?.enabled === true;
-    doc = {
-      ...base,
-      // Issue + the profile's payment term (default 7 days, like the invoice form).
-      dueDate: addDays(issueDate, p.paymentTermDays ?? DEFAULT_PAYMENT_TERM_DAYS),
-      amountPaidMinor: 0,
-      amountDueMinor: grand,
-      payments: [],
-      status: docType === "invoice" ? "finalized" : "issued",
-      [docType === "invoice" ? "invoiceNumber" : "proformaNumber"]: docNumber,
+    const shared = {
+      ...common,
+      clientSnapshot: buildClientSnapshot(client, p.currency),
+      bankSnapshot,
+      issueDate,
+      subject: p.subject ?? null,
+      notes: p.notes ?? null,
+      lineItems: p.lineItems,
+      subtotalMinor: subtotal,
+      discountMinor: discount,
+      taxMinor: tax,
+      grandTotalMinor: grand,
       ...(autoSendPending ? { autoSendPending: true, autoSendAt: null } : {}),
-      // E-invoicing flag; the submit job (enqueued below) re-checks that the integration is on.
-      ...(docType === "invoice" && p.einvoice?.autoSubmit ? { einvoice: { status: "not_sent", legallyIssued: false, submitOnFinalize: true } } : {}),
     };
+    doc =
+      docType === "invoice"
+        ? {
+            ...shared,
+            invoiceNumber: docNumber,
+            status: "finalized",
+            dueDate: termEnd,
+            amountPaidMinor: 0,
+            amountDueMinor: grand,
+            payments: [],
+            // E-invoicing flag; the submit job (enqueued below) re-checks that the integration is on.
+            ...(p.einvoice?.autoSubmit ? { einvoice: { status: "not_sent", legallyIssued: false, submitOnFinalize: true } } : {}),
+          }
+        : {
+            // Proforma shape (api proforma/types.ts): NON-FISCAL — expiry instead
+            // of a due date, no payment/balance fields.
+            ...shared,
+            proformaNumber: docNumber,
+            status: "issued",
+            expiryDate: termEnd,
+            convertedInvoiceId: null,
+          };
   }
   await target.insertOne(doc as never);
   // Record the generated document on the profile (feeds the detail page's
@@ -426,7 +540,7 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
   } catch {
     /* non-fatal */
   }
-  ctx.logger.info({ profileId: p.id, documentType: docType, docId, docNumber, exhausted }, "recurring occurrence generated");
+  ctx.logger.info({ profileId: p.id, documentType: docType, docId, docNumber, occurrenceDate, issueDate, exhausted }, "recurring occurrence generated");
 
   if (docType === "invoice" && p.einvoice?.autoSubmit) {
     try {
@@ -468,6 +582,8 @@ interface OccurrenceDoc {
   currency: string;
   issueDate: string;
   dueDate?: string | null;
+  /** Proformas carry an expiry instead of a due date. */
+  expiryDate?: string | null;
   invoiceNumber?: string | null;
   proformaNumber?: string | null;
   grandTotalMinor?: number;
@@ -515,6 +631,8 @@ const occurrenceContext = (occ: OccurrenceDoc, biz: BrandingSettings): TemplateC
     now: occ.issueDate,
     issueDate: occ.issueDate,
     dueDate: occ.dueDate ?? null,
+    // A proforma has no due date; its validity resolves {{expiryDate}}.
+    expiryDate: occ.expiryDate ?? null,
     document: { number: occ.invoiceNumber ?? occ.proformaNumber ?? null, total: displayMoney(occ.grandTotalMinor, occ.currency) },
     client: {
       name: occ.clientSnapshot?.displayName ?? null,
@@ -703,6 +821,7 @@ const autoSendScan = async (db: Db, ctx: ProcessorContext): Promise<number> => {
 
 export const recurringTickHandler = async (payload: JobPayloads["recurring"], ctx: ProcessorContext): Promise<{ finalized: number; generated: number; autoSent: number }> => {
   const db = await getDb();
+  const tzOf = makeTimezoneResolver(db);
 
   // Run-now ("Generate now" in the UI): generate this profile's NEXT occurrence
   // immediately through the same generator as the schedule (numbering, payment
@@ -721,7 +840,7 @@ export const recurringTickHandler = async (payload: JobPayloads["recurring"], ct
         } as never,
         { projection: { _id: 0 } },
       )) as ProfileDoc | null;
-      if (p && (await generateFromProfile(db, p, ctx))) generatedNow++;
+      if (p && (await generateFromProfile(db, p, ctx, todayIn(await tzOf(p.accountId)), true))) generatedNow++;
     } catch (err) {
       ctx.logger.error({ err, profileId: payload.recurringProfileId }, "recurring generate-now failed");
     }
@@ -732,7 +851,6 @@ export const recurringTickHandler = async (payload: JobPayloads["recurring"], ct
   // in Rome must not wait for UTC midnight, nor fire early). Query with the latest
   // possible "today" on earth, then re-check per account.
   const today = latestTodayIso();
-  const tzOf = makeTimezoneResolver(db);
 
   // Scan 1 — scheduled-send: scheduled invoices whose date has arrived.
   const due = (await invoices
@@ -773,8 +891,9 @@ export const recurringTickHandler = async (payload: JobPayloads["recurring"], ct
   let generated = 0;
   for (const p of dueProfiles) {
     try {
-      if (p.nextRunAt > todayIn(await tzOf(p.accountId))) continue;
-      const num = await generateFromProfile(db, p, ctx);
+      const accountToday = todayIn(await tzOf(p.accountId));
+      if (p.nextRunAt > accountToday) continue;
+      const num = await generateFromProfile(db, p, ctx, accountToday);
       if (num) generated++;
     } catch (err) {
       ctx.logger.error({ err, profileId: p.id }, "recurring generate failed (will retry next tick)");

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ListWhitelist } from "@billy/types";
-import { DateOnly, LineItemSchema, ObjectIdString } from "@billy/validation";
+import { DateOnly, LineItemSchema, NonEmptyString, ObjectIdString } from "@billy/validation";
 
 /**
  * RecurringProfile Zod schemas — one
@@ -66,6 +66,21 @@ const profileShape = {
   maxOccurrences: z.number().int().positive().nullable().optional(),
   /** Days from issue to due on each generated document (null/absent ⇒ default 7). */
   paymentTermDays: z.number().int().min(0).max(365, { message: "payment_term.out_of_range" }).nullable().optional(),
+  /** Business-settings bank account id (a settings id, NOT an ObjectId) —
+   *  snapshotted onto each generated invoice/proforma by the worker. */
+  bankAccountId: NonEmptyString.nullable().optional(),
+  /** Optional project copied onto every generated document. */
+  projectId: ObjectIdString.nullable().optional(),
+  /** Expense profiles: category/vendor/description/billable of each generated expense. */
+  expense: z
+    .object({
+      category: NonEmptyString,
+      vendor: NonEmptyString,
+      description: z.string().trim().default(""),
+      billable: z.boolean().default(false),
+    })
+    .nullable()
+    .optional(),
   lineItems: z.array(LineItemSchema).min(1, { message: "line_items.required" }),
   /** Optional subject copied onto each generated document (above line items). */
   subject: z.string().trim().nullable().optional(),
