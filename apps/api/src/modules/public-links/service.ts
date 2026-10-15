@@ -1,5 +1,6 @@
 import type { Db } from "mongodb";
 import { AppError, errors, type Logger } from "@billy/shared";
+import { todayInZone } from "@billy/einvoice";
 import type { DomainEventEmitter } from "@/platform/service.js";
 import type { ShareTokenStore } from "@/modules/public-links/share-tokens.js";
 import { QUOTES_COLLECTION } from "@/modules/quotes/repository.js";
@@ -29,7 +30,7 @@ import type {
 /** Settings singleton (business branding) — minimal read shape. */
 interface BusinessSettingsDoc {
   key: "business";
-  data: { businessName: string };
+  data: { businessName: string; timezone?: string | null };
 }
 const SETTINGS_COLLECTION = "settings";
 
@@ -46,6 +47,8 @@ export interface PublicLinkServiceDeps {
   logger: Logger;
  /** Hashed share-token store: resolves a raw token → {type,id}. */
   shareTokens: ShareTokenStore;
+  /** Clock (tests pin it). Defaults to the real time. */
+  now?: () => Date;
 }
 
 export class PublicLinkService {
@@ -53,12 +56,55 @@ export class PublicLinkService {
   private readonly emitter: DomainEventEmitter;
   private readonly logger: Logger;
   private readonly shareTokens: ShareTokenStore;
+  private readonly now: () => Date;
 
   constructor(deps: PublicLinkServiceDeps) {
     this.db = deps.db;
     this.emitter = deps.emitter;
     this.logger = deps.logger;
     this.shareTokens = deps.shareTokens;
+    this.now = deps.now ?? (() => new Date());
+  }
+
+  /** "Today" (YYYY-MM-DD) in the document account's business timezone (default Europe/Rome). */
+  private async todayFor(accountId: string | null | undefined): Promise<string> {
+    const doc = accountId
+      ? await this.db
+          .collection<BusinessSettingsDoc>(SETTINGS_COLLECTION)
+          .findOne({ key: "business", accountId } as never, { projection: { _id: 0, data: 1 } })
+      : null;
+    return todayInZone(doc?.data?.timezone || "Europe/Rome", this.now());
+  }
+
+  /**
+   * A `sent` quote whose expiry date is in the past (the expiry day itself still
+   * counts) can no longer be accepted/declined. Move it to `expired` (a legal
+   * sent → expired transition; version-guarded so a concurrent write wins) and
+   * reject with INVALID_STATE_TRANSITION — the same shape as any other
+   * non-actionable state.
+   */
+  private async rejectIfExpired(id: string): Promise<void> {
+    const collection = this.db.collection<PublicQuoteDoc>(QUOTES_COLLECTION);
+    const current = await collection.findOne({ id, deletedAt: null, archivedAt: null, status: "sent" });
+    if (!current?.expiryDate) return;
+    const accountId = (current as { accountId?: string }).accountId;
+    if (current.expiryDate >= (await this.todayFor(accountId))) return;
+
+    const ts = nowIso();
+    const res = await collection.updateOne(
+      { id, deletedAt: null, archivedAt: null, status: "sent", version: current.version },
+      { $set: { status: "expired", updatedAt: ts }, $inc: { version: 1 } },
+    );
+    if (res.modifiedCount === 1) {
+      await this.emitter.emit({
+        name: "quote.updated",
+        actorId: null,
+        entityType: "quote",
+        entityId: id,
+        payload: { via: "public-link", status: "expired" },
+      });
+    }
+    throw new AppError("INVALID_STATE_TRANSITION", "This quote has expired and can no longer be accepted or declined");
   }
 
  /**
@@ -145,6 +191,8 @@ export class PublicLinkService {
     eventName: string,
   ): Promise<PublicQuoteDTO> {
     const id = await this.resolveTokenId(token, "quote");
+    // Past its expiry date → expire it and refuse (never accept an expired offer).
+    await this.rejectIfExpired(id);
     const collection = this.db.collection<PublicQuoteDoc>(QUOTES_COLLECTION);
     const ts = nowIso();
 

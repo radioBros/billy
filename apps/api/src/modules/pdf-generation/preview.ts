@@ -305,6 +305,8 @@ interface StoredQuote extends QuoteView {
 interface StoredProforma {
   id: string;
   proformaNumber?: string | null;
+  /** Snapshotted bank account chosen on the proforma; source of its bank block. */
+  bankSnapshot?: { label: string; details: string } | null;
   currency: string;
   issueDate: string;
   expiryDate?: string | null;
@@ -418,8 +420,8 @@ export const renderPreviewHtml = async (
       if (!doc) return null;
       const { locale, branding } = brandingFor(doc.clientSnapshot?.preferredLanguage);
       const r = resolveDocText(doc, branding, doc.invoiceNumber ?? "");
-      // Bank lines come from the INVOICE's bankSnapshot (not settings). Non-invoice
-      // types carry no snapshot, so their bankLines stay empty.
+      // Bank lines come from the INVOICE's bankSnapshot (not settings). Proformas
+      // carry their own snapshot too; quotes/credit notes/contracts print none.
       return renderInvoiceHtml(r, { ...branding, bankLines: bankLinesFromSnapshot(doc.bankSnapshot) }, locale);
     }
     case "quote": {
@@ -432,7 +434,12 @@ export const renderPreviewHtml = async (
       const doc = await loadDoc<StoredProforma>(db, "proforma", documentId, accountId);
       if (!doc) return null;
       const { locale, branding } = brandingFor(doc.clientSnapshot?.preferredLanguage);
-      return renderInvoiceHtml(proformaToInvoiceView(resolveDocText(doc, branding, doc.proformaNumber ?? "")), branding, locale);
+      // A proforma prints the bank chosen on it (its bankSnapshot), exactly like an invoice.
+      return renderInvoiceHtml(
+        proformaToInvoiceView(resolveDocText(doc, branding, doc.proformaNumber ?? "")),
+        { ...branding, bankLines: bankLinesFromSnapshot(doc.bankSnapshot) },
+        locale,
+      );
     }
     case "credit-note": {
       const doc = await loadDoc<StoredCreditNote>(db, "credit-note", documentId, accountId);

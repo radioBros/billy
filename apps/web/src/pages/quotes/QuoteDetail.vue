@@ -5,14 +5,14 @@
  * convert (accepted → converted). All actions send the optimistic-concurrency
  * version via the If-Match header.
  *
- * `convert` returns `{ quote, invoicePayload }` (not a bare Quote) — the created
- * invoice is a SEPARATE POST /v1/invoices/from-quote step owned elsewhere; here
- * we just refresh the quote from the wrapper and surface the converted state.
+ * `convert` creates the DRAFT invoice server-side in the same request and returns
+ * `{ quote, invoice }` (not a bare Quote): we keep the converted quote and open the
+ * new draft invoice. The converted alert links that invoice by its number.
  */
 import { ref, computed, watch, onMounted } from "vue";
 import { useClientNames } from "@/composables/useClientNames";
 import { useI18n } from "vue-i18n";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
 import type { Quote } from "@/types/domain";
@@ -29,10 +29,12 @@ const { t } = useI18n();
 
 interface ConvertResponse {
   quote: Quote;
-  invoicePayload?: unknown;
+  /** The draft invoice created by the conversion (id + number; number is null until finalize). */
+  invoice: { id: string; invoiceNumber?: string | null; status?: string };
 }
 
 const route = useRoute();
+const router = useRouter();
 const isMobile = useIsMobile();
 const id = computed<string>(() => route.params.id as string);
 
@@ -50,6 +52,11 @@ const acting = ref(false);
 const isDraft = computed<boolean>(() => quote.value?.status === "draft");
 const isSent = computed<boolean>(() => quote.value?.status === "sent");
 const isAccepted = computed<boolean>(() => quote.value?.status === "accepted");
+// Convert is offered for accepted quotes — and for a quote the old flow marked
+// "converted" without ever creating its invoice (the server repairs it).
+const canConvert = computed<boolean>(
+  () => isAccepted.value || (quote.value?.status === "converted" && !quote.value.convertedInvoiceId),
+);
 
 const load = async (): Promise<void> => {
   loading.value = true;
@@ -121,12 +128,16 @@ const convert = async (): Promise<void> => {
     confirmText: t("quotes.convert"),
   });
   if (!ok) return;
+  let invoiceId: string | null = null;
   await runAction(async () => {
     const res = await api.post<ConvertResponse>(`/v1/quotes/${id.value}/convert`, undefined, {
       ifMatch: quote.value!.version,
     });
+    invoiceId = res.invoice?.id ?? res.quote.convertedInvoiceId ?? null;
     return res.quote;
   });
+  // Open the new draft invoice (the quote now shows the "converted" link back to it).
+  if (invoiceId) await router.push({ name: "invoice-detail", params: { id: invoiceId } });
 };
 
 onMounted(() => {
@@ -208,7 +219,7 @@ onMounted(() => {
         <!-- Lifecycle: one prominent action for the current state, then the
              document actions (Preview / Print / Download). -->
         <div class="dm-actions">
-          <div v-if="isDraft || isSent || isAccepted" class="dm-actions__primary">
+          <div v-if="isDraft || isSent || canConvert" class="dm-actions__primary">
             <v-btn v-if="isDraft" color="primary" variant="flat" prepend-icon="mdi-send-outline" :loading="acting" @click="send">
               {{ t("quotes.send") }}
             </v-btn>
@@ -220,7 +231,7 @@ onMounted(() => {
                 {{ t("quotes.decline") }}
               </v-btn>
             </template>
-            <v-btn v-if="isAccepted" color="primary" variant="flat" prepend-icon="mdi-file-swap-outline" :loading="acting" @click="convert">
+            <v-btn v-if="canConvert" color="primary" variant="flat" prepend-icon="mdi-file-swap-outline" :loading="acting" @click="convert">
               {{ t("quotes.convert") }}
             </v-btn>
           </div>
@@ -294,7 +305,7 @@ onMounted(() => {
             <v-btn v-if="isSent" color="error" :loading="acting" @click="decline">
               {{ t("quotes.decline") }}
             </v-btn>
-            <v-btn v-if="isAccepted" color="primary" :loading="acting" @click="convert">
+            <v-btn v-if="canConvert" color="primary" :loading="acting" @click="convert">
               {{ t("quotes.convert") }}
             </v-btn>
           </div>

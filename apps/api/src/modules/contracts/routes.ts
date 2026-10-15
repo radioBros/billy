@@ -65,9 +65,10 @@ export const createContractsRouter = (deps: {
     billingAddress?: unknown;
     preferredLanguage?: string | null;
   }
-  const loadClient = async (clientId: string): Promise<ClientForSend | null> => {
+  /** Strictly account-scoped: a contract may only ever resolve its OWN account's client. */
+  const loadClient = async (ctx: AuthContext, clientId: string): Promise<ClientForSend | null> => {
     return (await clients.findOne(
-      { id: clientId, deletedAt: null },
+      { id: clientId, accountId: ctx.accountId, deletedAt: null },
       { projection: { _id: 0, email: 1, displayName: 1, vatNumber: 1, billingAddress: 1, preferredLanguage: 1 } },
     )) as ClientForSend | null;
   };
@@ -78,7 +79,7 @@ export const createContractsRouter = (deps: {
     id: string,
   ): Promise<SendComposeContext | null> => {
     const doc = await service.get(ctx, id); // throws notFound when absent/deleted
-    const client = await loadClient(doc.clientId);
+    const client = await loadClient(ctx, doc.clientId);
     const base = contractToCompose(doc, client?.email ?? null);
     // Placeholder context so {{client.*}} / {{company.*}} / {{date}} resolve in the
     // email subject/body. A contract has no clientSnapshot, so read the live client.

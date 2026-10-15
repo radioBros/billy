@@ -46,6 +46,7 @@ const proformaDoc = {
   id: "pro_1",
   proformaNumber: "PRO-2026-0002",
   currency: "EUR",
+  bankSnapshot: { label: "Second", details: "Bank: Banca Proforma\nIBAN: IT11P0000000000000000000002" },
   issueDate: "2026-07-01",
   expiryDate: "2026-07-31",
   clientSnapshot: { displayName: "Globex SPA" },
@@ -137,6 +138,10 @@ describe("renderPreviewHtml", () => {
   it("renders proforma preview via the invoice template (number mapped)", async () => {
     const html = await renderPreviewHtml(stubDb(), "proforma", "pro_1", "acct");
     expect(html!).toContain("PRO-2026-0002");
+    // The proforma prints the bank chosen on it (its bankSnapshot), like an invoice.
+    expect(html!).toContain("Payment details");
+    expect(html!).toContain("Bank: Banca Proforma");
+    expect(html!).toContain("IBAN: IT11P0000000000000000000002");
   });
 
   it("renders credit-note preview via the invoice template", async () => {

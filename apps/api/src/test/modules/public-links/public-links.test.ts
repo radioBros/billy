@@ -181,11 +181,14 @@ const baseInvoice = (overrides: Partial<PublicInvoiceDoc> = {}): PublicInvoiceDo
   } as PublicInvoiceDoc;
 };
 
-const makeService = async (store: Store) => {
+/** Pinned clock: 2026-01-15 (the base quote expires 2026-02-01, so it is still open). */
+const JAN_15 = new Date("2026-01-15T12:00:00.000Z");
+
+const makeService = async (store: Store, now: Date = JAN_15) => {
   const { emitter, events } = newEmitter();
   const db = fakeDb(store);
   const shareTokens = new ShareTokenStore(db);
-  const service = new PublicLinkService({ db, emitter, logger, shareTokens });
+  const service = new PublicLinkService({ db, emitter, logger, shareTokens, now: () => now });
   // Seed a real share token for the primary quote / invoice (mint→resolve path).
   const quoteToken = store.quotes[0] ? await shareTokens.mint("quote", store.quotes[0].id, "admin") : "";
   const invoiceToken = store.invoices[0] ? await shareTokens.mint("invoice", store.invoices[0].id, "admin") : "";
@@ -324,6 +327,32 @@ describe("PublicLinkService — accept/decline transitions", () => {
     const { service, quoteToken } = await makeService(store);
     await service.declineQuote(quoteToken);
     await expect(service.acceptQuote(quoteToken)).rejects.toMatchObject({ code: "INVALID_STATE_TRANSITION" });
+  });
+
+  it("accept of an EXPIRED quote → INVALID_STATE_TRANSITION and the quote moves to expired", async () => {
+    const { service, events, quoteToken } = await makeService(store, new Date("2026-02-02T12:00:00.000Z"));
+    await expect(service.acceptQuote(quoteToken)).rejects.toMatchObject({ code: "INVALID_STATE_TRANSITION" });
+    expect(store.quotes[0]!.status).toBe("expired");
+    expect(store.quotes[0]!.version).toBe(4); // version-guarded transition bumped it
+    expect(events.map((e) => e.name)).not.toContain("quote.accepted");
+    // No longer actionable / shareable afterwards.
+    await expect(service.acceptQuote(quoteToken)).rejects.toMatchObject({ code: "RESOURCE_NOT_FOUND" });
+  });
+
+  it("decline of an expired quote is refused too", async () => {
+    const { service, quoteToken } = await makeService(store, new Date("2026-03-01T12:00:00.000Z"));
+    await expect(service.declineQuote(quoteToken)).rejects.toMatchObject({ code: "INVALID_STATE_TRANSITION" });
+    expect(store.quotes[0]!.status).toBe("expired");
+  });
+
+  it("the expiry day itself still counts (in the account timezone)", async () => {
+    // 2026-02-01T23:30Z is already Feb 2 in Rome (default tz) → expired …
+    const late = await makeService(store, new Date("2026-02-01T23:30:00.000Z"));
+    await expect(late.service.acceptQuote(late.quoteToken)).rejects.toMatchObject({ code: "INVALID_STATE_TRANSITION" });
+    // … while 2026-02-01T12:00Z is the expiry day → still acceptable.
+    store = { quotes: [baseQuote()], invoices: [], settings: [...BUSINESS] };
+    const onDay = await makeService(store, new Date("2026-02-01T12:00:00.000Z"));
+    expect((await onDay.service.acceptQuote(onDay.quoteToken)).status).toBe("accepted");
   });
 
   it("accept on unknown token → RESOURCE_NOT_FOUND", async () => {

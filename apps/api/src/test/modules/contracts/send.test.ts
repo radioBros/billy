@@ -201,7 +201,7 @@ const cleanPdfFile = (): Doc => {
     archivedAt: null,
   };
 };
-const CLIENT: Doc = { id: "c-1", displayName: "Client Co", email: "client@example.com", deletedAt: null };
+const CLIENT: Doc = { id: "c-1", accountId: "default", displayName: "Client Co", email: "client@example.com", deletedAt: null };
 
 const build = (store: Store) => {
   const { queue, jobs } = fakeQueue();
@@ -281,5 +281,26 @@ describe("GET /api/v1/contracts/:id/send/preview", () => {
     const data = (ctx.body as { data: { to: string; subject: string; html: string } }).data;
     expect(data.to).toBe("client@example.com");
     expect(data.html).toContain("Acme LLC");
+  });
+});
+
+describe("contract client lookup is account-scoped", () => {
+  it("never resolves another account's client with the same id", async () => {
+    const store: Store = {
+      contracts: [baseContract()],
+      files: [cleanPdfFile()],
+      clients: [{ ...CLIENT, accountId: "other-account", email: "leak@other.example" }],
+      settings: [BUSINESS],
+    };
+    const { drive } = build(store);
+    const ctx = fakeCtx({
+      method: "GET",
+      path: "/api/v1/contracts/ct-1/send/preview",
+      params: { id: "ct-1" },
+    });
+    await drive(ctx);
+    expect(ctx.status).toBe(200);
+    const data = (ctx.body as { data: { to: string | null } }).data;
+    expect(data.to ?? "").not.toContain("leak@other.example");
   });
 });

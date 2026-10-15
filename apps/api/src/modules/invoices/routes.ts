@@ -28,7 +28,6 @@ import {
 import { assembleBranding } from "@/modules/pdf-generation/preview.js";
 import {
   AddPaymentSchema,
-  CreateFromQuoteSchema,
   InvoiceCreateSchema,
   InvoiceUpdateSchema,
   ScheduleSchema,
@@ -154,13 +153,9 @@ export const createInvoicesRouter = (deps: {
     respondCreated(ctx, stripInvoiceFinancial(auth, created));
   });
 
-  // POST /api/v1/invoices/from-quote — draft from an accepted quote
-  r.post("/from-quote", async (ctx) => {
-    const auth = ctx.state.authContext!;
-    const input = validate(CreateFromQuoteSchema, ctx.request.body);
-    const created = await service.createFromQuote(auth, input);
-    respondCreated(ctx, stripInvoiceFinancial(auth, created));
-  });
+  // (No public /from-quote route: it trusted a client-supplied payload with no
+  // quote ownership/state check. Conversion is POST /v1/quotes/:id/convert,
+  // which creates + links the invoice server-side via createFromQuote.)
 
   // PATCH /api/v1/invoices/:id — versioned draft update
   r.patch("/:id", async (ctx) => {

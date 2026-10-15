@@ -1,6 +1,7 @@
 import Router from "@koa/router";
 import type { Db } from "mongodb";
 import { errors, type Logger } from "@billy/shared";
+import { todayInZone } from "@billy/einvoice";
 import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
@@ -32,17 +33,24 @@ export const createProformaRouter = (deps: {
   const clients = deps.db.collection("clients");
   const settings = deps.db.collection("settings");
 
-  /** Shared client loader (mirrors invoices): scoped match, falling back to unscoped. */
+  /**
+   * Shared client loader (mirrors invoices): STRICTLY account-scoped — never falls
+   * back to an unscoped match (the snapshot becomes the buyer identity on the doc).
+   */
   const loadClient = async (ctx: AuthContext, clientId: string): Promise<ClientRecord | null> => {
-    const c = (await clients.findOne(
+    return (await clients.findOne(
       { id: clientId, accountId: ctx.accountId, deletedAt: null },
       { projection: { _id: 0 } },
-    )) as (ClientRecord & { accountId?: string }) | null;
-    if (c) return c;
-    return (await clients.findOne(
-      { id: clientId, deletedAt: null },
-      { projection: { _id: 0 } },
     )) as ClientRecord | null;
+  };
+
+  /** "Today" in the account's business timezone (default Europe/Rome, like e-invoicing). */
+  const todayForAccount = async (ctx: AuthContext): Promise<string> => {
+    const doc = (await settings.findOne(
+      { key: "business", accountId: ctx.accountId },
+      { projection: { _id: 0, "data.timezone": 1 } },
+    )) as { data?: { timezone?: string | null } } | null;
+    return todayInZone(doc?.data?.timezone || "Europe/Rome");
   };
 
   // Multi-bank: read THIS account's business-settings bankAccounts (mirrors
@@ -73,6 +81,8 @@ export const createProformaRouter = (deps: {
       return formatDocumentNumber({ prefix: "INV", seq, padding: 4, year, style: "slashYear" });
     },
     loadBankAccounts,
+    // Account-timezone "today" (same helper as invoices/routes.ts).
+    todayFor: todayForAccount,
   });
 
   const service = new ProformaService({
@@ -87,24 +97,41 @@ export const createProformaRouter = (deps: {
       const seq = await nextSequence(counters, accountId, `proforma-${year}`);
       return formatDocumentNumber({ prefix: "PRO", seq, padding: 4, year, style: "slashYear" });
     },
-    // Mint a DRAFT invoice from the proforma via InvoiceService.create. The invoice
-    // starts today with a due date = issueDate (draft; re-snapshots client at finalize).
+    // Mint a DRAFT invoice from the proforma via InvoiceService.create (dates,
+    // subject, project, notes and raw lines come from the service). The proforma's
+    // chosen bank is carried over: matched back to its settings account (so the IBAN
+    // snapshot is complete) or, when that account was renamed/removed, its frozen
+    // snapshot is copied onto the draft verbatim.
     mintInvoiceFromProforma: async (ctx, data): Promise<Invoice> => {
-      const today = new Date().toISOString().slice(0, 10);
-      return invoiceService.create(ctx, {
+      const snap = data.bankSnapshot ?? null;
+      const match = snap
+        ? (await loadBankAccounts(ctx)).find((a) => a.label === snap.label && a.details === snap.details)
+        : undefined;
+      const created = await invoiceService.create(ctx, {
         clientId: data.clientId,
         currency: data.currency,
-        issueDate: today,
-        dueDate: today,
+        issueDate: data.issueDate,
+        dueDate: data.dueDate,
         lineItems: data.lineItems,
         notes: data.notes ?? null,
+        subject: data.subject ?? null,
+        projectId: data.projectId ?? null,
+        ...(match ? { bankAccountId: match.id } : {}),
       });
+      if (snap && !match) {
+        return invoiceRepo.updateVersioned(ctx, created.id, created.version, {
+          bankSnapshot: { label: snap.label, details: snap.details },
+        } as Partial<Invoice>);
+      }
+      return created;
     },
     // Idempotent-replay loader: return the already-minted invoice without re-minting.
     loadInvoice: async (ctx, invoiceId): Promise<Invoice | null> => invoiceService.get(ctx, invoiceId),
     // Multi-bank: the proforma resolves its OWN bankSnapshot at create from the same
     // business-settings bankAccounts list the invoice service reads.
     loadBankAccounts,
+    // The converted invoice's issue date is "today" in the account's timezone.
+    today: todayForAccount,
   });
 
   const r = new Router<AppState>({ prefix: "/api/v1/proformas" });

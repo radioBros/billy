@@ -189,7 +189,7 @@ const newServiceWithBanks = (accounts: BankAccountRecord[]) => {
   return { repo, svc, events };
 };
 
-const newServiceWithConvert = () => {
+const newServiceWithConvert = (opts: { failMint?: boolean } = {}) => {
   const repo = new FakeProformaRepository();
   const { emitter, events } = newEmitter();
   let counter = 0;
@@ -203,12 +203,15 @@ const newServiceWithConvert = () => {
     loadClient: async (_ctx, clientId) => (clientId === CLIENT.id ? CLIENT : null),
     nextProformaNumber: async (_accountId, year) => `PRO-${year}-${String(++counter).padStart(4, "0")}`,
     mintInvoiceFromProforma: async (_ctx, data) => {
+      if (opts.failMint) throw new AppError("INTERNAL_ERROR", "invoices down");
       mints.push({ ...data });
       const inv = { id: `inv-${++invSeq}`, status: "draft", ...data };
       invoices.set(inv.id, inv);
       return inv;
     },
     loadInvoice: async (_ctx, invoiceId) => invoices.get(invoiceId) ?? null,
+    // Pinned account-local "today" (the routes wire the business timezone).
+    today: async () => "2026-10-15",
   });
   return { repo, svc, events, invoices, mints };
 };
@@ -430,6 +433,74 @@ describe("proforma convert", () => {
     expect(mints).toHaveLength(1);
     // Replay does not bump the proforma version again (no second markConverted).
     expect(second.proforma.version).toBe(afterFirst.version);
+  });
+
+  it("dates the invoice today (account tz) and keeps the proforma's issue→expiry gap as payment term", async () => {
+    const { svc, repo, mints } = newServiceWithConvert();
+    const draft = await makeDraft(svc, repo); // issue 2026-01-10, expiry 2026-02-10 → 31 days
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    await svc.convert(ADMIN, issued.id, issued.version);
+    expect(mints[0]).toMatchObject({ issueDate: "2026-10-15", dueDate: "2026-11-15" });
+  });
+
+  it("falls back to DEFAULT_PAYMENT_TERM_DAYS (7) when the proforma has no expiry", async () => {
+    const { svc, repo, mints } = newServiceWithConvert();
+    const draft = await makeDraft(svc, repo);
+    repo.byId.set(draft.id, { ...repo.byId.get(draft.id)!, expiryDate: null });
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    await svc.convert(ADMIN, issued.id, issued.version);
+    expect(mints[0]).toMatchObject({ issueDate: "2026-10-15", dueDate: "2026-10-22" });
+  });
+
+  it("carries subject, projectId, notes, bank snapshot and RAW lines incl. nature", async () => {
+    const { svc, repo, mints } = newServiceWithConvert();
+    const draft = await makeDraft(svc, repo);
+    const bank = { label: "Main", details: "IBAN IT60X0542811101000000123456" };
+    const exemptLine = { description: "Exempt", quantity: 1, unitPriceMinor: 900, taxRate: 0, nature: "N2.1" };
+    repo.byId.set(draft.id, {
+      ...repo.byId.get(draft.id)!,
+      subject: "Spring campaign",
+      projectId: "p-1",
+      bankSnapshot: bank,
+      lineItems: [{ ...exemptLine, lineSubtotalMinor: 900, lineDiscountMinor: 0, lineTaxMinor: 0, lineTotalMinor: 900 }],
+    });
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    await svc.convert(ADMIN, issued.id, issued.version);
+    expect(mints[0]).toMatchObject({ subject: "Spring campaign", projectId: "p-1", notes: "Preview", bankSnapshot: bank });
+    expect(mints[0]!.lineItems).toEqual([exemptLine]); // no computed money, nature kept
+  });
+
+  it("claims the proforma BEFORE minting: a stale (double-submitted) convert never mints twice", async () => {
+    const { svc, repo, mints } = newServiceWithConvert();
+    const draft = await makeDraft(svc, repo);
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    // Simulate a concurrent request that already claimed it (fresh claim).
+    repo.byId.set(issued.id, { ...repo.byId.get(issued.id)!, convertingAt: new Date().toISOString() });
+    await expect(svc.convert(ADMIN, issued.id, issued.version)).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    // Same version but already bumped by the winner's claim → loses at the claim.
+    repo.byId.set(issued.id, { ...repo.byId.get(issued.id)!, convertingAt: null, version: issued.version + 1 });
+    await expect(svc.convert(ADMIN, issued.id, issued.version)).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    expect(mints).toHaveLength(0);
+  });
+
+  it("an abandoned (stale) claim can be retaken", async () => {
+    const { svc, repo, mints } = newServiceWithConvert();
+    const draft = await makeDraft(svc, repo);
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    repo.byId.set(issued.id, { ...repo.byId.get(issued.id)!, convertingAt: "2026-01-01T00:00:00.000Z" });
+    const { proforma } = await svc.convert(ADMIN, issued.id, issued.version);
+    expect(mints).toHaveLength(1);
+    expect(proforma.convertingAt).toBeNull();
+  });
+
+  it("a failed mint releases the claim (retry works) and links nothing", async () => {
+    const { svc, repo } = newServiceWithConvert({ failMint: true });
+    const draft = await makeDraft(svc, repo);
+    const issued = await svc.issue(ADMIN, draft.id, draft.version);
+    await expect(svc.convert(ADMIN, issued.id, issued.version)).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
+    const after = await svc.get(ADMIN, issued.id);
+    expect(after.convertingAt).toBeNull();
+    expect(after.convertedInvoiceId).toBeNull();
   });
 
   it("rejects converting a draft proforma → INVALID_STATE_TRANSITION", async () => {

@@ -76,6 +76,8 @@ export interface ConvertToInvoiceLineInput {
   unitPriceMinor: number;
   discountRate?: number;
   taxRate?: number;
+  /** FatturaPA Natura code (0% lines) — carried through to the invoice untouched. */
+  nature?: string | null;
 }
 
 export interface ConvertToInvoicePayload {
@@ -85,4 +87,14 @@ export interface ConvertToInvoicePayload {
   currency: string;
   lineItems: ConvertToInvoiceLineInput[];
   notes?: string | null;
+  /** Carried onto the invoice (the invoices module's createFromQuote reads them). */
+  subject?: string | null;
+  projectId?: string | null;
+}
+
+/** The invoice produced by a quote conversion (no money — safe for any caller). */
+export interface ConvertedInvoiceRef {
+  id: string;
+  invoiceNumber?: string | null;
+  status?: string;
 }

@@ -80,6 +80,12 @@ export interface Proforma extends BaseDoc {
   grandTotalMinor: number;
 
   status: ProformaStatus;
-  convertedInvoiceId?: string | null; // set by the DEFERRED convert step
+  convertedInvoiceId?: string | null; // set by convert once the draft invoice is minted
+  /**
+   * Convert claim (ISO timestamp): set by a version-guarded write BEFORE minting the
+   * invoice so a concurrent/double-clicked convert loses at the claim instead of
+   * minting a duplicate. Cleared when the invoice is linked (or the mint fails).
+   */
+  convertingAt?: string | null;
   notes?: string | null;
 }
