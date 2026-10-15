@@ -64,6 +64,8 @@ const profileShape = {
   startDate: DateOnly,
   endDate: DateOnly.nullable().optional(),
   maxOccurrences: z.number().int().positive().nullable().optional(),
+  /** Days from issue to due on each generated document (null/absent ⇒ default 7). */
+  paymentTermDays: z.number().int().min(0).max(365, { message: "payment_term.out_of_range" }).nullable().optional(),
   lineItems: z.array(LineItemSchema).min(1, { message: "line_items.required" }),
   /** Optional subject copied onto each generated document (above line items). */
   subject: z.string().trim().nullable().optional(),

@@ -573,7 +573,9 @@
       "dayOfMonthHint": "I mesi più corti usano il loro ultimo giorno.",
       "startDate": "Data di inizio",
       "endDate": "Data di fine",
-      "notes": "Note"
+      "notes": "Note",
+      "paymentTermDays": "Termine di pagamento (giorni)",
+      "paymentTermDaysHint": "Scadenza = data di emissione + questi giorni (0 = scadenza all'emissione)."
     },
     "lineCols": {
       "description": "Descrizione",
@@ -622,7 +624,9 @@
       "message": "La bozza diventa un profilo ricorrente e da ora in poi i documenti li genera il profilo — la bozza stessa viene rimossa. Se la data di inizio è già raggiunta, il primo documento viene generato (e inviato automaticamente, se configurato) subito.",
       "confirm": "Converti",
       "draftKept": "Profilo ricorrente creato — la bozza non è stata rimossa e resta come documento singolo."
-    }
+    },
+    "paymentTermValue": "Alla emissione | {n} giorno | {n} giorni",
+    "generateQueued": "Generazione avviata — il documento apparirà tra poco."
   },
   "creditNotes": {
     "title": "Note di credito",

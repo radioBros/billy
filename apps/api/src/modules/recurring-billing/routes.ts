@@ -47,6 +47,18 @@ export const createRecurringBillingRouter = (deps: {
               { idempotencyParts: ["create-tick", profile.id, profile.nextRunAt] },
             );
           },
+          enqueueGenerateNow: async (profile: { id: string; nextRunAt: string; accountId: string }) => {
+            await queue.enqueue(
+              "recurring",
+              {
+                recurringProfileId: profile.id,
+                scheduledOccurrenceDate: profile.nextRunAt,
+                accountId: profile.accountId,
+                generateNow: true,
+              },
+              { idempotencyParts: ["generate-now", profile.id, profile.nextRunAt] },
+            );
+          },
         }
       : {}),
   });
@@ -137,7 +149,7 @@ export const createRecurringBillingRouter = (deps: {
   // the profile completed without generating.
   r.post("/:id/generate", async (ctx) => {
     const auth = ctx.state.authContext!;
-    const payload = await service.generateOccurrence(auth, ctx.params.id!);
+    const payload = await service.requestGenerateNow(auth, ctx.params.id!);
     respondOk(ctx, payload);
   });
 

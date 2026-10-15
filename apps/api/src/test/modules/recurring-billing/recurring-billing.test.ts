@@ -491,3 +491,66 @@ describe("stripProfileFinancial", () => {
     expect(line.description).toBe("Retainer"); // non-money fields survive
   });
 });
+
+// ── requestGenerateNow: worker-backed "Generate now" ──────────────────────────────
+
+describe("requestGenerateNow", () => {
+  it("enqueues a generate-now job for the next occurrence and reports generated once the profile advances", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    const enqueued: { id: string; nextRunAt: string; accountId: string }[] = [];
+    const svc = new RecurringProfileService({
+      repo,
+      emitter,
+      logger,
+      // Simulate the worker: generating advances the profile.
+      enqueueGenerateNow: async (p) => {
+        enqueued.push(p);
+        const doc = repo.byId.get(p.id)!;
+        repo.byId.set(p.id, { ...doc, occurrencesGenerated: doc.occurrencesGenerated + 1, version: doc.version + 1 });
+      },
+    });
+    const p = await svc.create(ADMIN, createInput());
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 200 });
+    expect(res).toEqual({ generated: true });
+    expect(enqueued).toEqual([{ id: p.id, nextRunAt: p.nextRunAt, accountId: ADMIN.accountId }]);
+  });
+
+  it("reports pending when the worker has not produced the document within the wait", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    const svc = new RecurringProfileService({ repo, emitter, logger, enqueueGenerateNow: async () => undefined });
+    const p = await svc.create(ADMIN, createInput());
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 20 });
+    expect(res).toEqual({ generated: false, pending: true });
+    // Nothing advanced the schedule on the API side.
+    expect(repo.byId.get(p.id)!.occurrencesGenerated).toBe(0);
+  });
+
+  it("completes an exhausted profile without enqueueing (returns null)", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    let called = 0;
+    const svc = new RecurringProfileService({ repo, emitter, logger, enqueueGenerateNow: async () => { called++; } });
+    const p = await svc.create(ADMIN, createInput({ maxOccurrences: 1 }));
+    const doc = repo.byId.get(p.id)!;
+    repo.byId.set(p.id, { ...doc, occurrencesGenerated: 1 });
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 20 });
+    expect(res).toBeNull();
+    expect(called).toBe(0);
+    expect(repo.byId.get(p.id)!.status).toBe("completed");
+  });
+
+  it("refuses with QUEUE_UNAVAILABLE when no queue is wired (never advances silently)", async () => {
+    const { svc, repo } = newService();
+    const p = await svc.create(ADMIN, createInput());
+    await expect(svc.requestGenerateNow(ADMIN, p.id)).rejects.toMatchObject({ code: "QUEUE_UNAVAILABLE" });
+    expect(repo.byId.get(p.id)!.occurrencesGenerated).toBe(0);
+  });
+
+  it("stores paymentTermDays from the create payload", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ paymentTermDays: 30 }));
+    expect(p.paymentTermDays).toBe(30);
+  });
+});

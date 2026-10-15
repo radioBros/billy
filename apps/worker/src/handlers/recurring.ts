@@ -3,7 +3,7 @@ import { MongoClient, type Db, type Collection } from "mongodb";
 import { Queue, type JobsOptions } from "bullmq";
 import { Redis } from "ioredis";
 import { loadConfig } from "@billy/config";
-import { advanceRecurrence, resolvePlaceholders, type TemplateContext } from "@billy/shared";
+import { advanceRecurrence, DEFAULT_PAYMENT_TERM_DAYS, resolvePlaceholders, type TemplateContext } from "@billy/shared";
 import type { EmailJob, JobPayloads, PdfJob } from "@billy/types";
 import type { ProcessorContext } from "@/processors.js";
 import { enqueueEInvoiceSubmit } from "@/handlers/einvoice.js";
@@ -267,6 +267,8 @@ interface ProfileDoc {
   subject?: string | null;
   notes?: string | null;
   lineItems: LineComputed[];
+  /** Days from issue to due (absent ⇒ DEFAULT_PAYMENT_TERM_DAYS). */
+  paymentTermDays?: number | null;
   autoSend?: RecurringAutoSend | null;
   /** E-invoicing: send each generated invoice to SdI. */
   einvoice?: { autoSubmit?: boolean } | null;
@@ -404,7 +406,8 @@ const generateFromProfile = async (db: Db, p: ProfileDoc, ctx: ProcessorContext)
     const autoSendPending = p.autoSend?.enabled === true;
     doc = {
       ...base,
-      dueDate: issueDate,
+      // Issue + the profile's payment term (default 7 days, like the invoice form).
+      dueDate: addDays(issueDate, p.paymentTermDays ?? DEFAULT_PAYMENT_TERM_DAYS),
       amountPaidMinor: 0,
       amountDueMinor: grand,
       payments: [],
@@ -698,8 +701,32 @@ const autoSendScan = async (db: Db, ctx: ProcessorContext): Promise<number> => {
   return sent;
 };
 
-export const recurringTickHandler = async (_payload: JobPayloads["recurring"], ctx: ProcessorContext): Promise<{ finalized: number; generated: number; autoSent: number }> => {
+export const recurringTickHandler = async (payload: JobPayloads["recurring"], ctx: ProcessorContext): Promise<{ finalized: number; generated: number; autoSent: number }> => {
   const db = await getDb();
+
+  // Run-now ("Generate now" in the UI): generate this profile's NEXT occurrence
+  // immediately through the same generator as the schedule (numbering, payment
+  // term, auto-send, SdI). Matching on nextRunAt makes a replayed job a no-op —
+  // generateFromProfile advances nextRunAt, so a second run finds nothing.
+  let generatedNow = 0;
+  if (payload?.generateNow && payload.recurringProfileId) {
+    try {
+      const p = (await db.collection<ProfileDoc>("recurringProfiles").findOne(
+        {
+          id: payload.recurringProfileId,
+          accountId: payload.accountId,
+          status: "active",
+          nextRunAt: payload.scheduledOccurrenceDate,
+          deletedAt: null,
+        } as never,
+        { projection: { _id: 0 } },
+      )) as ProfileDoc | null;
+      if (p && (await generateFromProfile(db, p, ctx))) generatedNow++;
+    } catch (err) {
+      ctx.logger.error({ err, profileId: payload.recurringProfileId }, "recurring generate-now failed");
+    }
+  }
+
   const invoices = db.collection<InvoiceDoc>("invoices");
   // Dates are evaluated in EACH ACCOUNT's business timezone (an invoice due "today"
   // in Rome must not wait for UTC midnight, nor fire early). Query with the latest
@@ -763,5 +790,5 @@ export const recurringTickHandler = async (_payload: JobPayloads["recurring"], c
   }
 
   ctx.logger.info({ dueScheduled: due.length, finalized, dueProfiles: dueProfiles.length, generated, autoSent, today }, "recurring tick complete");
-  return { finalized, generated, autoSent };
+  return { finalized, generated: generated + generatedNow, autoSent };
 };

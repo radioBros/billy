@@ -10,7 +10,7 @@
  * in the body (the API accepts it via body or If-Match).
  */
 import { ref, computed, onMounted, watch } from "vue";
-import { addDays, todayIso } from "@/utils/dates";
+import { addDays, daysBetween, todayIso } from "@/utils/dates";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "@/api/client";
@@ -262,6 +262,8 @@ const save = async (): Promise<void> => {
         recurrence: recurrence.value,
         subject: subject.value.trim() || null,
         notes: notes.value.trim() || null,
+        // Keep the form's payment term on every generated invoice.
+        paymentTermDays: Math.max(0, daysBetween(issueDate.value, dueDate.value)),
       });
       if (profileError) {
         errorMessage.value = profileError;
@@ -294,6 +296,8 @@ const save = async (): Promise<void> => {
         recurrence: recurrence.value,
         subject: subject.value.trim() || null,
         notes: notes.value.trim() || null,
+        // Keep the form's payment term on every generated invoice.
+        paymentTermDays: Math.max(0, daysBetween(issueDate.value, dueDate.value)),
       });
       if (profileError) errorMessage.value = profileError;
     } else {

@@ -116,6 +116,9 @@ export interface RecurringRunJob {
   /** The scheduled occurrence date (ISO), part of the dedup key. */
   scheduledOccurrenceDate: string;
   accountId: string;
+  /** "Generate now": generate this profile's next occurrence immediately, if its
+   *  nextRunAt still equals `scheduledOccurrenceDate` (replay-safe). */
+  generateNow?: boolean;
 }
 
 /**

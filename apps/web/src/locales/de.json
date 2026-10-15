@@ -573,7 +573,9 @@
       "dayOfMonthHint": "Kürzere Monate verwenden ihren letzten Tag.",
       "startDate": "Startdatum",
       "endDate": "Enddatum",
-      "notes": "Notizen"
+      "notes": "Notizen",
+      "paymentTermDays": "Zahlungsziel (Tage)",
+      "paymentTermDaysHint": "Fälligkeit = Rechnungsdatum + diese Anzahl Tage (0 = sofort fällig)."
     },
     "lineCols": {
       "description": "Beschreibung",
@@ -622,7 +624,9 @@
       "message": "Der Entwurf wird zu einem wiederkehrenden Profil und die Dokumente erzeugt ab jetzt das Profil — der Entwurf selbst wird entfernt. Liegt das Startdatum bereits an, wird das erste Dokument sofort erzeugt (und bei entsprechender Konfiguration automatisch versendet).",
       "confirm": "Umwandeln",
       "draftKept": "Wiederkehrendes Profil erstellt — der Entwurf konnte nicht entfernt werden und bleibt als Einzeldokument bestehen."
-    }
+    },
+    "paymentTermValue": "Sofort fällig | {n} Tag | {n} Tage",
+    "generateQueued": "Erstellung gestartet — das Dokument erscheint gleich."
   },
   "creditNotes": {
     "title": "Gutschriften",

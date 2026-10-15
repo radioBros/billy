@@ -12,7 +12,7 @@
  *
  * All lifecycle transitions send the optimistic-concurrency `version` via
  * If-Match. `generate` is the ONE action that takes NO version (the route does
- * not resolve one) and returns an InvoiceDraftPayload | null.
+ * not resolve one) and returns { generated, pending? } | null (null = exhausted).
  *
  * `createdInvoiceIds` links to the documents this profile has already generated
  * (appended by the jobs layer); empty until the scheduler produces occurrences.
@@ -23,7 +23,7 @@ import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "@/api/client";
 import { useClientNames } from "@/composables/useClientNames";
 import { apiErrorReason } from "@/utils/validationMessages";
-import type { Client, InvoiceDraftPayload, LineItemInput, RecurringAutoSend, RecurringInterval, RecurringProfile } from "@/types/domain";
+import type { Client, LineItemInput, RecurringAutoSend, RecurringInterval, RecurringProfile } from "@/types/domain";
 import type { PlaceholderDocType } from "@billy/shared/template";
 import { minorToDisplay } from "@/utils/money";
 import { localizedCountryName } from "@/constants/countries";
@@ -35,6 +35,9 @@ import { useEInvoicing } from "@/stores/einvoicing";
 import LineItemEditor from "@/components/LineItemEditor.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import { useIsMobile } from "@/composables/useIsMobile";
+import validations from "@/constants/validations";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
+import { DEFAULT_PAYMENT_TERM_DAYS } from "@billy/shared/recurrence";
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -350,6 +353,10 @@ const editIntervalCount = ref<number>(1);
 const editDayOfMonth = ref<number | null>(null);
 const editEndDate = ref<string>("");
 const editMaxOccurrences = ref<number | null>(null);
+const editPaymentTermDays = ref<number | null>(DEFAULT_PAYMENT_TERM_DAYS);
+const editFormRef = ref<VuetifyFormRef | null>(null);
+/** Effective payment term shown on the page (absent ⇒ the default 7 days). */
+const paymentTermDays = computed<number>(() => profile.value?.paymentTermDays ?? DEFAULT_PAYMENT_TERM_DAYS);
 const editSubject = ref<string>("");
 const editNotes = ref<string>("");
 const editLineItems = ref<LineItemInput[]>([]);
@@ -392,6 +399,7 @@ const openEdit = (): void => {
   editDayOfMonth.value = p.dayOfMonth ?? null;
   editEndDate.value = p.endDate ?? "";
   editMaxOccurrences.value = p.maxOccurrences ?? null;
+  editPaymentTermDays.value = p.paymentTermDays ?? DEFAULT_PAYMENT_TERM_DAYS;
   editSubject.value = p.subject ?? "";
   editNotes.value = p.notes ?? "";
   // Stored lines carry computed totals; the editor takes raw inputs only.
@@ -410,6 +418,7 @@ const openEdit = (): void => {
 const saveEdit = async (): Promise<void> => {
   const p = profile.value;
   if (!p) return;
+  if (editFormRef.value && !(await editFormRef.value.validate()).valid) return;
   editSaving.value = true;
   editError.value = null;
   try {
@@ -424,6 +433,10 @@ const saveEdit = async (): Promise<void> => {
           editMaxOccurrences.value === null || editMaxOccurrences.value === undefined
             ? null
             : Number(editMaxOccurrences.value),
+        paymentTermDays:
+          editPaymentTermDays.value === null || editPaymentTermDays.value === undefined || String(editPaymentTermDays.value) === ""
+            ? null
+            : Number(editPaymentTermDays.value),
         subject: editSubject.value.trim() || null,
         notes: editNotes.value.trim() || null,
         lineItems: editLineItems.value,
@@ -448,10 +461,14 @@ const generate = async (): Promise<void> => {
   actionError.value = null;
   acting.value = true;
   try {
-    const payload = await api.post<InvoiceDraftPayload | null>(`/v1/recurring-profiles/${id.value}/generate`, undefined);
-    if (payload) {
+    // The worker produces the document; the API waits briefly for it.
+    const result = await api.post<{ generated: boolean; pending?: boolean } | null>(`/v1/recurring-profiles/${id.value}/generate`, undefined);
+    if (result?.generated) {
       toastText.value = t("recurring.generated");
       toastColor.value = "success";
+    } else if (result?.pending) {
+      toastText.value = t("recurring.generateQueued");
+      toastColor.value = "info";
     } else {
       toastText.value = t("recurring.generateExhausted");
       toastColor.value = "info";
@@ -560,6 +577,10 @@ onMounted(() => {
             <div>
               <div class="dm-label">{{ t("recurring.fields.maxOccurrences") }}</div>
               <div class="dm-meta__value">{{ profile.maxOccurrences ?? "\u2014" }}</div>
+            </div>
+            <div v-if="profile.documentType !== 'expense'">
+              <div class="dm-label">{{ t("recurring.fields.paymentTermDays") }}</div>
+              <div class="dm-meta__value">{{ t("recurring.paymentTermValue", { n: paymentTermDays }, paymentTermDays) }}</div>
             </div>
           </div>
         </section>
@@ -732,6 +753,7 @@ onMounted(() => {
           <v-col cols="6" md="3"><div class="text-caption">{{ t("recurring.columns.nextRun") }}</div>{{ profile.nextRunAt }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("recurring.fields.endDate") }}</div>{{ profile.endDate ?? "—" }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("recurring.fields.maxOccurrences") }}</div>{{ profile.maxOccurrences ?? "—" }}</v-col>
+          <v-col v-if="profile.documentType !== 'expense'" cols="6" md="3"><div class="text-caption">{{ t("recurring.fields.paymentTermDays") }}</div>{{ t("recurring.paymentTermValue", { n: paymentTermDays }, paymentTermDays) }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("recurring.occurrences") }}</div>{{ profile.occurrencesGenerated }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("recurring.lastRun") }}</div>{{ profile.lastRunAt ?? "—" }}</v-col>
         </v-row>
@@ -907,6 +929,7 @@ onMounted(() => {
             {{ editError }}
           </v-alert>
           <div class="text-caption text-medium-emphasis mb-3">{{ t("recurring.edit.hint") }}</div>
+          <v-form ref="editFormRef" @submit.prevent="saveEdit">
           <v-row>
             <v-col cols="12" md="4">
               <v-select
@@ -920,6 +943,7 @@ onMounted(() => {
               <v-text-field
                 v-model.number="editIntervalCount"
                 :label="t('recurring.fields.intervalCount')"
+                :rules="validations.required.intPositive"
                 type="number"
                 min="1"
                 density="comfortable"
@@ -961,6 +985,20 @@ onMounted(() => {
                 density="comfortable"
               />
             </v-col>
+            <v-col v-if="profile?.documentType !== 'expense'" cols="12" md="4">
+              <v-text-field
+                v-model.number="editPaymentTermDays"
+                :label="t('recurring.fields.paymentTermDays')"
+                :hint="t('recurring.fields.paymentTermDaysHint')"
+                persistent-hint
+                :rules="validations.intBetween(0, 365)"
+                type="number"
+                min="0"
+                max="365"
+                density="comfortable"
+                data-test="recurring-edit-payment-term"
+              />
+            </v-col>
             <v-col cols="12" md="4">
               <v-text-field
                 v-model="editSubject"
@@ -986,6 +1024,7 @@ onMounted(() => {
             density="comfortable"
             class="mt-4"
           />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />

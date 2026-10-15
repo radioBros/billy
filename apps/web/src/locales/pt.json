@@ -573,7 +573,9 @@
       "dayOfMonthHint": "Meses mais curtos usam o último dia.",
       "startDate": "Data de início",
       "endDate": "Data de fim",
-      "notes": "Notas"
+      "notes": "Notas",
+      "paymentTermDays": "Prazo de pagamento (dias)",
+      "paymentTermDaysHint": "Vencimento = data de emissão + estes dias (0 = na emissão)."
     },
     "lineCols": {
       "description": "Descrição",
@@ -622,7 +624,9 @@
       "message": "O rascunho passa a ser um perfil recorrente e a partir de agora os documentos são gerados pelo perfil — o próprio rascunho é removido. Se a data de início já chegou, o primeiro documento é gerado (e enviado automaticamente, se configurado) de imediato.",
       "confirm": "Converter",
       "draftKept": "Perfil recorrente criado — não foi possível remover o rascunho, que fica como documento único."
-    }
+    },
+    "paymentTermValue": "Na emissão | {n} dia | {n} dias",
+    "generateQueued": "Geração iniciada — o documento aparecerá dentro de momentos."
   },
   "creditNotes": {
     "title": "Notas de crédito",

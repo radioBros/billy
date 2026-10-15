@@ -573,7 +573,9 @@
       "dayOfMonthHint": "Les mois plus courts utilisent leur dernier jour.",
       "startDate": "Date de début",
       "endDate": "Date de fin",
-      "notes": "Notes"
+      "notes": "Notes",
+      "paymentTermDays": "Délai de paiement (jours)",
+      "paymentTermDaysHint": "Échéance = date d'émission + ce nombre de jours (0 = à l'émission)."
     },
     "lineCols": {
       "description": "Description",
@@ -622,7 +624,9 @@
       "message": "Le brouillon devient un profil récurrent et c'est désormais le profil qui génère les documents — le brouillon lui-même est supprimé. Si la date de début est déjà atteinte, le premier document est généré (et envoyé automatiquement, si configuré) immédiatement.",
       "confirm": "Convertir",
       "draftKept": "Profil récurrent créé — le brouillon n'a pas pu être supprimé et reste un document ponctuel."
-    }
+    },
+    "paymentTermValue": "À l'émission | {n} jour | {n} jours",
+    "generateQueued": "Génération lancée — le document apparaîtra dans un instant."
   },
   "creditNotes": {
     "title": "Avoirs",

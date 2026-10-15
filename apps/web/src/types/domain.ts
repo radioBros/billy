@@ -351,6 +351,8 @@ export interface RecurringProfile extends BaseDoc {
   nextRunAt: string;
   endDate?: string | null;
   maxOccurrences?: number | null;
+  /** Days from issue to due on each generated document (null ⇒ default 7). */
+  paymentTermDays?: number | null;
   occurrencesGenerated: number;
   status: RecurringProfileStatus;
   lastRunAt?: string | null;

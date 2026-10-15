@@ -25,6 +25,9 @@ export interface CreateProfileArgs {
   recurrence: RecurrenceConfig;
   subject?: string | null;
   notes?: string | null;
+  /** Days from issue to due on each generated document (the source form's
+   *  issue→due gap). Omit ⇒ server default (7). */
+  paymentTermDays?: number | null;
   /** Optional auto-send config set at creation; usually configured later on the
    *  profile's detail page. Omit ⇒ no auto-send. */
   autoSend?: RecurringAutoSend | null;
@@ -59,6 +62,7 @@ export const useRecurringProfile = () => {
       lineItems: args.lineItems,
       subject: args.subject ?? null,
       notes: args.notes ?? null,
+      ...(args.paymentTermDays != null ? { paymentTermDays: args.paymentTermDays } : {}),
       // Auto-send set on the toggle wins; explicit arg kept for callers that
       // configure it separately.
       ...(args.autoSend ?? recurrence.autoSend

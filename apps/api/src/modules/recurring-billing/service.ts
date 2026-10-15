@@ -52,6 +52,8 @@ export interface RecurringProfileServiceDeps extends ServiceDeps<RecurringProfil
    * for the next 15-minute repeatable tick. Optional (tests / queue-less boots).
    */
   enqueueTick?: (profile: { id: string; nextRunAt: string; accountId: string }) => Promise<void>;
+  /** Enqueue a worker "generate now" run for the profile's next occurrence. */
+  enqueueGenerateNow?: (profile: { id: string; nextRunAt: string; accountId: string }) => Promise<void>;
 }
 
 /**
@@ -68,6 +70,7 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
   readonly #db?: Db;
   readonly #minio?: MinioConn;
   readonly #enqueueTick?: RecurringProfileServiceDeps["enqueueTick"];
+  readonly #enqueueGenerateNow?: RecurringProfileServiceDeps["enqueueGenerateNow"];
 
   constructor(deps: RecurringProfileServiceDeps) {
     super(deps);
@@ -75,6 +78,7 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
     this.#db = deps.db;
     this.#minio = deps.minio;
     this.#enqueueTick = deps.enqueueTick;
+    this.#enqueueGenerateNow = deps.enqueueGenerateNow;
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -125,6 +129,7 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
       nextRunAt: firstRun,
       endDate: input.endDate ?? null,
       maxOccurrences: input.maxOccurrences ?? null,
+      paymentTermDays: input.paymentTermDays ?? null,
       occurrencesGenerated: 0,
       status: "active",
       lastRunAt: null,
@@ -235,6 +240,51 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
    * a prior run satisfies `scheduledDate <= lastRunAt` → OCCURRENCE_ALREADY_GENERATED.
    * A duplicate enqueue (crash/replay/run-now) that resets nextRunAt to a past date
    * therefore cannot produce a second invoice for that occurrence.
+   */
+  /**
+   * "Generate now" — create the profile's NEXT occurrence immediately. The real
+   * document (number, payment term, auto-send, SdI) is produced by the worker's
+   * generator, the same code path as the schedule; this enqueues it and waits
+   * briefly for the profile to advance so the UI can refresh.
+   *
+   * Returns `null` when the profile was already exhausted (it is completed, as
+   * before), `{ generated: true }` once the worker produced the document, or
+   * `{ generated: false, pending: true }` if it is still queued after the wait.
+   */
+  async requestGenerateNow(
+    ctx: AuthContext,
+    profileId: string,
+    opts: { timeoutMs?: number; pollMs?: number } = {},
+  ): Promise<{ generated: boolean; pending?: boolean } | null> {
+    const profile = await this.get(ctx, profileId);
+    if (profile.status !== "active") {
+      throw new AppError("RECURRING_PROFILE_INACTIVE", `Profile is ${profile.status}, not active`);
+    }
+    if (this.isExhausted(profile, profile.nextRunAt)) {
+      const done = await this.repo.replaceState(ctx, profileId, profile.version, { status: "completed" });
+      await this.emit(this.event("recurring.profile_completed", ctx, done.id, { reason: "exhausted" }));
+      return null;
+    }
+    if (!this.#enqueueGenerateNow) {
+      throw new AppError("QUEUE_UNAVAILABLE", "Background jobs are unavailable; try again shortly");
+    }
+    await this.#enqueueGenerateNow({ id: profile.id, nextRunAt: profile.nextRunAt, accountId: ctx.accountId });
+
+    const timeoutMs = opts.timeoutMs ?? 10_000;
+    const pollMs = opts.pollMs ?? 300;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, pollMs));
+      const now = await this.get(ctx, profileId);
+      if (now.occurrencesGenerated > profile.occurrencesGenerated) return { generated: true };
+    }
+    return { generated: false, pending: true };
+  }
+
+  /**
+   * Schedule-only advance (idempotency/exhaustion rules) WITHOUT creating a
+   * document. Not routed: "Generate now" uses `requestGenerateNow`, which goes
+   * through the worker generator so a real document is always produced.
    */
   async generateOccurrence(ctx: AuthContext, profileId: string): Promise<InvoiceDraftPayload | null> {
     const profile = await this.get(ctx, profileId);

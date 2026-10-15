@@ -209,6 +209,7 @@ export {
   advanceRecurrence,
   firstRunOnOrAfter,
   daysInMonth,
+  DEFAULT_PAYMENT_TERM_DAYS,
   type RecurringInterval as SharedRecurringInterval,
 } from "./recurrence.js";
 

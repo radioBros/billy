@@ -149,7 +149,15 @@ const makeDb = (
       if (name === "recurringProfiles") {
         return {
           find: () => ({ toArray: () => Promise.resolve(profiles) }),
-          findOne: (filter: { id: string }) => Promise.resolve(profiles.find((x) => (x as { id: string }).id === filter.id) ?? null),
+          // Honors simple equality filters (null ⇒ absent/null) so replay guards are testable.
+          findOne: (filter: Record<string, unknown>) =>
+            Promise.resolve(
+              profiles.find((x) =>
+                Object.entries(filter).every(([k, v]) =>
+                  v === null ? (x as Record<string, unknown>)[k] == null : typeof v === "object" ? true : (x as Record<string, unknown>)[k] === v,
+                ),
+              ) ?? null,
+            ),
           findOneAndUpdate: (filter: { id: string; version: number; status: string }, update: { $set: Record<string, unknown> }) => {
             const p = profiles.find((x) => (x as { id: string }).id === filter.id) as Record<string, unknown> | undefined;
             if (!p || p.version !== filter.version || p.status !== "active") return Promise.resolve(null);
@@ -512,5 +520,62 @@ describe("recurringTickHandler — scheduled finalize: fiscal correctness (e-inv
     const result = await recurringTickHandler({} as never, stubCtx());
     expect(result.finalized).toBe(0);
     expect(finalizedCalls).toHaveLength(0);
+  });
+});
+
+describe("recurringTickHandler — payment term + generate-now", () => {
+  const baseProfile = (over: Record<string, unknown> = {}) => ({
+    id: "p1", version: 1, accountId: "default", clientId: "c1", currency: "EUR",
+    interval: "monthly", intervalCount: 1, nextRunAt: "2026-07-15",
+    endDate: null, maxOccurrences: null, occurrencesGenerated: 0, status: "active",
+    lineItems: [{ lineSubtotalMinor: 10000, lineDiscountMinor: 0, lineTaxMinor: 0, lineTotalMinor: 10000 }],
+    ...over,
+  });
+
+  it("dates a generated invoice due 7 days after issue when the profile stores no term", async () => {
+    const { db, insertedInvoices } = makeDb([], [baseProfile()]);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices[0]).toMatchObject({ issueDate: "2026-07-15", dueDate: "2026-07-22" });
+  });
+
+  it("uses the profile's stored paymentTermDays (0 = due on issue)", async () => {
+    const profiles = [baseProfile({ paymentTermDays: 30 }), baseProfile({ id: "p2", paymentTermDays: 0 })];
+    const { db, insertedInvoices } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    await recurringTickHandler({} as never, stubCtx());
+    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p1")).toMatchObject({ dueDate: "2026-08-14" });
+    expect(insertedInvoices.find((d) => d.sourceRecurringProfileId === "p2")).toMatchObject({ dueDate: "2026-07-15" });
+  });
+
+  it("generate-now creates the NEXT occurrence even before it is due, and advances the profile", async () => {
+    const profiles = [baseProfile({ nextRunAt: "2999-01-15" })];
+    const { db, insertedInvoices } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const res = await recurringTickHandler(
+      { recurringProfileId: "p1", scheduledOccurrenceDate: "2999-01-15", accountId: "default", generateNow: true },
+      stubCtx(),
+    );
+    expect(res.generated).toBe(1);
+    expect(insertedInvoices).toHaveLength(1);
+    expect(insertedInvoices[0]).toMatchObject({ issueDate: "2999-01-15", dueDate: "2999-01-22", sourceRecurringProfileId: "p1" });
+    expect(profiles[0]!.nextRunAt).toBe("2999-02-15");
+    expect(profiles[0]!.occurrencesGenerated).toBe(1);
+  });
+
+  it("a replayed/stale generate-now (nextRunAt already moved on) creates nothing", async () => {
+    const profiles = [baseProfile({ nextRunAt: "2999-02-15" })];
+    const { db, insertedInvoices } = makeDb([], profiles);
+    currentDb = db;
+    const { recurringTickHandler } = await import("@/handlers/recurring.js");
+    const res = await recurringTickHandler(
+      { recurringProfileId: "p1", scheduledOccurrenceDate: "2999-01-15", accountId: "default", generateNow: true },
+      stubCtx(),
+    );
+    expect(res.generated).toBe(0);
+    expect(insertedInvoices).toHaveLength(0);
   });
 });

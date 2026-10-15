@@ -46,6 +46,9 @@ export interface RecurringProfile extends BaseDoc {
   nextRunAt: string; // DateOnly
   endDate?: string | null; // DateOnly — no occurrence scheduled after this
   maxOccurrences?: number | null; // stop after N generated
+  /** Days from issue to due on each generated invoice/proforma. Absent ⇒
+   *  DEFAULT_PAYMENT_TERM_DAYS (7, the invoice form's default). */
+  paymentTermDays?: number | null;
 
   occurrencesGenerated: number;
   status: RecurringProfileStatus;

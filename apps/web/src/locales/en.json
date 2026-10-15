@@ -573,7 +573,9 @@
       "dayOfMonthHint": "Shorter months use their last day.",
       "startDate": "Start date",
       "endDate": "End date",
-      "notes": "Notes"
+      "notes": "Notes",
+      "paymentTermDays": "Payment term (days)",
+      "paymentTermDaysHint": "Due date = issue date + this many days (0 = due on issue)."
     },
     "lineCols": {
       "description": "Description",
@@ -622,7 +624,9 @@
       "message": "The draft becomes a recurring profile and the profile generates the documents from now on — the draft itself is removed. If the start date is already due, the first document is generated (and auto-sent, if configured) right away.",
       "confirm": "Convert",
       "draftKept": "Recurring profile created — the draft could not be removed and stays as a one-off document."
-    }
+    },
+    "paymentTermValue": "Due on issue | {n} day | {n} days",
+    "generateQueued": "Generation started — the document will appear in a moment."
   },
   "creditNotes": {
     "title": "Credit notes",

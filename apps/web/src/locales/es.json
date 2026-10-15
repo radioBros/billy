@@ -573,7 +573,9 @@
       "dayOfMonthHint": "Los meses más cortos usan su último día.",
       "startDate": "Fecha de inicio",
       "endDate": "Fecha de fin",
-      "notes": "Notas"
+      "notes": "Notas",
+      "paymentTermDays": "Plazo de pago (días)",
+      "paymentTermDaysHint": "Vencimiento = fecha de emisión + estos días (0 = al emitir)."
     },
     "lineCols": {
       "description": "Descripción",
@@ -622,7 +624,9 @@
       "message": "El borrador se convierte en un perfil recurrente y a partir de ahora los documentos los genera el perfil — el borrador se elimina. Si la fecha de inicio ya ha llegado, el primer documento se genera (y se envía automáticamente, si está configurado) de inmediato.",
       "confirm": "Convertir",
       "draftKept": "Perfil recurrente creado — el borrador no se pudo eliminar y queda como documento único."
-    }
+    },
+    "paymentTermValue": "Al emitir | {n} día | {n} días",
+    "generateQueued": "Generación iniciada — el documento aparecerá en un momento."
   },
   "creditNotes": {
     "title": "Notas de crédito",
