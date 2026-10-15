@@ -33,9 +33,28 @@ const { needRefresh, updateServiceWorker } = useRegisterSW({
   },
 });
 const reloading = ref(false);
+/** Fallback reload delay when no controller change is observed. */
+const UPDATE_RELOAD_FALLBACK_MS = 4000;
 const applyUpdate = async (): Promise<void> => {
   reloading.value = true;
-  await updateServiceWorker(true); // skip-waiting + reload
+  // The plugin only reloads on Workbox's `controlling` event with isUpdate=true,
+  // which never fires for a page that was NOT controlled at load (e.g. after a
+  // hard refresh, which bypasses the SW): the new SW activates + claims the page
+  // and the button spun forever. Reload ourselves on ANY controller change, and
+  // as a last resort after a short timeout (the new SW is active by then).
+  let done = false;
+  const reload = (): void => {
+    if (done) return;
+    done = true;
+    window.location.reload();
+  };
+  navigator.serviceWorker?.addEventListener("controllerchange", reload, { once: true });
+  window.setTimeout(reload, UPDATE_RELOAD_FALLBACK_MS);
+  try {
+    await updateServiceWorker(true); // posts SKIP_WAITING to the waiting SW
+  } catch {
+    reload();
+  }
 };
 
 // ── Install ──────────────────────────────────────────────────────────────────
