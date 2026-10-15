@@ -220,6 +220,17 @@ const cancelDialog = (): void => {
   background: rgb(var(--v-theme-surface));
 }
 
+/* Phones: a full-width pill floating just above the bottom navigation. */
+@media (max-width: 599.98px) {
+  .timer-overlay {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--billy-bottom-nav-h, 64px) + 12px);
+    min-width: 0;
+    border-radius: 16px !important;
+  }
+}
+
 .timer-overlay__time {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;

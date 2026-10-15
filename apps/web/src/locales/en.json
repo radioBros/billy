@@ -8,7 +8,12 @@
     "configure_columns": "Configure columns",
     "show": "Show",
     "entries": "entries",
-    "showing_items": "Showing {from}–{to} of {total}"
+    "showing_items": "Showing {from}–{to} of {total}",
+    "filters": "Filters & sort",
+    "sortBy": "Sort by",
+    "resultsCount": "No results | {n} result | {n} results",
+    "showResults": "Show results | Show {n} result | Show {n} results",
+    "endOfList": "You're all caught up"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -33,7 +38,14 @@
     "primaryNav": "Primary navigation",
     "mainContent": "Main content",
     "signOut": "Sign out",
-    "theme": "Theme: {mode}. Activate to change."
+    "theme": "Theme: {mode}. Activate to change.",
+    "more": "More",
+    "appearance": "Appearance",
+    "themeModes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
   },
   "account": {
     "label": "Account",
@@ -2102,5 +2114,19 @@
       "tipExpand": "Show e-invoice (SdI) details",
       "tipCollapse": "Hide e-invoice (SdI) details"
     }
+  },
+  "formSteps": {
+    "next": "Next",
+    "counter": "Step {n} of {total}",
+    "details": "Details",
+    "items": "Line items",
+    "notes": "Notes & options",
+    "review": "Review",
+    "contact": "Contact",
+    "address": "Address",
+    "billing": "Billing",
+    "schedule": "Schedule",
+    "content": "Content",
+    "attachments": "Attachments"
   }
 }

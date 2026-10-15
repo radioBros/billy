@@ -8,7 +8,12 @@
     "configure_columns": "Configura colonne",
     "show": "Mostra",
     "entries": "voci",
-    "showing_items": "Visualizzati {from}–{to} di {total}"
+    "showing_items": "Visualizzati {from}–{to} di {total}",
+    "filters": "Filtri e ordinamento",
+    "sortBy": "Ordina per",
+    "resultsCount": "Nessun risultato | {n} risultato | {n} risultati",
+    "showResults": "Mostra risultati | Mostra {n} risultato | Mostra {n} risultati",
+    "endOfList": "Hai visto tutto"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -33,7 +38,14 @@
     "primaryNav": "Navigazione principale",
     "mainContent": "Contenuto principale",
     "signOut": "Esci",
-    "theme": "Tema: {mode}. Attiva per cambiare."
+    "theme": "Tema: {mode}. Attiva per cambiare.",
+    "more": "Altro",
+    "appearance": "Aspetto",
+    "themeModes": {
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "system": "Sistema"
+    }
   },
   "account": {
     "label": "Account",
@@ -2102,5 +2114,19 @@
       "tipExpand": "Mostra i dettagli della fattura elettronica (SdI)",
       "tipCollapse": "Nascondi i dettagli della fattura elettronica (SdI)"
     }
+  },
+  "formSteps": {
+    "next": "Avanti",
+    "counter": "Passo {n} di {total}",
+    "details": "Dettagli",
+    "items": "Righe",
+    "notes": "Note e opzioni",
+    "review": "Riepilogo",
+    "contact": "Contatti",
+    "address": "Indirizzo",
+    "billing": "Fatturazione",
+    "schedule": "Pianificazione",
+    "content": "Contenuto",
+    "attachments": "Allegati"
   }
 }

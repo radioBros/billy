@@ -8,7 +8,12 @@
     "configure_columns": "Configurar colunas",
     "show": "Mostrar",
     "entries": "registos",
-    "showing_items": "A mostrar {from}–{to} de {total}"
+    "showing_items": "A mostrar {from}–{to} de {total}",
+    "filters": "Filtros e ordenação",
+    "sortBy": "Ordenar por",
+    "resultsCount": "Sem resultados | {n} resultado | {n} resultados",
+    "showResults": "Ver resultados | Ver {n} resultado | Ver {n} resultados",
+    "endOfList": "Não há mais itens"
   },
   "nav": {
     "dashboard": "Painel",
@@ -33,7 +38,14 @@
     "primaryNav": "Navegação principal",
     "mainContent": "Conteúdo principal",
     "signOut": "Terminar sessão",
-    "theme": "Tema: {mode}. Ative para alterar."
+    "theme": "Tema: {mode}. Ative para alterar.",
+    "more": "Mais",
+    "appearance": "Aparência",
+    "themeModes": {
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema"
+    }
   },
   "account": {
     "label": "Conta",
@@ -2102,5 +2114,19 @@
       "tipExpand": "Mostrar detalhes da fatura eletrónica (SdI)",
       "tipCollapse": "Ocultar detalhes da fatura eletrónica (SdI)"
     }
+  },
+  "formSteps": {
+    "next": "Seguinte",
+    "counter": "Passo {n} de {total}",
+    "details": "Detalhes",
+    "items": "Linhas",
+    "notes": "Notas e opções",
+    "review": "Revisão",
+    "contact": "Contacto",
+    "address": "Morada",
+    "billing": "Faturação",
+    "schedule": "Agendamento",
+    "content": "Conteúdo",
+    "attachments": "Anexos"
   }
 }

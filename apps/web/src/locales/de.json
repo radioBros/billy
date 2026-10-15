@@ -8,7 +8,12 @@
     "configure_columns": "Spalten konfigurieren",
     "show": "Anzeigen",
     "entries": "Einträge",
-    "showing_items": "{from}–{to} von {total} werden angezeigt"
+    "showing_items": "{from}–{to} von {total} werden angezeigt",
+    "filters": "Filter & Sortierung",
+    "sortBy": "Sortieren nach",
+    "resultsCount": "Keine Ergebnisse | {n} Ergebnis | {n} Ergebnisse",
+    "showResults": "Ergebnisse anzeigen | {n} Ergebnis anzeigen | {n} Ergebnisse anzeigen",
+    "endOfList": "Alles geladen"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -33,7 +38,14 @@
     "primaryNav": "Hauptnavigation",
     "mainContent": "Hauptinhalt",
     "signOut": "Abmelden",
-    "theme": "Design: {mode}. Zum Ändern aktivieren."
+    "theme": "Design: {mode}. Zum Ändern aktivieren.",
+    "more": "Mehr",
+    "appearance": "Darstellung",
+    "themeModes": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    }
   },
   "account": {
     "label": "Konto",
@@ -2102,5 +2114,19 @@
       "tipExpand": "Details zur E-Rechnung (SdI) anzeigen",
       "tipCollapse": "Details zur E-Rechnung (SdI) ausblenden"
     }
+  },
+  "formSteps": {
+    "next": "Weiter",
+    "counter": "Schritt {n} von {total}",
+    "details": "Details",
+    "items": "Positionen",
+    "notes": "Notizen & Optionen",
+    "review": "Überprüfen",
+    "contact": "Kontakt",
+    "address": "Adresse",
+    "billing": "Abrechnung",
+    "schedule": "Zeitplan",
+    "content": "Inhalt",
+    "attachments": "Anhänge"
   }
 }

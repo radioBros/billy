@@ -26,7 +26,8 @@ import { isApiCode } from "@/composables/useEInvoice";
 import { useToast } from "@/composables/useToast";
 import { useEInvoicing } from "@/stores/einvoicing";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import AutocompleteSearch from "@/components/AutocompleteSearch.vue";
@@ -72,6 +73,16 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("invoices.columns.due"), key: "amountDueMinor", sortable: false, align: "end" },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: number + customer, status chips + total (due underneath), dates. */
+const cardLayout: ServerTableCardLayout = {
+  title: "invoiceNumber",
+  subtitle: "clientId",
+  status: ["status", "einvoice"],
+  amount: "grandTotalMinor",
+  amountCaption: "amountDueMinor",
+  meta: ["issueDate", "dueDate"],
+};
 
 const { cloneRow } = useClonePrefill();
 
@@ -277,13 +288,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("invoices.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'invoice-create' }">
-        {{ t("invoices.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('invoices.title')"
+      :primary="{ label: t('invoices.new'), icon: 'mdi-plus', to: { name: 'invoice-create' } }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -314,6 +322,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -334,9 +343,9 @@ onMounted(() => {
         <template #[`item.status`]="{ item }">
           <StatusChip :status="item.status" />
         </template>
-        <template #[`item.einvoice`]="{ item }">
+        <template #[`item.einvoice`]="{ item, card }">
           <EInvoiceStatusChip v-if="item.einvoice" :status="item.einvoice.status" />
-          <span v-else>&mdash;</span>
+          <span v-else-if="!card">&mdash;</span>
         </template>
         <template #[`item.grandTotalMinor`]="{ item }">
           {{ minorToDisplay(item.grandTotalMinor, item.currency) }}

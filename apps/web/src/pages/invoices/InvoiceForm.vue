@@ -24,6 +24,9 @@ import SendDocumentModal from "@/components/SendDocumentModal.vue";
 import EInvoiceSubmitStep from "@/components/einvoicing/EInvoiceSubmitStep.vue";
 import EInvoiceScheduleOption from "@/components/einvoicing/EInvoiceScheduleOption.vue";
 import FormActions from "@/components/FormActions.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
@@ -43,6 +46,13 @@ const einvoicing = useEInvoicing();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-account-outline" },
+  { key: "items", title: t("formSteps.items"), icon: "mdi-format-list-bulleted" },
+  { key: "notes", title: t("formSteps.notes"), icon: "mdi-note-text-outline" },
+]);
 
 // Recurring is a property of a NEW invoice, set via RecurringToggle (create only).
 const recurrence = ref<RecurrenceConfig | null>(null);
@@ -418,10 +428,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("invoices.editTitle") : t("invoices.newTitle") }}</h1>
-    </div>
+    <PageHeader back :title="isEdit ? t('invoices.editTitle') : t('invoices.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -436,6 +443,8 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
+      <FormSteps :steps="formSteps">
+      <template #details>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <v-row>
@@ -502,7 +511,9 @@ onMounted(() => {
         </v-row>
         </v-card-text>
       </v-card>
+      </template>
 
+      <template #items>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <ClientLanguageHint :locale="clientLocale" />
@@ -537,7 +548,9 @@ onMounted(() => {
         </v-alert>
         </v-card-text>
       </v-card>
+      </template>
 
+      <template #notes>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <ClientLanguageHint :locale="clientLocale" />
@@ -568,7 +581,9 @@ onMounted(() => {
         doc-type="invoice"
         :default-to="clientEmail"
       />
+      </template>
 
+      <template #actions>
       <FormActions>
         <template #cancel>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
@@ -591,6 +606,8 @@ onMounted(() => {
           {{ isEdit ? t("common.saveChanges") : t("invoices.create") }}
         </v-btn>
       </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
 
     <DocumentPreviewDialog v-model="previewOpen" :html="previewHtml" :loading="previewLoading" />

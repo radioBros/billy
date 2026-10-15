@@ -17,12 +17,13 @@
  * awkwardly) on narrow screens, and a single "All year" toggle instead of a
  * separate button column.
  */
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { minorToDisplay } from "@/utils/money";
 import { usePeriodStore } from "@/stores/period";
 import { MONTH_ABBR } from "@/components/dashboard/types";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 interface MonthlyTotalsPoint {
   month: string;
@@ -59,6 +60,7 @@ const load = async (): Promise<void> => {
     });
     if (seq !== requestSeq) return;
     rows.value = Array.isArray(data) ? data : [];
+    void nextTick(revealActiveMonth);
   } catch (err) {
     if (seq !== requestSeq) return;
     rows.value = [];
@@ -106,7 +108,11 @@ const endDrag = (): void => {
   window.removeEventListener("pointerup", endDrag);
 };
 
+const isMobile = useIsMobile();
+
 const onCellPointerDown = (n: number): void => {
+  // Phones scroll the strip horizontally — no drag-paint there, a tap toggles.
+  if (isMobile.value) return;
   dragging.value = true;
   if (allSelected.value) {
     // From "all year", start a fresh selection of just this month.
@@ -122,6 +128,36 @@ const onCellPointerDown = (n: number): void => {
 
 const onCellPointerEnter = (n: number): void => {
   if (dragging.value) paint(n);
+};
+
+/** Desktop press starts a paint (default prevented so text never selects);
+ *  phones keep the native gesture so the strip can scroll. */
+const onPointerDown = (e: PointerEvent, n: number): void => {
+  if (isMobile.value) return;
+  e.preventDefault();
+  onCellPointerDown(n);
+};
+
+/** Phone tap: toggle one month (from "all year" → just this month). */
+const onCellTap = (n: number): void => {
+  if (!isMobile.value) return;
+  if (allSelected.value) {
+    months.value = [n];
+    return;
+  }
+  paintSelect.value = !months.value.includes(n);
+  paint(n);
+};
+
+// Phone strip: bring the current (or first selected) month into view once data
+// is on screen, so the user lands on "now" instead of January.
+const cellsRef = ref<HTMLElement | null>(null);
+const revealActiveMonth = (): void => {
+  const el = cellsRef.value;
+  if (!el || !isMobile.value) return;
+  const target = months.value[0] ?? (period.year === new Date().getFullYear() ? new Date().getMonth() + 1 : 1);
+  const cell = el.querySelector<HTMLElement>(`[data-month="${target}"]`);
+  if (cell) el.scrollLeft = Math.max(0, cell.offsetLeft - el.clientWidth / 2 + cell.clientWidth / 2);
 };
 
 /** The dominant currency's total for a month + a hint of any extra currencies. */
@@ -157,11 +193,11 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
 </script>
 
 <template>
-  <v-card variant="flat" border rounded="lg" class="period-bar mb-4">
+  <v-card variant="flat" border rounded="lg" class="period-bar mb-4" :class="{ 'period-bar--mobile': isMobile }">
     <div v-if="errorMessage" class="pa-3 text-caption text-error">{{ errorMessage }}</div>
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" />
 
-    <div class="period-bar__cells">
+    <div ref="cellsRef" class="period-bar__cells">
       <!-- Month cells: month name above count + € body, coloured rail marks the
            active month(s). Press+drag paints a selection; a click toggles one. -->
       <button
@@ -171,7 +207,9 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
           class="period-cell"
           :class="{ 'period-cell--on': isSelected(row.monthNumber) && !allSelected }"
           :aria-pressed="isSelected(row.monthNumber)"
-          @pointerdown.prevent="onCellPointerDown(row.monthNumber)"
+          :data-month="row.monthNumber"
+          @click="onCellTap(row.monthNumber)"
+          @pointerdown="onPointerDown($event, row.monthNumber)"
           @pointerenter="onCellPointerEnter(row.monthNumber)"
         >
           <span class="period-cell__head">{{ monthLabel(row.monthNumber) }}</span>
@@ -299,6 +337,43 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
 .period-cell--all.period-cell--on {
   background: rgba(var(--v-theme-success), 0.1);
 }
+/* ── Phone: a horizontally scrollable strip; "All year" pinned on the left. ── */
+.period-bar--mobile .period-bar__cells {
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.period-bar--mobile .period-bar__cells::-webkit-scrollbar {
+  display: none;
+}
+.period-bar--mobile .period-cell {
+  flex: 0 0 auto;
+  width: 84px;
+  touch-action: pan-x;
+  scroll-snap-align: start;
+}
+.period-bar--mobile .period-cell__head {
+  font-size: 0.8125rem;
+}
+.period-bar--mobile .period-cell__money {
+  font-size: 0.9375rem;
+}
+.period-bar--mobile .period-cell--all {
+  order: -1;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 112px;
+  border-left: none;
+  border-right: 2px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  background: rgb(var(--v-theme-surface));
+  background-image: linear-gradient(rgba(var(--v-theme-primary), 0.04), rgba(var(--v-theme-primary), 0.04));
+}
+.period-bar--mobile .period-cell--all.period-cell--on {
+  background-image: linear-gradient(rgba(var(--v-theme-success), 0.12), rgba(var(--v-theme-success), 0.12));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .period-cell,
   .period-cell__rail {
