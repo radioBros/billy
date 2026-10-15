@@ -8,6 +8,7 @@
 import { useI18n } from "vue-i18n";
 import type { EInvoicePreflightIssue } from "@/types/domain";
 import { fixHref } from "@/composables/useEInvoice";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 defineProps<{
   issues: EInvoicePreflightIssue[];
@@ -16,6 +17,7 @@ defineProps<{
 }>();
 
 const { t, te } = useI18n();
+const isMobile = useIsMobile();
 
 const message = (issue: EInvoicePreflightIssue): string => {
   const key = `einvoicing.issues.${issue.code}`;
@@ -29,6 +31,7 @@ const message = (issue: EInvoicePreflightIssue): string => {
     <template #default="{ item: issue }">
       <div
         class="d-flex align-center py-1"
+        :class="{ 'issue-m': isMobile }"
         style="gap: 8px"
         :data-test="`issue-${issue.code}`"
       >
@@ -55,3 +58,22 @@ const message = (issue: EInvoicePreflightIssue): string => {
     </template>
   </v-virtual-scroll>
 </template>
+
+<style scoped>
+/* Phone: long messages wrap beside the icon; "Fix" stays a 44px touch target. */
+.issue-m {
+  align-items: flex-start !important;
+}
+.issue-m > .v-icon {
+  margin-top: 2px;
+}
+.issue-m > .text-body-2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.issue-m > .v-btn {
+  flex: 0 0 auto;
+  height: 44px !important;
+  margin: -10px -8px -10px 0;
+}
+</style>

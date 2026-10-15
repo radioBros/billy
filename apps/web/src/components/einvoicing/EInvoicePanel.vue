@@ -16,6 +16,7 @@ import { apiErrorReason } from "@/utils/validationMessages";
 import type { EInvoiceInfo, EInvoiceKind } from "@/types/domain";
 import EInvoiceStatusChip from "@/components/einvoicing/EInvoiceStatusChip.vue";
 import EInvoiceSubmitStep from "@/components/einvoicing/EInvoiceSubmitStep.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import {
   einvoiceFileUrl,
   getEInvoice,
@@ -40,6 +41,7 @@ const emit = defineEmits<{
 }>();
 
 const { t, te } = useI18n();
+const isMobile = useIsMobile();
 const { polling, start: startPolling } = useEInvoicePolling();
 
 const info = ref<EInvoiceInfo | null>(null);
@@ -163,9 +165,35 @@ watch(() => [props.documentId, props.refreshKey], () => void load());
 </script>
 
 <template>
-  <v-sheet v-if="visible && info" rounded="lg" class="einvoice-sheet pa-3 mb-4" data-test="einvoice-panel">
+  <v-sheet
+    v-if="visible && info"
+    rounded="lg"
+    class="einvoice-sheet pa-3 mb-4"
+    :class="{ 'einvoice-sheet--mobile': isMobile }"
+    data-test="einvoice-panel"
+  >
     <div>
-      <div class="d-flex align-center mb-2" style="gap: 8px; flex-wrap: wrap">
+      <!-- Phone: chip + icon-only refresh on one row, the "sent on" line under it. -->
+      <div v-if="isMobile" class="einv-m__head">
+        <div class="einv-m__head-row">
+          <EInvoiceStatusChip :status="info.status" />
+          <v-progress-circular v-if="polling" indeterminate size="14" width="2" />
+          <v-spacer />
+          <v-btn
+            icon="mdi-refresh"
+            variant="text"
+            class="einv-m__refresh"
+            :loading="loading"
+            :aria-label="t('einvoicing.panel.refresh')"
+            data-test="einvoice-refresh"
+            @click="load"
+          />
+        </div>
+        <div v-if="info.submittedAt" class="einv-m__sent" data-test="einvoice-sent-line">
+          {{ t("einvoicing.panel.sentOn", { date: fmt(info.submittedAt) }) }}
+        </div>
+      </div>
+      <div v-else class="d-flex align-center mb-2" style="gap: 8px; flex-wrap: wrap">
         <EInvoiceStatusChip :status="info.status" />
         <v-progress-circular v-if="polling" indeterminate size="14" width="2" />
         <span v-if="info.submittedAt" class="text-caption text-medium-emphasis" data-test="einvoice-sent-line">
@@ -226,7 +254,22 @@ watch(() => [props.documentId, props.refreshKey], () => void load());
         @update:model-value="toggleSubmitOnFinalize"
       />
 
-      <v-row v-if="info.identificativoSdI || info.fileName || info.submittedAt" dense class="mb-2">
+      <!-- Phone: compact label/value grid (file name spans the row). -->
+      <div v-if="isMobile && (info.identificativoSdI || info.fileName || info.submittedAt)" class="einv-m__facts">
+        <div v-if="info.identificativoSdI">
+          <div class="einv-m__label">{{ t("einvoicing.panel.identificativoSdI") }}</div>
+          <div class="einv-m__value" data-test="einvoice-sdi-id">{{ info.identificativoSdI }}</div>
+        </div>
+        <div v-if="info.submittedAt">
+          <div class="einv-m__label">{{ t("einvoicing.panel.submittedAt") }}</div>
+          <div class="einv-m__value">{{ fmt(info.submittedAt) }}</div>
+        </div>
+        <div v-if="info.fileName" class="einv-m__wide">
+          <div class="einv-m__label">{{ t("einvoicing.panel.fileName") }}</div>
+          <div class="einv-m__value">{{ info.fileName }}</div>
+        </div>
+      </div>
+      <v-row v-else-if="info.identificativoSdI || info.fileName || info.submittedAt" dense class="mb-2">
         <v-col v-if="info.identificativoSdI" cols="12" sm="4">
           <div class="text-caption">{{ t("einvoicing.panel.identificativoSdI") }}</div>
           <span data-test="einvoice-sdi-id">{{ info.identificativoSdI }}</span>
@@ -246,8 +289,13 @@ watch(() => [props.documentId, props.refreshKey], () => void load());
       </div>
 
       <template v-if="timeline.length > 0">
-        <div class="text-caption mb-1">{{ t("einvoicing.panel.history") }}</div>
-        <v-virtual-scroll :items="timeline" max-height="260" data-test="einvoice-timeline">
+        <div class="text-caption mb-1" :class="{ 'einv-m__label': isMobile }">{{ t("einvoicing.panel.history") }}</div>
+        <v-virtual-scroll
+          :items="timeline"
+          :max-height="isMobile ? 360 : 260"
+          :class="{ 'einv-m__timeline': isMobile }"
+          data-test="einvoice-timeline"
+        >
           <template #default="{ item: row }">
             <div v-if="row.type === 'attempt'" class="d-flex align-center py-1" style="gap: 8px">
               <v-icon icon="mdi-send-outline" size="small" />
@@ -271,7 +319,7 @@ watch(() => [props.documentId, props.refreshKey], () => void load());
         </v-virtual-scroll>
       </template>
 
-      <div class="d-flex mt-2" style="gap: 8px; flex-wrap: wrap">
+      <div :class="isMobile ? 'einv-m__actions' : 'd-flex mt-2'" :style="isMobile ? undefined : 'gap: 8px; flex-wrap: wrap'">
         <v-btn
           v-if="info.canSubmit"
           color="primary"
@@ -330,5 +378,89 @@ watch(() => [props.documentId, props.refreshKey], () => void load());
 <style scoped>
 .einvoice-sheet {
   background: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+/* ── Phone: a regular detail card with a compact, wrapping layout ──────── */
+.einvoice-sheet--mobile {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  border-radius: 16px !important;
+  padding: 14px 16px 16px !important;
+  margin-bottom: 12px !important;
+  overflow-wrap: anywhere;
+}
+.einvoice-sheet--mobile :deep(.v-switch .v-label) {
+  white-space: normal;
+  line-height: 1.35;
+}
+.einv-m__head {
+  margin-bottom: 10px;
+}
+.einv-m__head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.einv-m__refresh {
+  margin-right: -8px;
+}
+.einv-m__sent {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+}
+.einv-m__label {
+  font-size: 0.6875rem !important;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em !important;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+}
+.einv-m__value {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.einv-m__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin: 4px 0 12px;
+  padding: 12px 0;
+  border-top: 1px dashed var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  border-bottom: 1px dashed var(--v-billy-border, rgba(0, 0, 0, 0.12));
+}
+.einv-m__wide {
+  grid-column: 1 / -1;
+}
+/* Timeline rows wrap (date drops under the label) and indent less. */
+.einv-m__timeline :deep(.d-flex) {
+  flex-wrap: wrap;
+  row-gap: 0 !important;
+}
+.einv-m__timeline :deep(.pl-6) {
+  padding-left: 12px !important;
+}
+.einv-m__timeline :deep(.pl-12) {
+  padding-left: 24px !important;
+}
+.einv-m__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.einv-m__actions > .v-btn {
+  height: 44px !important;
+  min-width: 0;
+  border-radius: 14px;
+}
+/* The lone primary action (Send / Retry) spans the row. */
+.einv-m__actions > .v-btn:first-child:nth-last-child(odd) {
+  grid-column: 1 / -1;
 }
 </style>

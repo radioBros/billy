@@ -359,7 +359,9 @@
       "convertTitle": "Converter em fatura?",
       "convertMessage": "Será criada uma nova fatura em rascunho a partir deste orçamento."
     },
-    "saved": "Orcamento guardado"
+    "saved": "Orcamento guardado",
+    "convertedShort": "Convertido em fatura.",
+    "viewInvoice": "Ver fatura"
   },
   "contracts": {
     "title": "Contratos",

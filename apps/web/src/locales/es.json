@@ -359,7 +359,9 @@
       "convertTitle": "¿Convertir en factura?",
       "convertMessage": "Se creará una nueva factura en borrador a partir de este presupuesto."
     },
-    "saved": "Presupuesto guardado"
+    "saved": "Presupuesto guardado",
+    "convertedShort": "Convertido en factura.",
+    "viewInvoice": "Ver factura"
   },
   "contracts": {
     "title": "Contratos",

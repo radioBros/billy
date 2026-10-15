@@ -359,7 +359,9 @@
       "convertTitle": "Convertir en facture ?",
       "convertMessage": "Une nouvelle facture brouillon sera créée à partir de ce devis."
     },
-    "saved": "Devis enregistre"
+    "saved": "Devis enregistre",
+    "convertedShort": "Converti en facture.",
+    "viewInvoice": "Voir la facture"
   },
   "contracts": {
     "title": "Contrats",

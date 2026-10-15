@@ -359,7 +359,9 @@
       "convertTitle": "In Rechnung umwandeln?",
       "convertMessage": "Aus diesem Angebot wird ein neuer Rechnungsentwurf erstellt."
     },
-    "saved": "Angebot gespeichert"
+    "saved": "Angebot gespeichert",
+    "convertedShort": "In eine Rechnung umgewandelt.",
+    "viewInvoice": "Rechnung anzeigen"
   },
   "contracts": {
     "title": "Verträge",

@@ -359,7 +359,9 @@
       "convertTitle": "Convert to invoice?",
       "convertMessage": "A new draft invoice will be created from this quote."
     },
-    "saved": "Quote saved"
+    "saved": "Quote saved",
+    "convertedShort": "Converted to an invoice.",
+    "viewInvoice": "View invoice"
   },
   "contracts": {
     "title": "Contracts",
