@@ -20,6 +20,8 @@ import type { EInvoiceChannelType, EInvoicingChannelResult, EInvoicingSettings }
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
 import EInvoicingOpenApiNotice from "@/pages/settings/einvoicing/EInvoicingOpenApiNotice.vue";
+import FormActions from "@/components/FormActions.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{ view: EInvoicingSettings; vatNumber?: string | null }>();
 const emit = defineEmits<{ saved: [EInvoicingSettings]; blocked: [boolean] }>();
@@ -27,6 +29,7 @@ const emit = defineEmits<{ saved: [EInvoicingSettings]; blocked: [boolean] }>();
 const { t } = useI18n();
 const auth = useAuthStore();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
 const { fieldErrors, applyError, clear } = useFieldErrors();
 
 /** Explicit choice: nothing is preselected until a channel has been saved. */
@@ -338,7 +341,7 @@ const copyUrl = async (): Promise<void> => {
       {{ errorMessage }}
     </v-alert>
 
-    <div v-if="view.channel" class="d-flex align-center mb-3" style="gap: 8px" data-test="channel-current">
+    <div v-if="view.channel" class="d-flex align-center mb-3" :class="{ 'flex-wrap': isMobile }" style="gap: 8px" data-test="channel-current">
       <v-chip size="small" color="success" variant="tonal" prepend-icon="mdi-check">
         {{ t("einvoicing.channel.current", { type: t(`einvoicing.channel.types.${view.channel.type}`) }) }}
       </v-chip>
@@ -353,7 +356,7 @@ const copyUrl = async (): Promise<void> => {
           :color="channelType === c.value ? 'primary' : undefined"
           rounded="lg"
           class="channel-card h-100"
-          :class="{ 'channel-card--selected': channelType === c.value }"
+          :class="{ 'channel-card--selected': channelType === c.value, 'channel-card--m': isMobile }"
           role="radio"
           tabindex="0"
           :aria-checked="channelType === c.value ? 'true' : 'false'"
@@ -372,8 +375,9 @@ const copyUrl = async (): Promise<void> => {
             </div>
             <!-- Absolutely positioned so selecting a card never changes its layout. -->
             <v-icon v-if="channelType === c.value" icon="mdi-check-circle" color="primary" class="channel-card__check" :data-test="`channel-card-${c.value}-check`" />
-            <div class="text-body-2 mb-2">{{ t(`einvoicing.channel.cards.${c.value}.subtitle`) }}</div>
-            <div v-for="f in c.features" :key="f" class="d-flex align-start text-caption" style="gap: 6px">
+            <div class="text-body-2" :class="{ 'mb-2': !isMobile || channelType === c.value }">{{ t(`einvoicing.channel.cards.${c.value}.subtitle`) }}</div>
+            <!-- Phone: only the chosen card lists its features (keeps the chooser short). -->
+            <div v-for="f in (!isMobile || channelType === c.value ? c.features : [])" :key="f" class="d-flex align-start text-caption" style="gap: 6px">
               <v-icon icon="mdi-check" size="x-small" class="mt-1" />
               <span>{{ t(`einvoicing.channel.cards.${c.value}.${f}`) }}</span>
             </div>
@@ -562,7 +566,7 @@ const copyUrl = async (): Promise<void> => {
       data-test="channel-inbound-url"
     >
       <div class="font-weight-medium mb-1">{{ t("einvoicing.channel.inboundTitle") }}</div>
-      <div class="d-flex align-center" style="gap: 8px">
+      <div class="d-flex align-center" :class="{ 'flex-wrap': isMobile }" style="gap: 8px">
         <code class="text-body-2 text-break flex-grow-1" data-test="channel-inbound-value">{{ inboundWebhookUrl }}</code>
         <v-btn size="small" variant="tonal" prepend-icon="mdi-content-copy" data-test="channel-inbound-copy" @click="copyUrl">
           {{ t("einvoicing.channel.copy") }}
@@ -573,12 +577,11 @@ const copyUrl = async (): Promise<void> => {
       <div class="text-caption mt-1 text-medium-emphasis" data-test="channel-inbound-optional">{{ t("einvoicing.channel.inboundOptional") }}</div>
     </v-alert>
 
-    <div v-if="channelType !== null" class="d-flex mt-2">
-      <v-spacer />
+    <FormActions v-if="channelType !== null" class="mt-2">
       <v-btn color="primary" :loading="saving" :disabled="!view.connected || saveLocked" data-test="channel-save" @click="saveChannel">
         {{ t("einvoicing.channel.save") }}
       </v-btn>
-    </div>
+    </FormActions>
     <div v-if="!view.connected" class="text-caption text-medium-emphasis text-right">
       {{ t("einvoicing.channel.needConnection") }}
     </div>
@@ -609,6 +612,13 @@ const copyUrl = async (): Promise<void> => {
 /* The title always reserves the check's room, selected or not, so it wraps identically. */
 .channel-card__title {
   padding-inline-end: 28px;
+}
+/* Phone: a compact chooser row; cards are 16px panels like the rest. */
+.channel-card--m {
+  border-radius: 16px !important;
+}
+.channel-card--m :deep(.v-card-text) {
+  padding: 12px 14px !important;
 }
 .channel-card:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary));

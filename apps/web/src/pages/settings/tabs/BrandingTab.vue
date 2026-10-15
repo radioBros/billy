@@ -22,6 +22,8 @@ import { useBrandingStore, applyThemeColors, toApplied, normalizeHex } from "@/s
 import { uploadFile, logoUrlFor } from "@/api/files";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import ColorInput from "@/components/ColorInput.vue";
 import ImageZoom from "@/components/ImageZoom.vue";
 import SettingsSection from "@/pages/settings/SettingsSection.vue";
@@ -30,6 +32,7 @@ const { t } = useI18n();
 const theme = useTheme();
 const branding = useBrandingStore();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
 const { fieldErrors, applyError, clear } = useFieldErrors();
 
 const loading = ref(false);
@@ -189,7 +192,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }">
     <v-card-text>
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -227,7 +230,8 @@ onMounted(() => {
             <v-file-input
               :label="t('settings.branding.logo')"
               accept="image/*"
-              prepend-icon="mdi-image-outline"
+              :prepend-icon="isMobile ? '' : 'mdi-image-outline'"
+              :prepend-inner-icon="isMobile ? 'mdi-image-outline' : undefined"
               :loading="uploading"
               density="comfortable"
               hide-details="auto"
@@ -251,7 +255,8 @@ onMounted(() => {
             <v-file-input
               :label="t('settings.branding.icon')"
               accept="image/*"
-              prepend-icon="mdi-shape-outline"
+              :prepend-icon="isMobile ? '' : 'mdi-shape-outline'"
+              :prepend-inner-icon="isMobile ? 'mdi-shape-outline' : undefined"
               :loading="uploading"
               density="comfortable"
               hide-details="auto"
@@ -326,7 +331,8 @@ onMounted(() => {
             <v-file-input
               :label="t('settings.branding.loginBackground')"
               accept="image/*"
-              prepend-icon="mdi-image-outline"
+              :prepend-icon="isMobile ? '' : 'mdi-image-outline'"
+              :prepend-inner-icon="isMobile ? 'mdi-image-outline' : undefined"
               :loading="uploading"
               density="comfortable"
               hide-details="auto"
@@ -352,10 +358,9 @@ onMounted(() => {
         </v-row>
       </SettingsSection>
 
-      <div class="d-flex mt-2" style="gap: 12px">
-        <v-spacer />
+      <FormActions class="mt-2">
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.branding.save") }}</v-btn>
-      </div>
+      </FormActions>
     </v-form>
     </v-card-text>
   </v-card>

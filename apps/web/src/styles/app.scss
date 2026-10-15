@@ -314,6 +314,11 @@ html .v-row {
   --billy-bottom-nav-h: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Fullscreen dialogs (phone layouts) are the whole screen — no hairline frame. */
+.v-dialog--fullscreen > .v-overlay__content > .v-card {
+  border: 0 !important;
+}
+
 /* Floating primary action (PageHeader `primary` on phones). Extended FAB. */
 .billy-fab {
   position: fixed !important;

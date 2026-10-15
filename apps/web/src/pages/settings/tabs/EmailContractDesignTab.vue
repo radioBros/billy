@@ -9,18 +9,28 @@
  * numbering + document-design fields the other tabs own are left intact
  * (partial PATCH). Flat theme: outlined card, no shadow.
  */
-import { ref, onMounted, inject } from "vue";
+import { ref, computed, onMounted, inject } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
 import type { DocumentSettings } from "@/types/domain";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import FormSteps, { type FormStep } from "@/components/FormSteps.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import SettingsSection from "@/pages/settings/SettingsSection.vue";
 import LocalizedTextEditor from "@/components/LocalizedTextEditor.vue";
 import { toLocalizedMap } from "@billy/shared/localized-text";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "contract", title: t("settings.emailContract.contractTitle"), icon: "mdi-file-sign" },
+  { key: "email", title: t("settings.emailContract.emailTitle"), icon: "mdi-email-outline" },
+]);
 
 const loading = ref(false);
 const saving = ref(false);
@@ -82,7 +92,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }">
     <v-card-text>
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -93,6 +103,8 @@ onMounted(() => {
     </div>
 
     <v-form v-else @submit.prevent="save">
+      <FormSteps :steps="formSteps">
+      <template #contract>
       <SettingsSection first :title="t('settings.emailContract.contractTitle')" :hint="t('settings.emailContract.contractHint')">
         <LocalizedTextEditor
           v-model="contractHeaderHtml"
@@ -106,7 +118,9 @@ onMounted(() => {
           mode="rich"
         />
       </SettingsSection>
+      </template>
 
+      <template #email>
       <SettingsSection :title="t('settings.emailContract.emailTitle')" :hint="t('settings.emailContract.emailHint')">
         <LocalizedTextEditor
           v-model="emailHeaderHtml"
@@ -120,11 +134,14 @@ onMounted(() => {
           mode="rich"
         />
       </SettingsSection>
+      </template>
 
-      <div class="d-flex mt-4" style="gap: 12px">
-        <v-spacer />
+      <template #actions>
+      <FormActions :class="{ 'mt-4': !isMobile }">
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.emailContract.save") }}</v-btn>
-      </div>
+      </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
     </v-card-text>
   </v-card>

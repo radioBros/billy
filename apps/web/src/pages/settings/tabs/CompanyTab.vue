@@ -14,6 +14,9 @@ import type {
 import { uploadFile, logoUrlFor } from "@/api/files";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import FormSteps, { type FormStep } from "@/components/FormSteps.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import BankAccountsEditor from "@/pages/settings/BankAccountsEditor.vue";
 import CountrySelect from "@/components/CountrySelect.vue";
 import AddressAutocomplete, { type ResolvedAddress } from "@/components/AddressAutocomplete.vue";
@@ -22,6 +25,16 @@ import ImageZoom from "@/components/ImageZoom.vue";
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
 const { fieldErrors, applyError, clear } = useFieldErrors();
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-office-building-outline" },
+  { key: "address", title: t("formSteps.address"), icon: "mdi-map-marker-outline" },
+  { key: "billing", title: t("formSteps.billing"), icon: "mdi-bank-outline" },
+]);
+/** Phone: each block of the step is its own panel card. */
+const mCard = computed<string | undefined>(() => (isMobile.value ? "settings-m-card" : undefined));
 
 const loading = ref(false);
 const saving = ref(false);
@@ -181,7 +194,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }">
     <v-card-text>
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -192,6 +205,9 @@ onMounted(() => {
     </div>
 
     <v-form v-else @submit.prevent="save">
+      <FormSteps :steps="formSteps">
+      <template #details>
+      <div :class="mCard">
       <v-row>
         <v-col cols="12" md="6">
           <v-text-field
@@ -251,8 +267,10 @@ onMounted(() => {
           />
         </v-col>
       </v-row>
+      </div>
 
-      <v-divider class="my-4" />
+      <div :class="mCard">
+      <v-divider v-if="!isMobile" class="my-4" />
       <div class="mb-3">
         <div class="text-subtitle-2 font-weight-medium">{{ t("settings.documents.companyLogo") }}</div>
         <div class="text-caption text-medium-emphasis">{{ t("settings.documents.companyLogoHint") }}</div>
@@ -264,7 +282,8 @@ onMounted(() => {
           <v-file-input
             :label="t('settings.documents.companyLogo')"
             accept="image/*"
-            prepend-icon="mdi-image-outline"
+            :prepend-icon="isMobile ? '' : 'mdi-image-outline'"
+            :prepend-inner-icon="isMobile ? 'mdi-image-outline' : undefined"
             :loading="uploading"
             density="comfortable"
             hide-details="auto"
@@ -297,8 +316,12 @@ onMounted(() => {
           </v-btn>
         </v-col>
       </v-row>
+      </div>
+      </template>
 
-      <v-divider class="my-4" />
+      <template #address>
+      <div :class="mCard">
+      <v-divider v-if="!isMobile" class="my-4" />
       <div class="mb-3">
         <div class="text-subtitle-2 font-weight-medium">{{ t("settings.company.address.title") }}</div>
         <div class="text-caption text-medium-emphasis">{{ t("settings.company.address.hint") }}</div>
@@ -353,18 +376,26 @@ onMounted(() => {
           />
         </v-col>
       </v-row>
+      </div>
+      </template>
 
-      <v-divider class="my-4" />
+      <template #billing>
+      <div :class="mCard">
+      <v-divider v-if="!isMobile" class="my-4" />
       <div class="mb-3">
         <div class="text-subtitle-2 font-weight-medium">{{ t("settings.bankAccounts.title") }}</div>
         <div class="text-caption text-medium-emphasis">{{ t("settings.bankAccounts.hint") }}</div>
       </div>
       <BankAccountsEditor v-model="bankAccounts" />
-
-      <div class="d-flex mt-4" style="gap: 12px">
-        <v-spacer />
-        <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.company.save") }}</v-btn>
       </div>
+      </template>
+
+      <template #actions>
+      <FormActions :class="{ 'mt-4': !isMobile }">
+        <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.company.save") }}</v-btn>
+      </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
     </v-card-text>
   </v-card>

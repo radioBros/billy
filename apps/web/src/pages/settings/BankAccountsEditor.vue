@@ -9,10 +9,12 @@
 import { useI18n } from "vue-i18n";
 import validations from "@/constants/validations";
 import type { BankAccount } from "@/types/domain";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const model = defineModel<BankAccount[]>({ required: true });
 
 const { t } = useI18n();
+const isMobile = useIsMobile();
 
 const newId = (): string => {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
@@ -46,6 +48,7 @@ const updateDetails = (index: number, value: string): void => {
       v-for="(account, i) in model"
       :key="account.id"
       class="bank-accounts__row pa-3 mb-3"
+      :class="{ 'bank-accounts__row--m': isMobile }"
     >
       <div class="d-flex align-center" style="gap: 12px">
         <v-text-field
@@ -60,7 +63,7 @@ const updateDetails = (index: number, value: string): void => {
         <v-btn
           icon="mdi-delete-outline"
           variant="text"
-          size="small"
+          :size="isMobile ? undefined : 'small'"
           color="error"
           :aria-label="t('settings.bankAccounts.remove')"
           @click="removeAccount(i)"
@@ -93,7 +96,7 @@ const updateDetails = (index: number, value: string): void => {
       {{ t("settings.bankAccounts.empty") }}
     </div>
 
-    <v-btn color="primary" prepend-icon="mdi-plus" @click="addAccount">
+    <v-btn color="primary" prepend-icon="mdi-plus" :block="isMobile" @click="addAccount">
       {{ t("settings.bankAccounts.add") }}
     </v-btn>
   </div>
@@ -103,5 +106,9 @@ const updateDetails = (index: number, value: string): void => {
 .bank-accounts__row {
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity, 0.24));
   border-radius: 8px;
+}
+.bank-accounts__row--m {
+  border-color: var(--v-billy-border, #e2e4e9);
+  border-radius: 12px;
 }
 </style>

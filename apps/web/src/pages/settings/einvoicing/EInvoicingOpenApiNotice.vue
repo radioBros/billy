@@ -5,9 +5,11 @@
  */
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{ signing: boolean; vatNumber?: string | null }>();
 const { t } = useI18n();
+const isMobile = useIsMobile();
 
 const open = ref<string | undefined>("notice");
 
@@ -46,7 +48,17 @@ const endpoints = computed(() => [
           <li data-test="notice-step-2">
             <div class="font-weight-medium">{{ t("einvoicing.channel.openapi.notice.s2.title") }}</div>
             <div class="text-body-2 mb-2">{{ t("einvoicing.channel.openapi.notice.s2.body") }}</div>
-            <v-table density="compact" class="oa-table rounded-lg border" data-test="notice-endpoints">
+            <!-- Phone: the 3-column table becomes stacked endpoint rows. -->
+            <div v-if="isMobile" class="oa-endpoints--m" data-test="notice-endpoints">
+              <div v-for="e in endpoints" :key="e.key" class="oa-endpoints--m__row" :data-test="`notice-endpoint-${e.key}`">
+                <code class="text-body-2 oa-endpoints--m__call">{{ e.call }}</code>
+                <div class="text-body-2 text-medium-emphasis mt-1">{{ t(`einvoicing.channel.openapi.notice.table.purposes.${e.key}`) }}</div>
+                <v-chip size="x-small" label variant="tonal" class="mt-1" :color="e.when === 'always' ? 'primary' : undefined">
+                  {{ t(`einvoicing.channel.openapi.notice.table.whens.${e.when}`) }}
+                </v-chip>
+              </div>
+            </div>
+            <v-table v-else density="compact" class="oa-table rounded-lg border" data-test="notice-endpoints">
               <thead>
                 <tr>
                   <th>{{ t("einvoicing.channel.openapi.notice.table.call") }}</th>
@@ -143,6 +155,27 @@ const endpoints = computed(() => [
   bottom: 4px;
   width: 2px;
   background: rgba(var(--v-theme-primary), 0.25);
+}
+.oa-endpoints--m {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 12px;
+}
+.oa-endpoints--m__row {
+  padding: 10px 12px;
+}
+.oa-endpoints--m__row + .oa-endpoints--m__row {
+  border-top: 1px solid var(--v-billy-border, #e2e4e9);
+}
+.oa-endpoints--m__call {
+  display: block;
+  overflow-wrap: anywhere;
+}
+/* Phone: the numbered rail takes less of the narrow width. */
+@media (max-width: 599.98px) {
+  .oa-steps > li {
+    padding-left: 36px;
+  }
 }
 .oa-table {
   background: rgb(var(--v-theme-surface));

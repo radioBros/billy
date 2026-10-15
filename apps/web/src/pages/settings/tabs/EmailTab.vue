@@ -15,9 +15,12 @@ import type { EmailSettings, EmailSettingsUpdate, EmailTestResult } from "@/type
 import { useAuthStore } from "@/stores/auth";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
 const { fieldErrors, applyError, clear } = useFieldErrors();
 
 const loading = ref(false);
@@ -194,7 +197,7 @@ onMounted(() => {
             density="comfortable"
             @click:append-inner="showPassword = !showPassword"
           >
-            <template v-if="smtpConfigured" #append>
+            <template v-if="smtpConfigured && !isMobile" #append>
               <v-chip color="success" size="small" variant="tonal" prepend-icon="mdi-check">
                 {{ t("settings.email.configured") }}
               </v-chip>
@@ -288,14 +291,31 @@ onMounted(() => {
         {{ sendResult.ok ? t("settings.email.sendOk", { to: testRecipient }) : t("settings.email.testError", { error: sendResult.error ?? t("settings.email.unknownError") }) }}
       </v-alert>
 
-      <div class="d-flex mt-2" style="gap: 12px">
-        <v-spacer />
+      <!-- Phone: two long labels never fit one row — stack them full-width. -->
+      <div v-if="isMobile" class="email-actions--m mt-2">
+        <v-btn color="primary" block :loading="testing" prepend-icon="mdi-email-fast-outline" @click="testConnection">
+          {{ t("settings.email.testConnection") }}
+        </v-btn>
+        <v-btn color="primary" variant="flat" block type="submit" :loading="saving">{{ t("settings.email.save") }}</v-btn>
+      </div>
+      <FormActions v-else class="mt-2">
         <v-btn color="primary" :loading="testing" prepend-icon="mdi-email-fast-outline" @click="testConnection">
           {{ t("settings.email.testConnection") }}
         </v-btn>
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.email.save") }}</v-btn>
-      </div>
+      </FormActions>
     </v-form>
     </v-card-text>
   </v-card>
 </template>
+
+<style scoped>
+.email-actions--m {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.email-actions--m > .v-btn {
+  height: 48px;
+}
+</style>
