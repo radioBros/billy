@@ -908,7 +908,8 @@
       "renewed": "Verlängert",
       "terminated": "Gekündigt",
       "archived": "Archiviert",
-      "invoiced": "Abgerechnet"
+      "invoiced": "Abgerechnet",
+      "suspended": "Gesperrt"
     },
     "contractType": {
       "development": "Entwicklung",
@@ -1127,7 +1128,15 @@
       "language": "Sprache",
       "languagesWithContent": "Sprachen mit Inhalt: {locales}"
     },
-    "einvoicingTab": "E-Rechnung (SdI)"
+    "einvoicingTab": "E-Rechnung (SdI)",
+    "tabs": {
+      "branding": "Branding",
+      "email": "E-Mail",
+      "localization": "Lokalisierung",
+      "documents": "Dokumente",
+      "company": "Unternehmen",
+      "advanced": "Erweitert"
+    }
   },
   "documentActions": {
     "preview": "Vorschau",
@@ -1352,7 +1361,9 @@
     "ibanInvalid": "Geben Sie eine gültige IBAN ein (z. B. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Geben Sie einen Betrag mit höchstens 2 Nachkommastellen ein (z. B. 77.47)",
     "intBetween": "Geben Sie eine ganze Zahl zwischen {min} und {max} ein",
-    "amountPositive": "Geben Sie einen Betrag größer als 0 ein"
+    "amountPositive": "Geben Sie einen Betrag größer als 0 ein",
+    "slugInvalid": "2–48 Kleinbuchstaben, Ziffern oder Bindestriche (kein Bindestrich am Anfang oder Ende)",
+    "passwordMinLength": "Das Passwort muss mindestens {min} Zeichen lang sein"
   },
   "accounts": {
     "title": "Konten",

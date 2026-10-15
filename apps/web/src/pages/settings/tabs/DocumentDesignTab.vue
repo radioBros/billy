@@ -322,10 +322,10 @@ onMounted(() => {
           <div class="doc-preview__header" :class="{ 'doc-preview__header--rev': !logoOnLeft }">
             <div :style="{ textAlign: logoOnLeft ? 'left' : 'right' }">
               <div v-if="companyVat" class="text-caption">
-                <span class="font-weight-bold">VAT ID</span> {{ companyVat }}
+                <span class="font-weight-bold text-uppercase">{{ t("settings.company.vatNumber") }}</span> {{ companyVat }}
               </div>
               <div v-if="brandingRest?.supportEmail" class="text-caption">
-                <span class="font-weight-bold">EMAIL</span> {{ brandingRest.supportEmail }}
+                <span class="font-weight-bold text-uppercase">{{ t("settings.company.email") }}</span> {{ brandingRest.supportEmail }}
               </div>
             </div>
             <div class="doc-preview__recipient" :style="{ textAlign: logoOnLeft ? 'right' : 'left' }">

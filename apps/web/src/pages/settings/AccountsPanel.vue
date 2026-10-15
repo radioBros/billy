@@ -15,6 +15,8 @@ import { useToast } from "@/composables/useToast";
 import validations from "@/constants/validations";
 import { useIsMobile } from "@/composables/useIsMobile";
 import PageHeader from "@/components/PageHeader.vue";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
+import { enumLabel } from "@/utils/enums";
 
 interface Account {
   id: string;
@@ -60,7 +62,7 @@ onMounted(() => {
 
 // ── Create ───────────────────────────────────────────────────────────────────
 const createOpen = ref(false);
-const createForm = ref<{ valid: boolean }>({ valid: false });
+const createFormRef = ref<VuetifyFormRef | null>(null);
 const cName = ref("");
 const cSlug = ref("");
 const cNote = ref("");
@@ -79,10 +81,12 @@ const openCreate = (): void => {
   aEmail.value = "";
   aName.value = "";
   aPassword.value = "";
+  createFormRef.value?.resetValidation?.();
   createOpen.value = true;
 };
 
 const submitCreate = async (): Promise<void> => {
+  if (createFormRef.value && !(await createFormRef.value.validate()).valid) return;
   creating.value = true;
   try {
     const body: Record<string, unknown> = { name: cName.value.trim() };
@@ -109,17 +113,25 @@ const eName = ref("");
 const eNote = ref("");
 const eStatus = ref("active");
 const saving = ref(false);
+const editFormRef = ref<VuetifyFormRef | null>(null);
+
+/** Account status codes → translated labels (chips + the edit select). */
+const ACCOUNT_STATUSES = ["active", "suspended"] as const;
+const statusLabel = (status: string): string => enumLabel(t, "status", status);
+const statusItems = computed(() => ACCOUNT_STATUSES.map((value) => ({ title: statusLabel(value), value })));
 
 const openEdit = (acc: Account): void => {
   editing.value = acc;
   eName.value = acc.name;
   eNote.value = acc.note ?? "";
   eStatus.value = acc.status;
+  editFormRef.value?.resetValidation?.();
   editOpen.value = true;
 };
 
 const submitEdit = async (): Promise<void> => {
   if (!editing.value) return;
+  if (editFormRef.value && !(await editFormRef.value.validate()).valid) return;
   saving.value = true;
   try {
     await api.patch(`/v1/accounts/${editing.value.id}`, {
@@ -211,7 +223,7 @@ const headers = computed(() => [
           <div class="acc-m__name">{{ item.name }}</div>
           <div class="acc-m__slug">{{ item.slug }}</div>
           <v-chip :color="item.status === 'active' ? 'success' : 'warning'" size="small" variant="tonal" class="mt-2">
-            {{ item.status }}
+            {{ statusLabel(item.status) }}
           </v-chip>
         </div>
         <v-menu location="bottom end">
@@ -232,7 +244,7 @@ const headers = computed(() => [
         <v-data-table :headers="headers" :items="accounts" :loading="loading" density="comfortable">
           <template #[`item.status`]="{ item }">
             <v-chip :color="item.status === 'active' ? 'success' : 'warning'" size="small" variant="tonal">
-              {{ item.status }}
+              {{ statusLabel(item.status) }}
             </v-chip>
           </template>
           <template #[`item.actions`]="{ item }">
@@ -258,10 +270,10 @@ const headers = computed(() => [
           <span>{{ t("accounts.new") }}</span>
         </v-card-title>
         <v-card-title v-else>{{ t("accounts.new") }}</v-card-title>
-        <v-form v-model="createForm.valid" @submit.prevent="submitCreate">
+        <v-form ref="createFormRef" @submit.prevent="submitCreate">
           <v-card-text>
             <v-text-field v-model="cName" :label="t('accounts.fields.name')" :rules="validations.required.any" />
-            <v-text-field v-model="cSlug" :label="t('accounts.fields.slug')" :hint="t('accounts.fields.slugHint')" />
+            <v-text-field v-model="cSlug" :label="t('accounts.fields.slug')" :hint="t('accounts.fields.slugHint')" :rules="validations.slug" />
             <v-textarea v-model="cNote" :label="t('accounts.fields.note')" rows="2" />
             <v-switch v-model="withAdmin" :label="t('accounts.fields.withAdmin')" color="primary" />
             <template v-if="withAdmin">
@@ -272,7 +284,7 @@ const headers = computed(() => [
                 :type="showAPassword ? 'text' : 'password'"
                 :append-inner-icon="showAPassword ? 'mdi-eye-off' : 'mdi-eye'"
                 :label="t('accounts.fields.adminPassword')"
-                :rules="validations.required.basicPassword"
+                :rules="validations.required.passwordPolicy"
                 @click:append-inner="showAPassword = !showAPassword"
               />
             </template>
@@ -280,7 +292,7 @@ const headers = computed(() => [
           <v-card-actions>
             <v-spacer />
             <v-btn v-if="!isMobile" variant="text" @click="createOpen = false">{{ t("common.cancel") }}</v-btn>
-            <v-btn color="primary" type="submit" :variant="isMobile ? 'flat' : undefined" :size="isMobile ? 'large' : undefined" :loading="creating" :disabled="!createForm.valid">
+            <v-btn color="primary" type="submit" :variant="isMobile ? 'flat' : undefined" :size="isMobile ? 'large' : undefined" :loading="creating">
               {{ t("accounts.create") }}
             </v-btn>
           </v-card-actions>
@@ -297,9 +309,11 @@ const headers = computed(() => [
         </v-card-title>
         <v-card-title v-else>{{ t("accounts.edit") }}</v-card-title>
         <v-card-text>
-          <v-text-field v-model="eName" :label="t('accounts.fields.name')" />
+          <v-form ref="editFormRef" @submit.prevent="submitEdit">
+          <v-text-field v-model="eName" :label="t('accounts.fields.name')" :rules="validations.required.any" />
           <v-textarea v-model="eNote" :label="t('accounts.fields.note')" rows="2" />
-          <v-select v-model="eStatus" :items="['active', 'suspended']" :label="t('accounts.fields.status')" />
+          <v-select v-model="eStatus" :items="statusItems" :label="t('accounts.fields.status')" :rules="validations.required.any" />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />

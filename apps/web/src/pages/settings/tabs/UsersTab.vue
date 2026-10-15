@@ -15,6 +15,8 @@ import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
 import { confirm } from "@/composables/useConfirm";
 import { useIsMobile } from "@/composables/useIsMobile";
+import validations from "@/constants/validations";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
@@ -47,6 +49,7 @@ const dialog = ref(false);
 const editing = ref<SafeUser | null>(null);
 const saving = ref(false);
 const formError = ref<string | null>(null);
+const formRef = ref<VuetifyFormRef | null>(null);
 const showFormPassword = ref(false);
 const form = ref({
   email: "",
@@ -91,6 +94,7 @@ const openCreate = (): void => {
       canExportData: false,
     },
   };
+  formRef.value?.resetValidation?.();
   dialog.value = true;
 };
 
@@ -106,6 +110,7 @@ const openEdit = (u: SafeUser): void => {
     status: u.status,
     capabilities: { ...u.capabilities },
   };
+  formRef.value?.resetValidation?.();
   dialog.value = true;
 };
 
@@ -128,6 +133,7 @@ const messageForWrite = (err: unknown): string => {
 const save = async (): Promise<void> => {
   clear();
   formError.value = null;
+  if (formRef.value && !(await formRef.value.validate()).valid) return;
   saving.value = true;
   try {
     if (isEdit.value && editing.value) {
@@ -167,17 +173,20 @@ const resetPassword = ref("");
 const showResetPassword = ref(false);
 const resetting = ref(false);
 const resetError = ref<string | null>(null);
+const resetFormRef = ref<VuetifyFormRef | null>(null);
 
 const openReset = (u: SafeUser): void => {
   resetTarget.value = u;
   resetPassword.value = "";
   resetError.value = null;
+  resetFormRef.value?.resetValidation?.();
   resetDialog.value = true;
 };
 
 const doReset = async (): Promise<void> => {
   if (!resetTarget.value) return;
   resetError.value = null;
+  if (resetFormRef.value && !(await resetFormRef.value.validate()).valid) return;
   if (resetPassword.value.length < 8) {
     resetError.value = t("users.reset.tooShort");
     return;
@@ -379,9 +388,11 @@ onMounted(() => {
           <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
             {{ formError }}
           </v-alert>
+          <v-form ref="formRef" @submit.prevent="save">
           <v-text-field
             v-model="form.email"
             :label="t('users.fields.email')"
+            :rules="isEdit ? [] : validations.required.email"
             :error-messages="fieldErrors.email"
             :disabled="isEdit"
             type="email"
@@ -390,6 +401,7 @@ onMounted(() => {
           <v-text-field
             v-model="form.displayName"
             :label="t('users.fields.displayName')"
+            :rules="validations.required.any"
             :error-messages="fieldErrors.displayName"
             density="comfortable"
           />
@@ -397,6 +409,7 @@ onMounted(() => {
             v-model="form.role"
             :items="roleOptions"
             :label="t('users.fields.role')"
+            :rules="validations.required.any"
             :error-messages="fieldErrors.role"
             density="comfortable"
           />
@@ -404,6 +417,7 @@ onMounted(() => {
             v-if="!isEdit"
             v-model="form.password"
             :label="t('users.fields.password')"
+            :rules="validations.required.passwordPolicy"
             :error-messages="fieldErrors.password"
             :hint="t('users.fields.passwordHint')"
             persistent-hint
@@ -434,6 +448,7 @@ onMounted(() => {
             color="primary"
             hide-details
           />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-btn v-if="!isMobile" variant="text" :disabled="saving" @click="dialog = false">{{ t("common.cancel") }}</v-btn>
@@ -454,9 +469,11 @@ onMounted(() => {
           <v-alert v-if="resetError" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
             {{ resetError }}
           </v-alert>
+          <v-form ref="resetFormRef" @submit.prevent="doReset">
           <v-text-field
             v-model="resetPassword"
             :label="t('users.reset.newPassword')"
+            :rules="validations.required.passwordPolicy"
             :hint="t('users.fields.passwordHint')"
             persistent-hint
             :type="showResetPassword ? 'text' : 'password'"
@@ -466,6 +483,7 @@ onMounted(() => {
             autofocus
             @click:append-inner="showResetPassword = !showResetPassword"
           />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-btn variant="text" :disabled="resetting" @click="resetDialog = false">{{ t("common.cancel") }}</v-btn>

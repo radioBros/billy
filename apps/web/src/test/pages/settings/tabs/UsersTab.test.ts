@@ -145,16 +145,61 @@ describe("UsersTab", () => {
 
     const vm = wrapper.vm as unknown as {
       openCreate: () => void;
-      form: { email: string; password: string };
+      form: { email: string; displayName: string; password: string };
       save: () => Promise<void>;
       formError: string | null;
     };
     vm.openCreate();
     vm.form.email = "dupe@x.test";
+    vm.form.displayName = "Dupe";
     vm.form.password = "password1";
     await vm.save();
     await flushPromises();
 
     expect(vm.formError).toBe(en.users.errors.duplicate);
+  });
+
+  it("does not POST an empty create form (client-side rules block it)", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: [], meta: {}, error: null }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const vm = wrapper.vm as unknown as {
+      openCreate: () => void;
+      form: { email: string; displayName: string; password: string };
+      save: () => Promise<void>;
+      formRef: unknown;
+    };
+    vm.openCreate();
+    await flushPromises(); // let the lazy dialog mount its v-form
+    expect(vm.formRef).toBeTruthy();
+    vm.form.password = "short";
+    await vm.save();
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // only the initial list
+  });
+
+  it("does not POST a reset with a too-short password", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: [user()], meta: {}, error: null }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const vm = wrapper.vm as unknown as {
+      openReset: (u: unknown) => void;
+      resetPassword: string;
+      doReset: () => Promise<void>;
+    };
+    vm.openReset(user());
+    await flushPromises();
+    vm.resetPassword = "1234567";
+    await vm.doReset();
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

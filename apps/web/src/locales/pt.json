@@ -908,7 +908,8 @@
       "renewed": "Renovado",
       "terminated": "Rescindido",
       "archived": "Arquivado",
-      "invoiced": "Faturado"
+      "invoiced": "Faturado",
+      "suspended": "Suspenso"
     },
     "contractType": {
       "development": "Desenvolvimento",
@@ -1127,7 +1128,15 @@
       "language": "Idioma",
       "languagesWithContent": "Idiomas com conteúdo: {locales}"
     },
-    "einvoicingTab": "Faturação eletrónica (SdI)"
+    "einvoicingTab": "Faturação eletrónica (SdI)",
+    "tabs": {
+      "branding": "Marca",
+      "email": "E-mail",
+      "localization": "Localização",
+      "documents": "Documentos",
+      "company": "Empresa",
+      "advanced": "Avançado"
+    }
   },
   "documentActions": {
     "preview": "Pré-visualizar",
@@ -1352,7 +1361,9 @@
     "ibanInvalid": "Introduza um IBAN válido (p. ex. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Introduza um valor com no máximo 2 casas decimais (p. ex. 77.47)",
     "intBetween": "Introduza um número inteiro entre {min} e {max}",
-    "amountPositive": "Introduza um valor superior a 0"
+    "amountPositive": "Introduza um valor superior a 0",
+    "slugInvalid": "2–48 letras minúsculas, dígitos ou hífenes (sem hífen no início ou no fim)",
+    "passwordMinLength": "A palavra-passe deve ter pelo menos {min} caracteres"
   },
   "accounts": {
     "title": "Contas",

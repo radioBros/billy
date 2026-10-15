@@ -908,7 +908,8 @@
       "renewed": "Rinnovato",
       "terminated": "Risolto",
       "archived": "Archiviato",
-      "invoiced": "Fatturato"
+      "invoiced": "Fatturato",
+      "suspended": "Sospeso"
     },
     "contractType": {
       "development": "Sviluppo",
@@ -1127,7 +1128,15 @@
       "language": "Lingua",
       "languagesWithContent": "Lingue con contenuto: {locales}"
     },
-    "einvoicingTab": "Fatturazione elettronica (SdI)"
+    "einvoicingTab": "Fatturazione elettronica (SdI)",
+    "tabs": {
+      "branding": "Branding",
+      "email": "Email",
+      "localization": "Localizzazione",
+      "documents": "Documenti",
+      "company": "Azienda",
+      "advanced": "Avanzate"
+    }
   },
   "documentActions": {
     "preview": "Anteprima",
@@ -1352,7 +1361,9 @@
     "ibanInvalid": "Inserisci un IBAN valido (es. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Inserisci un importo con al massimo 2 decimali (es. 77.47)",
     "intBetween": "Inserisci un numero intero tra {min} e {max}",
-    "amountPositive": "Inserisci un importo maggiore di 0"
+    "amountPositive": "Inserisci un importo maggiore di 0",
+    "slugInvalid": "2–48 lettere minuscole, cifre o trattini (senza trattino all'inizio o alla fine)",
+    "passwordMinLength": "La password deve contenere almeno {min} caratteri"
   },
   "accounts": {
     "title": "Account",

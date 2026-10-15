@@ -112,15 +112,15 @@ interface SectionDef {
 /** Same labels/icons/colors as the desktop rail (kept in sync by hand). */
 const SECTIONS = computed<Record<string, SectionDef>>(() => ({
   userSettings: { value: "userSettings", label: t("settings.userSettingsTab"), icon: "mdi-account-circle-outline", color: "primary" },
-  branding: { value: "branding", label: "Branding", icon: "mdi-palette-outline", color: "purple" },
-  email: { value: "email", label: "Email", icon: "mdi-email-outline", color: "blue" },
-  localization: { value: "localization", label: "Localization", icon: "mdi-translate", color: "teal" },
-  documents: { value: "documents", label: "Documents", icon: "mdi-file-document-outline", color: "indigo" },
+  branding: { value: "branding", label: t("settings.tabs.branding"), icon: "mdi-palette-outline", color: "purple" },
+  email: { value: "email", label: t("settings.tabs.email"), icon: "mdi-email-outline", color: "blue" },
+  localization: { value: "localization", label: t("settings.tabs.localization"), icon: "mdi-translate", color: "teal" },
+  documents: { value: "documents", label: t("settings.tabs.documents"), icon: "mdi-file-document-outline", color: "indigo" },
   design: { value: "design", label: t("settings.documentDesignTab"), icon: "mdi-format-paint", color: "pink" },
   emailContractDesign: { value: "emailContractDesign", label: t("settings.emailContractDesignTab"), icon: "mdi-email-newsletter", color: "cyan" },
-  company: { value: "company", label: "Company", icon: "mdi-office-building-outline", color: "green" },
+  company: { value: "company", label: t("settings.tabs.company"), icon: "mdi-office-building-outline", color: "green" },
   einvoicing: { value: "einvoicing", label: t("settings.einvoicingTab"), icon: "mdi-file-send-outline", color: "red" },
-  advanced: { value: "advanced", label: "Advanced", icon: "mdi-tune", color: "warning" },
+  advanced: { value: "advanced", label: t("settings.tabs.advanced"), icon: "mdi-tune", color: "warning" },
   users: { value: "users", label: t("settings.usersTab"), icon: "mdi-account-group-outline", color: "deep-purple" },
 }));
 
@@ -248,19 +248,19 @@ watch(
         <template v-if="canManageSettings">
           <v-tab value="branding">
             <template #prepend><v-icon icon="mdi-palette-outline" color="purple" /></template>
-            Branding
+            {{ t("settings.tabs.branding") }}
           </v-tab>
           <v-tab value="email">
             <template #prepend><v-icon icon="mdi-email-outline" color="blue" /></template>
-            Email
+            {{ t("settings.tabs.email") }}
           </v-tab>
           <v-tab value="localization">
             <template #prepend><v-icon icon="mdi-translate" color="teal" /></template>
-            Localization
+            {{ t("settings.tabs.localization") }}
           </v-tab>
           <v-tab value="documents">
             <template #prepend><v-icon icon="mdi-file-document-outline" color="indigo" /></template>
-            Documents
+            {{ t("settings.tabs.documents") }}
           </v-tab>
           <v-tab value="design">
             <template #prepend><v-icon icon="mdi-format-paint" color="pink" /></template>
@@ -272,7 +272,7 @@ watch(
           </v-tab>
           <v-tab value="company">
             <template #prepend><v-icon icon="mdi-office-building-outline" color="green" /></template>
-            Company
+            {{ t("settings.tabs.company") }}
           </v-tab>
           <v-tab value="einvoicing">
             <template #prepend><v-icon icon="mdi-file-send-outline" color="red" /></template>
@@ -280,7 +280,7 @@ watch(
           </v-tab>
           <v-tab value="advanced">
             <template #prepend><v-icon icon="mdi-tune" color="warning" /></template>
-            Advanced
+            {{ t("settings.tabs.advanced") }}
           </v-tab>
         </template>
         <v-tab v-if="canManageUsers" value="users">

@@ -908,7 +908,8 @@
       "renewed": "Продлён",
       "terminated": "Расторгнут",
       "archived": "В архиве",
-      "invoiced": "Выставлен в счёт"
+      "invoiced": "Выставлен в счёт",
+      "suspended": "Приостановлен"
     },
     "contractType": {
       "development": "Разработка",
@@ -1127,7 +1128,15 @@
       "language": "Язык",
       "languagesWithContent": "Языки с содержимым: {locales}"
     },
-    "einvoicingTab": "Электронные счета (SdI)"
+    "einvoicingTab": "Электронные счета (SdI)",
+    "tabs": {
+      "branding": "Брендинг",
+      "email": "Эл. почта",
+      "localization": "Локализация",
+      "documents": "Документы",
+      "company": "Компания",
+      "advanced": "Дополнительно"
+    }
   },
   "documentActions": {
     "preview": "Предпросмотр",
@@ -1352,7 +1361,9 @@
     "ibanInvalid": "Введите корректный IBAN (например, IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Введите сумму не более чем с 2 знаками после запятой (например, 77.47)",
     "intBetween": "Введите целое число от {min} до {max}",
-    "amountPositive": "Введите сумму больше 0"
+    "amountPositive": "Введите сумму больше 0",
+    "slugInvalid": "2–48 строчных латинских букв, цифр или дефисов (без дефиса в начале и в конце)",
+    "passwordMinLength": "Пароль должен содержать не менее {min} символов"
   },
   "accounts": {
     "title": "Аккаунты",
