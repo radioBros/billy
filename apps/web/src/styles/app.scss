@@ -341,6 +341,10 @@ html .v-row {
     padding-top: 2px;
     padding-bottom: 2px;
   }
+  /* …but an error line must never touch the next field's floating label. */
+  .v-input--error > .v-input__details {
+    margin-bottom: 6px;
+  }
 
   /* Page titles: a touch smaller, bolder, tighter. */
   .v-main .text-h5 {

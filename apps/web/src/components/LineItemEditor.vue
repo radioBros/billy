@@ -9,7 +9,7 @@
  * Price is edited in MAJOR units (e.g. 10.50) and converted to minor units on
  * emit via majorToMinor.
  */
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, inject } from "vue";
 import { useI18n } from "vue-i18n";
 import type { LineItemInput } from "@/types/domain";
 import type { PlaceholderDocType } from "@billy/shared/template";
@@ -20,6 +20,7 @@ import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { codeItems } from "@/utils/einvoicingCodes";
 import { useIsMobile } from "@/composables/useIsMobile";
+import { FORM_STEPS_KEY } from "@/components/FormSteps.vue";
 
 /**
  * Editor-local row. The price is held as a raw string so intermediate decimal
@@ -62,6 +63,8 @@ const { t } = useI18n();
 const einvoicing = useEInvoicing();
 void einvoicing.load();
 const isMobile = useIsMobile();
+// Inside a phone wizard the step header already says "Line items".
+const inStepper = inject(FORM_STEPS_KEY, ref(false));
 const natureOn = computed<boolean>(() => props.showNature === true && einvoicing.enabled);
 const natureItems = computed(() => codeItems(t, "natura"));
 const isZeroRate = (r: EditorRow): boolean => r.taxRate !== null && Number(r.taxRate) === 0;
@@ -209,7 +212,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
 
 <template>
   <div>
-    <div class="text-subtitle-2 mb-2">Line items</div>
+    <div v-if="!inStepper" class="text-subtitle-2 mb-2">Line items</div>
 
     <!-- Phone: one card per line — description on top, the four figures in a
          2×2 grid, line total + remove in the footer. Same bindings/rules as

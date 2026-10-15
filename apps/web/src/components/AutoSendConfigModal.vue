@@ -27,6 +27,7 @@ import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
 import AttachmentsField, { type Attachment } from "@/components/AttachmentsField.vue";
 import { usePlaceholderInsert, DATE_EXAMPLE_PARAMS } from "@/composables/usePlaceholderInsert";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{
   /** Two-way open state (`v-model`). */
@@ -56,6 +57,8 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
+// Phone: a full-screen sheet (it is a long multi-field form with a rich editor).
+const isMobile = useIsMobile();
 
 const { onContextMenu, menuState, insertToken } = usePlaceholderInsert();
 
@@ -143,16 +146,16 @@ const submit = (): void => {
 </script>
 
 <template>
-  <v-dialog v-model="open" max-width="720" scrollable>
-    <v-card variant="outlined" rounded="lg">
+  <v-dialog v-model="open" max-width="720" scrollable :fullscreen="isMobile">
+    <v-card variant="outlined" :rounded="isMobile ? 0 : 'lg'" :class="{ 'autosend--mobile': isMobile }">
       <v-card-title class="d-flex align-center">
-        <span>{{ t("recurring.autoSend.title") }}</span>
+        <span class="autosend__title">{{ t("recurring.autoSend.title") }}</span>
         <v-spacer />
         <v-btn icon="mdi-close" variant="text" size="small" :aria-label="t('common.cancel')" @click="open = false" />
       </v-card-title>
       <v-divider />
 
-      <v-card-text style="max-height: 72vh">
+      <v-card-text :style="isMobile ? undefined : 'max-height: 72vh'">
         <v-switch
           v-model="enabled"
           data-test="autosend-enabled"
@@ -265,10 +268,46 @@ const submit = (): void => {
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="open = false">{{ t("common.cancel") }}</v-btn>
-        <v-btn color="primary" data-test="autosend-save" :loading="saving" @click="submit">
+        <v-btn
+          color="primary"
+          :variant="isMobile ? 'flat' : undefined"
+          data-test="autosend-save"
+          :loading="saving"
+          @click="submit"
+        >
           {{ t("common.saveChanges") }}
         </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+/* ── Phone (full-screen) ─────────────────────────────────────────────────── */
+.autosend--mobile {
+  border: 0 !important;
+}
+.autosend--mobile > .v-card-title {
+  min-height: 56px;
+  padding: 8px 8px 8px 16px;
+  font-weight: 700;
+}
+.autosend--mobile .autosend__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.autosend--mobile > .v-card-title :deep(.v-btn) {
+  width: 44px;
+  height: 44px;
+}
+.autosend--mobile > .v-card-text {
+  padding: 12px 16px 16px;
+}
+.autosend--mobile > .v-card-actions {
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+}
+.autosend--mobile > .v-card-actions > :deep(.v-btn) {
+  height: 48px;
+}
+</style>

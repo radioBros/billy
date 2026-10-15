@@ -23,6 +23,10 @@ import ClientLanguageHint from "@/components/ClientLanguageHint.vue";
 import ProjectSelect from "@/components/ProjectSelect.vue";
 import RecurringToggle from "@/components/RecurringToggle.vue";
 import AppCard from "@/components/AppCard.vue";
+import FormActions from "@/components/FormActions.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
@@ -32,6 +36,7 @@ import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
 import { confirm } from "@/composables/useConfirm";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -39,6 +44,14 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-account-outline" },
+  { key: "items", title: t("formSteps.items"), icon: "mdi-format-list-bulleted" },
+  { key: "notes", title: t("formSteps.notes"), icon: "mdi-note-text-outline" },
+]);
 
 // Recurring is a property of a NEW proforma, set via RecurringToggle (create only).
 const recurrence = ref<RecurrenceConfig | null>(null);
@@ -127,6 +140,9 @@ const required = (v: unknown): boolean | string =>
 const currencyRule = (v: string): boolean | string => /^[A-Z]{3}$/u.test(v) || t("common.currencyRule");
 const expiryRule = (v: string): boolean | string =>
   !issueDate.value || !v || v >= issueDate.value || t("proformas.expiryRule");
+
+/** Recurring toggle: create mode, or editing a draft (never issued documents). */
+const showRecurring = computed<boolean>(() => !isEdit.value || status.value === "draft");
 
 const nonDraft = computed<boolean>(() => isEdit.value && status.value !== null && status.value !== "draft");
 
@@ -301,10 +317,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("proformas.editTitle") : t("proformas.newTitle") }}</h1>
-    </div>
+    <PageHeader back :title="isEdit ? t('proformas.editTitle') : t('proformas.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -319,6 +332,8 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
+      <FormSteps :steps="formSteps">
+      <template #details>
       <AppCard>
         <v-row>
           <v-col cols="12" md="6">
@@ -382,8 +397,11 @@ onMounted(() => {
           </v-col>
         </v-row>
       </AppCard>
+      </template>
 
-      <AppCard :title="t('proformas.lineItems')">
+      <!-- Phone: the step header already names the section — no card title. -->
+      <template #items>
+      <AppCard :title="isMobile ? undefined : t('proformas.lineItems')">
         <ClientLanguageHint :locale="clientLocale" />
         <v-text-field
           v-model="subject"
@@ -402,14 +420,17 @@ onMounted(() => {
           {{ fieldErrors.lineItems }}
         </v-alert>
       </AppCard>
+      </template>
 
-      <AppCard :title="t('proformas.fields.notes')">
+      <template #notes>
+      <AppCard :title="isMobile ? undefined : t('proformas.fields.notes')">
         <ClientLanguageHint :locale="clientLocale" />
         <v-textarea
           v-model="notes"
           :label="t('proformas.fields.notes')"
           rows="2"
           auto-grow
+          :hide-details="isMobile ? 'auto' : undefined"
           :disabled="nonDraft"
           density="comfortable"
           class="placeholder-field"
@@ -422,16 +443,18 @@ onMounted(() => {
         <PlaceholderInsertMenu :state="menuState" doc-type="proforma" @insert="insertToken" />
 
         <!-- Create mode, or editing a DRAFT (enabling it converts the draft into a
-             recurring profile on save). Never shown for issued documents. -->
+             recurring profile on save). Never shown for issued documents.
+             Phone: rendered as its own card below (no card-in-card). -->
         <RecurringToggle
-          v-if="!isEdit || status === 'draft'"
+          v-if="showRecurring && !isMobile"
           v-model="recurrence"
           :disabled="submitting"
           doc-type="proforma"
           :default-to="clientEmail"
         />
 
-        <template #actions>
+        <!-- Desktop: actions in the card footer (phone: the wizard's sticky bar). -->
+        <template v-if="!isMobile" #actions>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
           <v-spacer />
           <v-btn color="info" prepend-icon="mdi-eye-outline" type="button" @click="preview">
@@ -442,6 +465,27 @@ onMounted(() => {
           </v-btn>
         </template>
       </AppCard>
+      <!-- Re-seeds from `recurrence`, so state survives a breakpoint switch. -->
+      <RecurringToggle
+        v-if="showRecurring && isMobile"
+        v-model="recurrence"
+        :disabled="submitting"
+        doc-type="proforma"
+        :default-to="clientEmail"
+      />
+      </template>
+
+      <template v-if="isMobile" #actions>
+        <FormActions>
+          <v-btn variant="tonal" color="info" prepend-icon="mdi-eye-outline" type="button" @click="preview">
+            {{ t("documents.preview") }}
+          </v-btn>
+          <v-btn color="primary" variant="flat" type="submit" :loading="submitting" :disabled="nonDraft">
+            {{ isEdit ? t("common.saveChanges") : t("proformas.create") }}
+          </v-btn>
+        </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
 
     <DocumentPreviewDialog v-model="previewOpen" :html="previewHtml" :loading="previewLoading" />

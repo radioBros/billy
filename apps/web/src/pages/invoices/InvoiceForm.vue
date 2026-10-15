@@ -36,6 +36,7 @@ import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
 import { useEInvoicing } from "@/stores/einvoicing";
+import { useIsMobile } from "@/composables/useIsMobile";
 import { confirm } from "@/composables/useConfirm";
 import { translateValidationDetails, summarizeValidationDetails, apiErrorReason } from "@/utils/validationMessages";
 
@@ -46,6 +47,7 @@ const einvoicing = useEInvoicing();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
 
 /** Phone wizard steps (desktop renders the same sections stacked). */
 const formSteps = computed<FormStep[]>(() => [
@@ -559,6 +561,7 @@ onMounted(() => {
           :label="t('invoices.fields.notes')"
           rows="2"
           auto-grow
+          :hide-details="isMobile ? 'auto' : undefined"
           :disabled="nonDraft"
           density="comfortable"
           class="placeholder-field"
@@ -599,6 +602,7 @@ onMounted(() => {
         </v-btn>
         <v-btn
           color="primary"
+          :variant="isMobile ? 'flat' : undefined"
           type="submit"
           :loading="submitting"
           :disabled="nonDraft"
@@ -637,11 +641,14 @@ onMounted(() => {
           >
             {{ completionError }}
           </v-alert>
-          <div class="d-flex flex-column" style="gap: 12px">
+          <div class="d-flex flex-column" :style="{ gap: isMobile ? '10px' : '12px' }">
             <v-btn
-              color="success"
-              variant="tonal"
+              :color="isMobile ? undefined : 'success'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-email-outline"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-success)' } : undefined"
               block
               :loading="completionBusy"
               data-test="completion-finalize-send"
@@ -650,9 +657,12 @@ onMounted(() => {
               {{ t("invoices.completion.finalizeAndSend") }}
             </v-btn>
             <v-btn
-              color="info"
-              variant="tonal"
+              :color="isMobile ? undefined : 'info'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-calendar-clock"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-info)' } : undefined"
               block
               :disabled="completionBusy"
               data-test="completion-schedule"
@@ -661,9 +671,12 @@ onMounted(() => {
               {{ t("invoices.completion.schedule") }}
             </v-btn>
             <v-btn
-              color="secondary"
-              variant="tonal"
+              :color="isMobile ? undefined : 'secondary'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-file-document-edit-outline"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-secondary)' } : undefined"
               block
               :disabled="completionBusy"
               data-test="completion-keep-draft"
@@ -690,6 +703,7 @@ onMounted(() => {
             type="date"
             :min="today"
             density="comfortable"
+            :hide-details="isMobile ? 'auto' : undefined"
           />
           <EInvoiceScheduleOption
             v-if="createdInvoice"
@@ -701,7 +715,12 @@ onMounted(() => {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="scheduleDialog = false">{{ t("invoices.schedule.cancel") }}</v-btn>
-          <v-btn color="primary" :loading="completionBusy" @click="submitSchedule">
+          <v-btn
+            color="primary"
+            :variant="isMobile ? 'flat' : undefined"
+            :loading="completionBusy"
+            @click="submitSchedule"
+          >
             {{ t("invoices.schedule.confirm") }}
           </v-btn>
         </v-card-actions>
@@ -728,3 +747,42 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped>
+/* Phone: the completion choices read as a list of tappable option rows —
+ * tinted icon badge, left-aligned label, chevron. */
+.completion-choice {
+  height: 64px !important;
+  justify-content: flex-start;
+  padding: 0 12px !important;
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.completion-choice :deep(.v-btn__prepend) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-inline: 0 12px;
+  border-radius: 12px;
+  background: rgba(var(--choice-rgb), 0.12);
+  color: rgb(var(--choice-rgb));
+}
+.completion-choice :deep(.v-btn__content) {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+  white-space: normal;
+  text-align: start;
+}
+.completion-choice :deep(.v-btn__append) {
+  margin-inline: 8px 0;
+  opacity: 0.45;
+}
+</style>

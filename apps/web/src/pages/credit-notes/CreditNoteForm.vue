@@ -21,6 +21,10 @@ import ClientSelector from "@/components/ClientSelector.vue";
 import ClientLanguageHint from "@/components/ClientLanguageHint.vue";
 import ProjectSelect from "@/components/ProjectSelect.vue";
 import AppCard from "@/components/AppCard.vue";
+import FormActions from "@/components/FormActions.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
@@ -29,6 +33,7 @@ import InvoiceSelector from "@/pages/credit-notes/InvoiceSelector.vue";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -36,6 +41,14 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-account-outline" },
+  { key: "items", title: t("formSteps.items"), icon: "mdi-format-list-bulleted" },
+  { key: "notes", title: t("creditNotes.fields.notes"), icon: "mdi-note-text-outline" },
+]);
 
 const clientId = ref<string | null>("");
 const projectId = ref<string | null>(null);
@@ -208,10 +221,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("creditNotes.editTitle") : t("creditNotes.newTitle") }}</h1>
-    </div>
+    <PageHeader back :title="isEdit ? t('creditNotes.editTitle') : t('creditNotes.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -226,6 +236,8 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
+      <FormSteps :steps="formSteps">
+      <template #details>
       <AppCard>
         <v-row>
           <v-col cols="12" md="6">
@@ -282,8 +294,11 @@ onMounted(() => {
           </v-col>
         </v-row>
       </AppCard>
+      </template>
 
-      <AppCard :title="t('creditNotes.lineItems')">
+      <!-- Phone: the step header already names the section — no card title. -->
+      <template #items>
+      <AppCard :title="isMobile ? undefined : t('creditNotes.lineItems')">
         <ClientLanguageHint :locale="clientLocale" />
         <v-text-field
           v-model="subject"
@@ -302,14 +317,17 @@ onMounted(() => {
           {{ fieldErrors.lineItems }}
         </v-alert>
       </AppCard>
+      </template>
 
-      <AppCard :title="t('creditNotes.fields.notes')">
+      <template #notes>
+      <AppCard :title="isMobile ? undefined : t('creditNotes.fields.notes')">
         <ClientLanguageHint :locale="clientLocale" />
         <v-textarea
           v-model="notes"
           :label="t('creditNotes.fields.notes')"
           rows="2"
           auto-grow
+          :hide-details="isMobile ? 'auto' : undefined"
           :disabled="nonDraft"
           density="comfortable"
           class="placeholder-field"
@@ -320,7 +338,8 @@ onMounted(() => {
           </template>
         </v-textarea>
         <PlaceholderInsertMenu :state="menuState" doc-type="credit-note" @insert="insertToken" />
-        <template #actions>
+        <!-- Desktop: actions in the card footer (phone: the wizard's sticky bar). -->
+        <template v-if="!isMobile" #actions>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
           <v-spacer />
           <v-btn color="info" prepend-icon="mdi-eye-outline" type="button" @click="preview">
@@ -331,6 +350,19 @@ onMounted(() => {
           </v-btn>
         </template>
       </AppCard>
+      </template>
+
+      <template v-if="isMobile" #actions>
+        <FormActions>
+          <v-btn variant="tonal" color="info" prepend-icon="mdi-eye-outline" type="button" @click="preview">
+            {{ t("documents.preview") }}
+          </v-btn>
+          <v-btn color="primary" variant="flat" type="submit" :loading="submitting" :disabled="nonDraft">
+            {{ isEdit ? t("common.saveChanges") : t("creditNotes.create") }}
+          </v-btn>
+        </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
 
     <DocumentPreviewDialog v-model="previewOpen" :html="previewHtml" :loading="previewLoading" />

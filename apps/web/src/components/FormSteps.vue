@@ -1,3 +1,10 @@
+<script lang="ts">
+import type { InjectionKey, Ref } from "vue";
+
+/** Provided by FormSteps: true while it renders as a phone wizard. */
+export const FORM_STEPS_KEY: InjectionKey<Ref<boolean>> = Symbol("billy:form-steps");
+</script>
+
 <script setup lang="ts">
 /**
  * FormSteps — turns a long create/edit form into a stepped wizard on phones.
@@ -20,7 +27,7 @@
  * validation (submit, or server field errors) flags a field on another step,
  * the wizard jumps to the first step holding an error and scrolls it into view.
  */
-import { computed, inject, nextTick, ref, watch } from "vue";
+import { computed, inject, nextTick, provide, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useIsMobile } from "@/composables/useIsMobile";
 import { useHideBottomNav } from "@/composables/useMobileChrome";
@@ -38,6 +45,10 @@ const current = defineModel<number>("step", { default: 0 });
 const { t } = useI18n();
 const isMobile = useIsMobile();
 useHideBottomNav(isMobile);
+
+/** Lets children know a step header already names their section on phones
+ *  (e.g. LineItemEditor drops its own "Line items" caption). */
+provide(FORM_STEPS_KEY, isMobile);
 
 // ---- Vuetify form context (the v-form this wizard lives in) ----------------
 interface FormField {

@@ -12,6 +12,7 @@ import type { EInvoiceKind, EInvoicePreflightIssue } from "@/types/domain";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { runPreflight } from "@/composables/useEInvoice";
 import EInvoiceIssueList from "@/components/einvoicing/EInvoiceIssueList.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{
   kind?: EInvoiceKind;
@@ -23,6 +24,7 @@ const model = defineModel<boolean>({ default: false });
 
 const { t } = useI18n();
 const einvoicing = useEInvoicing();
+const isMobile = useIsMobile();
 const issues = ref<EInvoicePreflightIssue[]>([]);
 
 // Only the things that don't depend on the (still missing) number/date matter now.
@@ -44,7 +46,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="einvoicing.enabled" data-test="einvoice-schedule-option">
+  <div
+    v-if="einvoicing.enabled"
+    data-test="einvoice-schedule-option"
+    :class="{ 'einvoice-schedule--mobile': isMobile }"
+  >
     <v-checkbox
       v-model="model"
       color="primary"
@@ -66,3 +72,18 @@ onMounted(async () => {
     </v-alert>
   </div>
 </template>
+
+<style scoped>
+/* Phone: a compact advisory — smaller alert copy, wrapping checkbox label. */
+.einvoice-schedule--mobile :deep(.v-checkbox .v-label) {
+  white-space: normal;
+  line-height: 1.3;
+}
+.einvoice-schedule--mobile :deep(.v-alert) {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.einvoice-schedule--mobile :deep(.v-alert .v-alert__content) {
+  overflow-wrap: anywhere;
+}
+</style>

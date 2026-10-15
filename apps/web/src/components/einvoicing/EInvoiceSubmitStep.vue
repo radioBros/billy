@@ -24,6 +24,7 @@ import {
   submitEInvoice,
   useEInvoicePolling,
 } from "@/composables/useEInvoice";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -40,6 +41,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const isMobile = useIsMobile();
 const { polling, start: startPolling, stop: stopPolling } = useEInvoicePolling();
 
 type Phase = "checking" | "ready" | "blocked" | "sending" | "sent" | "error";
@@ -136,7 +138,12 @@ watch(
 
 <template>
   <v-dialog :model-value="modelValue" max-width="560" persistent @update:model-value="emit('update:modelValue', $event)">
-    <v-card variant="outlined" rounded="lg" data-test="einvoice-submit-step">
+    <v-card
+      variant="outlined"
+      rounded="lg"
+      data-test="einvoice-submit-step"
+      :class="{ 'einvoice-step--mobile': isMobile }"
+    >
       <v-card-title>{{ t("einvoicing.submit.title") }}</v-card-title>
       <v-card-text>
         <div v-if="phase === 'checking'" class="text-center pa-6" data-test="einvoice-checking">
@@ -183,10 +190,16 @@ watch(
         </v-alert>
       </v-card-text>
 
-      <v-card-actions>
+      <!-- Phone: stacked full-width buttons, the primary action on top. -->
+      <v-card-actions :class="{ 'einvoice-step__actions--mobile': isMobile }">
         <v-spacer />
         <template v-if="phase === 'sent'">
-          <v-btn color="primary" data-test="einvoice-continue" @click="close(true)">{{ t("einvoicing.submit.continue") }}</v-btn>
+          <v-btn
+            color="primary"
+            :variant="isMobile ? 'flat' : undefined"
+            data-test="einvoice-continue"
+            @click="close(true)"
+          >{{ t("einvoicing.submit.continue") }}</v-btn>
         </template>
         <template v-else>
           <v-btn variant="text" :disabled="phase === 'sending'" data-test="einvoice-skip" @click="close(false)">
@@ -205,6 +218,7 @@ watch(
           <v-btn
             v-if="phase === 'ready' || phase === 'sending'"
             color="primary"
+            :variant="isMobile ? 'flat' : undefined"
             prepend-icon="mdi-send-check-outline"
             :loading="phase === 'sending'"
             data-test="einvoice-send"
@@ -217,3 +231,20 @@ watch(
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+/* Phone: compact advisory copy in the sheet. */
+.einvoice-step--mobile :deep(.v-alert) {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.einvoice-step__actions--mobile {
+  flex-direction: column-reverse;
+  align-items: stretch;
+}
+.einvoice-step__actions--mobile > :deep(.v-btn) {
+  width: 100%;
+  height: 48px;
+  margin: 0 !important;
+}
+</style>
