@@ -11,11 +11,17 @@
  *    the ready downloadUrl.
  *
  * The heavy lifting lives in useDocumentActions so RowActionMenu can reuse it.
+ *
+ * Phone (< 600px): the three actions become a full-width row of equal tonal
+ * tiles (icon over label), and the preview opens fullscreen with the A4 sheet
+ * rendered at its real width and scaled down to fit the screen (the document
+ * never reflows into a cramped 360px column).
  */
-import { ref, toRef } from "vue";
+import { ref, toRef, computed, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useDocumentActions, type DocumentType } from "@/composables/useDocumentActions";
 import { actionIconColor } from "@/constants/iconColors";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +33,7 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
+const isMobile = useIsMobile();
 
 const typeRef = toRef(props, "documentType");
 const idRef = toRef(props, "documentId");
@@ -62,7 +69,39 @@ const onPrint = async (): Promise<void> => {
   await openPreview();
 };
 
+// ── Phone fit-to-width preview ──────────────────────────────────────────────
+// The iframe is laid out at the A4 width (210mm ≈ 794 CSS px) and scaled down to
+// the available width; its height follows the document so the dialog scrolls
+// (never a nested scroller inside a transformed iframe).
+const PAGE_W = 794;
+const PAGE_H = 1123;
+const fitRef = ref<HTMLElement | null>(null);
+const fitWidth = ref(0);
+const contentHeight = ref(PAGE_H);
+const fitScale = computed<number>(() => (fitWidth.value > 0 ? Math.min(1, fitWidth.value / PAGE_W) : 1));
+let fitObserver: ResizeObserver | null = null;
+watch(fitRef, (el) => {
+  fitObserver?.disconnect();
+  fitObserver = null;
+  if (!el || typeof ResizeObserver === "undefined") return;
+  // Usable width = the box minus its 12px side padding and the sheet's 1px border.
+  const measure = (): void => {
+    fitWidth.value = Math.max(0, el.clientWidth - 26);
+  };
+  fitObserver = new ResizeObserver(measure);
+  fitObserver.observe(el);
+  measure();
+});
+onBeforeUnmount(() => fitObserver?.disconnect());
+
+const measureContent = (): void => {
+  const doc = iframeRef.value?.contentDocument;
+  const h = doc?.documentElement?.scrollHeight ?? 0;
+  contentHeight.value = Math.max(PAGE_H, h);
+};
+
 const onIframeLoad = (): void => {
+  if (isMobile.value) measureContent();
   if (printOnLoad.value) {
     printOnLoad.value = false;
     // Wait a paint tick so the srcdoc content is laid out before printing
@@ -73,7 +112,30 @@ const onIframeLoad = (): void => {
 </script>
 
 <template>
-  <div class="d-inline-flex align-center" style="gap: 8px">
+  <div :class="isMobile ? 'doc-actions--mobile' : 'd-inline-flex align-center'" :style="isMobile ? undefined : 'gap: 8px'">
+    <!-- Phone: three equal tiles (icon over label) spanning the row. -->
+    <template v-if="isMobile">
+      <v-btn
+        v-for="a in [
+          { key: 'preview', icon: 'mdi-eye-outline', color: 'info', label: t('documentActions.preview'), run: openPreview, loading: false },
+          { key: 'print', icon: 'mdi-printer-outline', color: 'info', label: t('documentActions.print'), run: onPrint, loading: false },
+          { key: 'download', icon: 'mdi-download-outline', color: 'success', label: t('documentActions.download'), run: download, loading: downloading },
+        ]"
+        :key="a.key"
+        :color="a.color"
+        variant="tonal"
+        class="doc-actions__tile"
+        :disabled="disabled"
+        :loading="a.loading"
+        :aria-label="a.label"
+        :data-test="`doc-action-${a.key}`"
+        @click="a.run"
+      >
+        <v-icon :icon="a.icon" size="22" />
+        <span class="doc-actions__tile-label">{{ a.label }}</span>
+      </v-btn>
+    </template>
+    <template v-else>
     <v-btn
       color="info"
       :disabled="disabled"
@@ -105,15 +167,16 @@ const onIframeLoad = (): void => {
       </template>
       {{ t("documentActions.download") }}
     </v-btn>
+    </template>
 
     <v-snackbar :model-value="errorMessage !== null" color="error" :timeout="4000" @update:model-value="errorMessage = null">
       {{ t("documentActions.error", { code: errorMessage }) }}
     </v-snackbar>
 
-    <v-dialog v-model="previewOpen" max-width="900" scrollable>
-      <v-card variant="outlined" rounded="lg" class="doc-actions__preview-card">
-        <v-card-title class="d-flex align-center">
-          <span>{{ t("documentActions.previewTitle") }}</span>
+    <v-dialog v-model="previewOpen" max-width="900" scrollable :fullscreen="isMobile">
+      <v-card variant="outlined" :rounded="isMobile ? 0 : 'lg'" class="doc-actions__preview-card">
+        <v-card-title class="d-flex align-center" :class="{ 'doc-actions__preview-bar': isMobile }">
+          <span class="text-truncate">{{ t("documentActions.previewTitle") }}</span>
           <v-spacer />
           <v-btn
             color="info"
@@ -129,9 +192,27 @@ const onIframeLoad = (): void => {
           <v-btn icon="mdi-close" variant="text" size="small" :aria-label="t('common.cancel')" @click="previewOpen = false" />
         </v-card-title>
         <v-divider />
-        <v-card-text class="pa-0 doc-actions__preview-body">
+        <v-card-text class="pa-0 doc-actions__preview-body" :class="{ 'doc-actions__preview-body--mobile': isMobile }">
           <div v-if="previewLoading" class="pa-8 text-center">
             <v-progress-circular indeterminate />
+          </div>
+          <!-- Phone: the sheet keeps its A4 layout width and is scaled to fit. -->
+          <div v-else-if="isMobile" ref="fitRef" class="doc-actions__fit">
+            <div
+              class="doc-actions__fit-sheet"
+              :style="{ width: `${PAGE_W * fitScale}px`, height: `${contentHeight * fitScale}px` }"
+            >
+              <iframe
+                ref="iframeRef"
+                :srcdoc="previewHtml"
+                class="doc-actions__fit-iframe"
+                :style="{ width: `${PAGE_W}px`, height: `${contentHeight}px`, transform: `scale(${fitScale})` }"
+                sandbox="allow-same-origin allow-modals"
+                scrolling="no"
+                :title="t('documentActions.previewTitle')"
+                @load="onIframeLoad"
+              />
+            </div>
           </div>
           <!-- A grey backdrop with padding so the white A4 "page" floats with a
                margin inside the dialog (mirrors a real document viewer). The
@@ -179,5 +260,63 @@ const onIframeLoad = (): void => {
   background: #fff;
   /* Inner padding lives inside the iframe document via injected CSS (see
      useDocumentActions); the sheet itself only frames it. */
+}
+
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+.doc-actions--mobile {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.doc-actions__tile {
+  height: 60px !important;
+  min-width: 0 !important;
+  padding: 0 6px !important;
+  border-radius: 14px !important;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.doc-actions__tile :deep(.v-btn__content) {
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.doc-actions__tile-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.doc-actions__preview-bar {
+  min-height: 56px;
+  padding: 6px 8px 6px 16px !important;
+  gap: 8px;
+}
+.doc-actions__preview-body--mobile {
+  height: auto;
+  flex: 1 1 auto;
+}
+.doc-actions__fit {
+  padding: 12px;
+  min-height: 100%;
+}
+/* Holds the scaled sheet's real footprint (transform doesn't affect layout). */
+.doc-actions__fit-sheet {
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  box-sizing: content-box;
+}
+.doc-actions__fit-iframe {
+  display: block;
+  border: 0;
+  background: #fff;
+  transform-origin: top left;
 }
 </style>

@@ -736,7 +736,9 @@
       "convertTitle": "Converter em fatura?",
       "convertMessage": "Será criada uma nova fatura em rascunho a partir desta proforma."
     },
-    "saved": "Proforma guardada"
+    "saved": "Proforma guardada",
+    "convertedShort": "Convertida em fatura.",
+    "openInvoice": "Abrir fatura"
   },
   "dashboard": {
     "welcome": "Bem-vindo",

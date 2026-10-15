@@ -17,6 +17,8 @@ import { minorToDisplay, majorToMinor } from "@/utils/money";
 import { enumLabel } from "@/utils/enums";
 import StatusChip from "@/components/StatusChip.vue";
 import AppCard from "@/components/AppCard.vue";
+import PageHeader from "@/components/PageHeader.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import DocumentActions from "@/components/DocumentActions.vue";
 import SendDocumentModal from "@/components/SendDocumentModal.vue";
 import EInvoicePanel from "@/components/einvoicing/EInvoicePanel.vue";
@@ -37,6 +39,7 @@ const { t } = useI18n();
 const auth = useAuthStore();
 const einvoicing = useEInvoicing();
 const { toast } = useToast();
+const isMobile = useIsMobile();
 const id = computed<string>(() => route.params.id as string);
 
 const invoice = ref<Invoice | null>(null);
@@ -149,6 +152,24 @@ const deleteInvoice = async (): Promise<void> => {
     acting.value = false;
   }
 };
+
+// ── Phone layout helpers ───────────────────────────────────────────────────
+// Paid share of the total (0–100) for the hero progress bar; null when either
+// amount is stripped (restricted users) or the total is zero.
+const paidPercent = computed<number | null>(() => {
+  const paid = invoice.value?.amountPaidMinor;
+  const total = invoice.value?.grandTotalMinor;
+  if (paid == null || total == null || total <= 0) return null;
+  return Math.min(100, Math.max(0, (paid / total) * 100));
+});
+// Payment progress only means something once the invoice is numbered and live.
+const showPaymentSummary = computed<boolean>(() => canVoid.value);
+// Phone primary row: "Add payment" leads while money is still due; once paid it
+// moves to the overflow menu and Send leads instead.
+const payIsPrimary = computed<boolean>(() => canVoid.value && invoice.value?.status !== "paid");
+const hasOverflow = computed<boolean>(
+  () => isDraft.value || isScheduled.value || canSend.value || canVoid.value || canDelete.value,
+);
 
 // send-document modal state (shared for both "Send" and "Send reminder").
 const sendModal = ref(false);
@@ -337,10 +358,40 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ t("invoices.detailTitle") }}</h1>
-    </div>
+    <PageHeader :title="t('invoices.detailTitle')" back>
+      <!-- Phone: secondary + destructive lifecycle actions live in an overflow menu. -->
+      <template v-if="invoice && !loading && hasOverflow" #mobile-actions>
+        <v-menu location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" :aria-label="t('rowActions.menu')" data-test="invoice-more" />
+          </template>
+          <v-list density="comfortable" min-width="220">
+            <v-list-item v-if="isDraft" prepend-icon="mdi-calendar-clock" :title="t('invoices.schedule.action')" @click="openScheduleDialog" />
+            <v-list-item v-if="isScheduled" prepend-icon="mdi-calendar-remove" :title="t('invoices.schedule.unscheduleAction')" @click="unschedule" />
+            <v-list-item v-if="canVoid && !payIsPrimary" prepend-icon="mdi-cash-plus" :title="t('invoices.addPayment')" @click="payDialog = true" />
+            <v-list-item v-if="canSend" prepend-icon="mdi-email-alert-outline" :title="t('invoices.sendReminder')" @click="openSend('reminder')" />
+            <v-list-item
+              v-if="canVoid"
+              prepend-icon="mdi-cancel"
+              base-color="error"
+              :title="t('invoices.void')"
+              :subtitle="legallyIssued ? t('einvoicing.errors.legallyIssued') : undefined"
+              :disabled="legallyIssued"
+              data-test="invoice-void"
+              @click="voidInvoice"
+            />
+            <v-list-item
+              v-if="canDelete"
+              prepend-icon="mdi-delete-outline"
+              base-color="error"
+              :title="t('common.delete')"
+              data-test="invoice-delete"
+              @click="deleteInvoice"
+            />
+          </v-list>
+        </v-menu>
+      </template>
+    </PageHeader>
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -358,7 +409,110 @@ onMounted(() => {
         {{ actionError }}
       </v-alert>
 
-      <AppCard>
+      <!-- ── Phone: hero summary + actions ─────────────────────────────── -->
+      <template v-if="isMobile">
+        <section class="dd-card dd-hero">
+          <div class="dd-hero__head">
+            <div class="dd-hero__number">{{ invoice.invoiceNumber ?? t("invoices.draftUnnumbered") }}</div>
+            <div class="dd-hero__chips">
+              <StatusChip :status="invoice.status" />
+              <EInvoiceSentChip v-if="einvoicing.enabled" :info="einvoiceInfo" @click="einvoiceOpen = !einvoiceOpen" />
+            </div>
+          </div>
+          <div class="dd-hero__client">{{ clientNameOf(invoice.clientId) ?? "\u2014" }}</div>
+
+          <v-alert
+            v-if="isScheduled && invoice.scheduledSendDate"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+            icon="mdi-calendar-clock"
+          >
+            {{ t("invoices.schedule.banner", { date: invoice.scheduledSendDate }) }}
+          </v-alert>
+
+          <div class="dd-label mt-4">{{ t("invoices.totals.total") }}</div>
+          <div class="dd-hero__total">{{ minorToDisplay(invoice.grandTotalMinor, invoice.currency) }}</div>
+
+          <template v-if="showPaymentSummary">
+            <v-progress-linear
+              v-if="paidPercent !== null"
+              :model-value="paidPercent"
+              color="success"
+              bg-color="on-surface"
+              height="6"
+              rounded
+              class="mt-3"
+            />
+            <div class="dd-hero__split">
+              <div>
+                <div class="dd-label">{{ t("invoices.totals.paid") }}</div>
+                <div class="dd-hero__figure">{{ minorToDisplay(invoice.amountPaidMinor, invoice.currency) }}</div>
+              </div>
+              <div class="text-right">
+                <div class="dd-label">{{ t("invoices.totals.due") }}</div>
+                <div class="dd-hero__figure" :class="(invoice.amountDueMinor ?? 0) > 0 ? 'text-warning' : 'text-success'">
+                  {{ minorToDisplay(invoice.amountDueMinor, invoice.currency) }}
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div class="dd-hero__meta">
+            <div>
+              <div class="dd-label">{{ t("invoices.detail.issueDate") }}</div>
+              <div class="dd-value">{{ invoice.issueDate }}</div>
+            </div>
+            <div>
+              <div class="dd-label">{{ t("invoices.detail.dueDate") }}</div>
+              <div class="dd-value">{{ invoice.dueDate }}</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="dd-actions">
+          <div class="dd-actions__primary">
+            <v-btn v-if="canFinalize" color="primary" variant="flat" size="large" :loading="acting" @click="finalize">
+              {{ t("invoices.finalize") }}
+            </v-btn>
+            <v-btn
+              v-if="isDraft"
+              color="primary"
+              variant="tonal"
+              size="large"
+              prepend-icon="mdi-pencil"
+              :to="{ name: 'invoice-edit', params: { id: invoice.id } }"
+            >
+              {{ t("common.edit") }}
+            </v-btn>
+            <v-btn v-if="payIsPrimary" color="primary" variant="flat" size="large" prepend-icon="mdi-cash-plus" :loading="acting" @click="payDialog = true">
+              {{ t("invoices.addPayment") }}
+            </v-btn>
+            <v-btn
+              v-if="canSend"
+              color="primary"
+              :variant="payIsPrimary ? 'tonal' : 'flat'"
+              size="large"
+              prepend-icon="mdi-email-outline"
+              :loading="acting"
+              @click="openSend('invoice')"
+            >
+              {{ t("invoices.send") }}
+            </v-btn>
+          </div>
+          <DocumentActions document-type="invoice" :document-id="invoice.id" />
+          <EInvoiceActionButton
+            v-if="einvoicing.enabled && canSend"
+            :info="einvoiceInfo"
+            :open="einvoiceOpen"
+            class="dd-actions__wide"
+            @toggle="einvoiceOpen = !einvoiceOpen"
+          />
+        </div>
+      </template>
+
+      <AppCard v-else>
         <template #header>
           <div class="text-h6 mr-3">{{ invoice.invoiceNumber ?? t("invoices.draftUnnumbered") }}</div>
           <StatusChip :status="invoice.status" />
@@ -452,6 +606,61 @@ onMounted(() => {
         </div>
       </v-expand-transition>
 
+      <!-- ── Phone: line cards + totals, payment cards ─────────────────── -->
+      <template v-if="isMobile">
+        <section class="dd-card">
+          <div class="dd-section-title">{{ t("invoices.lineItems") }}</div>
+          <div v-for="(li, i) in invoice.lineItems" :key="i" class="dd-line">
+            <div class="dd-line__desc">{{ li.description }}</div>
+            <div class="dd-line__row">
+              <span class="dd-line__calc">
+                {{ li.quantity }} × {{ minorToDisplay(li.unitPriceMinor, invoice.currency) }}
+                <template v-if="li.discountRate"> · −{{ li.discountRate }}%</template>
+                <template v-if="li.taxRate != null"> · {{ t("invoices.totals.tax") }} {{ li.taxRate }}%</template>
+              </span>
+              <span class="dd-line__total">{{ minorToDisplay(li.lineTotalMinor, invoice.currency) }}</span>
+            </div>
+          </div>
+          <div class="dd-totals">
+            <div class="dd-totals__row">
+              <span>{{ t("invoices.totals.subtotal") }}</span><span>{{ minorToDisplay(invoice.subtotalMinor, invoice.currency) }}</span>
+            </div>
+            <div class="dd-totals__row">
+              <span>{{ t("invoices.totals.tax") }}</span><span>{{ minorToDisplay(invoice.taxMinor, invoice.currency) }}</span>
+            </div>
+            <div class="dd-totals__row dd-totals__row--grand">
+              <span>{{ t("invoices.totals.total") }}</span><span>{{ minorToDisplay(invoice.grandTotalMinor, invoice.currency) }}</span>
+            </div>
+            <div class="dd-totals__row">
+              <span>{{ t("invoices.totals.paid") }}</span><span>{{ minorToDisplay(invoice.amountPaidMinor, invoice.currency) }}</span>
+            </div>
+            <div class="dd-totals__row dd-totals__row--strong">
+              <span>{{ t("invoices.totals.due") }}</span><span>{{ minorToDisplay(invoice.amountDueMinor, invoice.currency) }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-card">
+          <div class="dd-section-title">{{ t("invoices.payments") }}</div>
+          <div v-if="invoice.payments.length === 0" class="dd-empty">{{ t("invoices.noPayments") }}</div>
+          <div v-for="p in invoice.payments" :key="p.id" class="dd-pay">
+            <v-avatar size="36" color="success" variant="tonal" class="dd-pay__icon">
+              <v-icon icon="mdi-cash-check" size="20" />
+            </v-avatar>
+            <div class="dd-pay__main">
+              <div class="dd-pay__method">
+                {{ enumLabel(t, "paymentMethod", p.method) }}<template v-if="p.bankAccountLabel"> · {{ p.bankAccountLabel }}</template>
+              </div>
+              <div class="dd-pay__sub">
+                {{ p.date }}<template v-if="p.reference"> · {{ p.reference }}</template>
+              </div>
+            </div>
+            <div class="dd-pay__amount">{{ minorToDisplay(p.amountMinor, invoice.currency) }}</div>
+          </div>
+        </section>
+      </template>
+
+      <template v-else>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <div class="text-subtitle-2 mb-2">{{ t("invoices.lineItems") }}</div>
@@ -529,6 +738,7 @@ onMounted(() => {
         </v-table>
         </v-card-text>
       </v-card>
+      </template>
     </template>
 
     <SendDocumentModal
@@ -596,3 +806,233 @@ onMounted(() => {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+/* ── Phone detail layout (dd- = document detail; mirrors the other detail pages) ── */
+.dd-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.dd-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+}
+.dd-value {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.dd-hero__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dd-hero__number {
+  min-width: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.dd-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+.dd-hero__client {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.75));
+  overflow-wrap: anywhere;
+}
+.dd-hero__total {
+  margin-top: 2px;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dd-hero__split {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.dd-hero__figure {
+  margin-top: 2px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dd-hero__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--v-billy-border, #e2e4e9);
+}
+.dd-hero__meta > :nth-child(2n) {
+  text-align: right;
+}
+.dd-hero__meta > .dd-hero__meta-wide {
+  grid-column: 1 / -1;
+  text-align: left;
+}
+.dd-link {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 600;
+  text-decoration: none;
+}
+.dd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+/* Side by side when the labels fit, each full width when they don't (long
+   translations) — a primary label is never clipped. */
+.dd-actions__primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dd-actions__primary:empty {
+  display: none;
+}
+.dd-actions__primary > .v-btn {
+  flex: 1 1 auto;
+  height: 48px !important;
+  border-radius: 14px;
+}
+.dd-actions__wide {
+  width: 100%;
+  height: 44px !important;
+  border-radius: 14px;
+}
+.dd-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+  margin-bottom: 4px;
+}
+.dd-line {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--v-billy-border, #e2e4e9);
+}
+.dd-line__desc {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.dd-line__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.dd-line__calc {
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dd-line__total {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dd-totals {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.05);
+}
+.dd-totals__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.dd-totals__row > :last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.dd-totals__row--grand {
+  margin: 4px 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--v-billy-border, #e2e4e9);
+  border-bottom: 1px solid var(--v-billy-border, #e2e4e9);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.dd-totals__row--grand:last-child {
+  margin-bottom: 0;
+  padding-bottom: 2px;
+  border-bottom: 0;
+}
+.dd-totals__row--strong {
+  font-weight: 700;
+}
+.dd-empty {
+  padding: 8px 0 2px;
+  font-size: 0.875rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+}
+.dd-pay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--v-billy-border, #e2e4e9);
+}
+.dd-pay:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+.dd-pay__icon {
+  flex: 0 0 auto;
+}
+.dd-pay__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dd-pay__method {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dd-pay__sub {
+  font-size: 0.8125rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+  overflow-wrap: anywhere;
+}
+.dd-pay__amount {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+</style>

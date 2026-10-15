@@ -736,7 +736,9 @@
       "convertTitle": "Convert to invoice?",
       "convertMessage": "A new draft invoice will be created from this proforma."
     },
-    "saved": "Proforma saved"
+    "saved": "Proforma saved",
+    "convertedShort": "Converted to an invoice.",
+    "openInvoice": "Open invoice"
   },
   "dashboard": {
     "welcome": "Welcome",

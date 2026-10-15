@@ -34,6 +34,7 @@ import {
   type SendKind,
 } from "@/composables/useSendDocument";
 import AttachmentsField, { type Attachment } from "@/components/AttachmentsField.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 // The document PDF is added server-side and its size is unknown until generated;
 // reserve ~1 MB against the 20 MB budget as a safe estimate. The API enforces the
@@ -60,6 +61,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+// Phone: the dialog goes fullscreen (it holds a rich-text editor + many fields).
+const isMobile = useIsMobile();
 
 // Placeholder insert: the send doc-type (invoice|contract) is a PlaceholderDocType,
 // so the subject legend + body {{ }} toolbar offer the tokens valid for this document.
@@ -162,10 +165,10 @@ const title = computed(() =>
 </script>
 
 <template>
-  <v-dialog v-model="open" max-width="720" scrollable>
-    <v-card variant="outlined" rounded="lg">
-      <v-card-title class="d-flex align-center">
-        <span>{{ title }}</span>
+  <v-dialog v-model="open" max-width="720" scrollable :fullscreen="isMobile">
+    <v-card variant="outlined" :rounded="isMobile ? 0 : 'lg'">
+      <v-card-title class="d-flex align-center" :class="{ 'send-modal__bar': isMobile }">
+        <span class="send-modal__title">{{ title }}</span>
         <v-spacer />
         <v-btn
           icon="mdi-close"
@@ -177,7 +180,7 @@ const title = computed(() =>
       </v-card-title>
       <v-divider />
 
-      <v-card-text style="max-height: 72vh">
+      <v-card-text :style="isMobile ? undefined : 'max-height: 72vh'" :class="{ 'send-modal__body': isMobile }">
         <div v-if="previewLoading" class="pa-8 text-center">
           <v-progress-circular indeterminate />
         </div>
@@ -314,3 +317,19 @@ const title = computed(() =>
     {{ t("send.pending") }}
   </v-snackbar>
 </template>
+
+<style scoped>
+/* ── Phone (fullscreen) ────────────────────────────────────────────────── */
+.send-modal__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.send-modal__bar {
+  min-height: 56px;
+  padding: 6px 8px 6px 16px !important;
+}
+.send-modal__body {
+  flex: 1 1 auto;
+  padding: 16px !important;
+}
+</style>

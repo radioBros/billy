@@ -736,7 +736,9 @@
       "convertTitle": "Convertir en facture ?",
       "convertMessage": "Une nouvelle facture brouillon sera créée à partir de cette proforma."
     },
-    "saved": "Proforma enregistree"
+    "saved": "Proforma enregistree",
+    "convertedShort": "Convertie en facture.",
+    "openInvoice": "Ouvrir la facture"
   },
   "dashboard": {
     "welcome": "Bienvenue",

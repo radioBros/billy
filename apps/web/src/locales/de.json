@@ -736,7 +736,9 @@
       "convertTitle": "In Rechnung umwandeln?",
       "convertMessage": "Aus dieser Proforma wird ein neuer Rechnungsentwurf erstellt."
     },
-    "saved": "Proforma gespeichert"
+    "saved": "Proforma gespeichert",
+    "convertedShort": "In eine Rechnung umgewandelt.",
+    "openInvoice": "Rechnung öffnen"
   },
   "dashboard": {
     "welcome": "Willkommen",

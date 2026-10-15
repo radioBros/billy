@@ -736,7 +736,9 @@
       "convertTitle": "¿Convertir en factura?",
       "convertMessage": "Se creará una nueva factura en borrador a partir de esta proforma."
     },
-    "saved": "Proforma guardada"
+    "saved": "Proforma guardada",
+    "convertedShort": "Convertida en factura.",
+    "openInvoice": "Abrir factura"
   },
   "dashboard": {
     "welcome": "Bienvenido",
