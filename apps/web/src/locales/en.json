@@ -1336,7 +1336,8 @@
     "maxLength": "Maximum {max} characters",
     "dates": {
       "invalid": "Enter a valid date",
-      "maxToday": "Date cannot be in the future"
+      "maxToday": "Date cannot be in the future",
+      "notPast": "Date cannot be in the past"
     },
     "formHasErrors": "Please fix the highlighted errors",
     "quantityPositive": "Quantity must be greater than 0",
@@ -1349,7 +1350,8 @@
     "portInvalid": "Enter a port between 1 and 65535",
     "ibanInvalid": "Enter a valid IBAN (e.g. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Enter an amount with at most 2 decimals (e.g. 77.47)",
-    "intBetween": "Enter a whole number between {min} and {max}"
+    "intBetween": "Enter a whole number between {min} and {max}",
+    "amountPositive": "Enter an amount greater than 0"
   },
   "accounts": {
     "title": "Accounts",

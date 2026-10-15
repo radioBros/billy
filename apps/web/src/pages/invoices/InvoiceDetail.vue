@@ -32,6 +32,8 @@ import type { SendKind } from "@/composables/useSendDocument";
 import { confirm } from "@/composables/useConfirm";
 import { useAuthStore } from "@/stores/auth";
 import type { EInvoiceInfo } from "@/types/domain";
+import validations from "@/constants/validations";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
 
 const route = useRoute();
 const router = useRouter();
@@ -181,6 +183,8 @@ const openSend = (kind: SendKind): void => {
 
 // schedule-send dialog state
 const scheduleDialog = ref(false);
+const scheduleFormRef = ref<VuetifyFormRef | null>(null);
+const payFormRef = ref<VuetifyFormRef | null>(null);
 const scheduleDate = ref(today);
 // "Send officially via SdI when issued" (e-invoicing only).
 const submitOnFinalize = ref(false);
@@ -273,6 +277,7 @@ const openScheduleDialog = (): void => {
 
 const submitSchedule = async (): Promise<void> => {
   if (!invoice.value) return;
+  if (scheduleFormRef.value && !(await scheduleFormRef.value.validate()).valid) return;
   // Guard: the schedule date must be today or later (mirrors the API rule).
   if (!scheduleDate.value || scheduleDate.value < today) {
     actionError.value = t("invoices.schedule.dateError");
@@ -309,6 +314,7 @@ const unschedule = async (): Promise<void> => {
 
 const submitPayment = async (): Promise<void> => {
   if (!invoice.value) return;
+  if (payFormRef.value && !(await payFormRef.value.validate()).valid) return;
   const amountMinor = majorToMinor(payAmountMajor.value);
   if (amountMinor === null || amountMinor <= 0) {
     actionError.value = t("invoices.positiveAmount");
@@ -758,13 +764,16 @@ onMounted(() => {
           <p class="text-body-2 mb-4" style="color: var(--v-billy-text-2)">
             {{ t("invoices.schedule.dialogHint") }}
           </p>
+          <v-form ref="scheduleFormRef" @submit.prevent="submitSchedule">
           <v-text-field
             v-model="scheduleDate"
             :label="t('invoices.schedule.dateLabel')"
             type="date"
+            :rules="validations.required.dateNotPast"
             :min="today"
             density="comfortable"
           />
+          </v-form>
           <EInvoiceScheduleOption
             v-if="invoice"
             v-model="submitOnFinalize"
@@ -786,16 +795,19 @@ onMounted(() => {
       <v-card>
         <v-card-title>{{ t("invoices.payDialog.title") }}</v-card-title>
         <v-card-text>
+          <v-form ref="payFormRef" @submit.prevent="submitPayment">
           <v-text-field
             v-model.number="payAmountMajor"
             :label="t('invoices.payDialog.amount')"
+            :rules="validations.required.amountPositive"
             type="number"
             :prefix="invoice?.currency"
             density="comfortable"
           />
-          <v-text-field v-model="payDate" :label="t('invoices.payDialog.date')" type="date" density="comfortable" />
-          <v-select v-model="paySelection" :items="PAYMENT_METHOD_ITEMS" :label="t('invoices.payDialog.method')" density="comfortable" />
+          <v-text-field v-model="payDate" :label="t('invoices.payDialog.date')" type="date" :rules="validations.required.date" density="comfortable" />
+          <v-select v-model="paySelection" :items="PAYMENT_METHOD_ITEMS" :label="t('invoices.payDialog.method')" :rules="validations.required.any" density="comfortable" />
           <v-text-field v-model="payReference" :label="t('invoices.payDialog.reference')" density="comfortable" />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />

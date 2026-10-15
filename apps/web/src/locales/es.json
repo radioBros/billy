@@ -1336,7 +1336,8 @@
     "maxLength": "Maximo {max} caracteres",
     "dates": {
       "invalid": "Introduce una fecha valida",
-      "maxToday": "La fecha no puede ser futura"
+      "maxToday": "La fecha no puede ser futura",
+      "notPast": "La fecha no puede estar en el pasado"
     },
     "formHasErrors": "Corrige los errores marcados",
     "quantityPositive": "La cantidad debe ser mayor que 0",
@@ -1349,7 +1350,8 @@
     "portInvalid": "Introduce un puerto entre 1 y 65535",
     "ibanInvalid": "Introduce un IBAN válido (p. ej. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Introduce un importe con un máximo de 2 decimales (p. ej. 77.47)",
-    "intBetween": "Introduce un número entero entre {min} y {max}"
+    "intBetween": "Introduce un número entero entre {min} y {max}",
+    "amountPositive": "Introduce un importe mayor que 0"
   },
   "accounts": {
     "title": "Cuentas",

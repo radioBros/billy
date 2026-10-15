@@ -34,6 +34,7 @@ import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
 import { useRecurringProfile } from "@/composables/useRecurringProfile";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
+import validations from "@/constants/validations";
 import { useToast } from "@/composables/useToast";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { useIsMobile } from "@/composables/useIsMobile";
@@ -363,8 +364,11 @@ const openScheduleDialog = (): void => {
   scheduleDialog.value = true;
 };
 
+const scheduleFormRef = ref<VuetifyFormRef | null>(null);
+
 const submitSchedule = async (): Promise<void> => {
   if (!createdInvoice.value) return;
+  if (scheduleFormRef.value && !(await scheduleFormRef.value.validate()).valid) return;
   if (!scheduleDate.value || scheduleDate.value < today) {
     completionError.value = t("invoices.schedule.dateError");
     return;
@@ -697,14 +701,17 @@ onMounted(() => {
           <p class="text-body-2 mb-4" style="color: var(--v-billy-text-2)">
             {{ t("invoices.schedule.dialogHint") }}
           </p>
+          <v-form ref="scheduleFormRef" @submit.prevent="submitSchedule">
           <v-text-field
             v-model="scheduleDate"
             :label="t('invoices.schedule.dateLabel')"
             type="date"
+            :rules="validations.required.dateNotPast"
             :min="today"
             density="comfortable"
             :hide-details="isMobile ? 'auto' : undefined"
           />
+          </v-form>
           <EInvoiceScheduleOption
             v-if="createdInvoice"
             v-model="submitOnFinalize"

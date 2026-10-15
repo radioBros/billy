@@ -288,6 +288,16 @@ export default {
         t("validations.requiredField"),
     ],
     date: [(v: any) => (v && dateValid(v)) || t("validations.dates.invalid")],
+    /** A YYYY-MM-DD date that is today or later (e.g. a scheduled send date). */
+    dateNotPast: [
+      (v: any) => (v && dateValid(v)) || t("validations.dates.invalid"),
+      (v: any) => strOf(v) >= new Date().toISOString().slice(0, 10) || t("validations.dates.notPast"),
+    ],
+    /** A money amount strictly greater than zero. */
+    amountPositive: [
+      requiredMsg,
+      (v: any) => (Number.isFinite(Number(v)) && Number(v) > 0) || t("validations.amountPositive"),
+    ],
     textOrBool: [
       (v: any) =>
         typeof v == "boolean" ||
