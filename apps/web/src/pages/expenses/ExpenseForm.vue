@@ -256,7 +256,7 @@ onMounted(() => {
       <v-col cols="12" md="6">
         <ClientSelector
           v-model="clientId"
-          :label="t('expenses.fields.clientId')"
+          :label="t('invoices.fields.client')"
           :error-messages="fieldErrors.clientId"
         />
       </v-col>

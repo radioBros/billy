@@ -18,6 +18,7 @@ import { api, ApiError } from "@/api/client";
 import { translateValidationDetails, apiErrorReason } from "@/utils/validationMessages";
 import type { TimeEntry } from "@/types/domain";
 import ClientSelector from "@/components/ClientSelector.vue";
+import ProjectSelect from "@/components/ProjectSelect.vue";
 import AppCard from "@/components/AppCard.vue";
 import { majorToMinor, minorToMajor } from "@/utils/money";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
@@ -52,7 +53,7 @@ const durationMinutes = ref<number | null>(0);
 const billable = ref(true);
 const rateMajor = ref<number | null>(null);
 const clientId = ref<string | null>("");
-const projectId = ref("");
+const projectId = ref<string | null>(null);
 const version = ref<number | null>(null);
 
 const loading = ref(false);
@@ -83,7 +84,7 @@ const loadTimeEntry = async (): Promise<void> => {
     billable.value = entry.billable;
     rateMajor.value = minorToMajor(entry.rateMinor);
     clientId.value = entry.clientId ?? "";
-    projectId.value = entry.projectId ?? "";
+    projectId.value = entry.projectId ?? null;
     version.value = entry.version;
   } catch (err) {
     errorMessage.value =
@@ -111,7 +112,7 @@ const save = async (): Promise<void> => {
     billable: billable.value,
   };
   if (clientId.value?.trim()) payload.clientId = clientId.value.trim();
-  if (projectId.value.trim()) payload.projectId = projectId.value.trim();
+  if (projectId.value) payload.projectId = projectId.value;
   if (rateMinor !== null) payload.rateMinor = rateMinor;
   try {
     if (isEdit.value && id.value) {
@@ -202,19 +203,12 @@ onMounted(() => {
       <v-col cols="12" md="6">
         <ClientSelector
           v-model="clientId"
-          :label="t('timeEntries.fields.clientId')"
+          :label="t('invoices.fields.client')"
           :error-messages="fieldErrors.clientId"
         />
       </v-col>
       <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
-        <v-text-field
-          v-model="projectId"
-          :label="t('timeEntries.fields.projectId')"
-          :error-messages="fieldErrors.projectId"
-          density="comfortable"
-          :hint="t('timeEntries.projectIdHint')"
-          persistent-hint
-        />
+        <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
       </v-col>
     </DefineBilling>
 

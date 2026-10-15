@@ -291,7 +291,8 @@
       "unscheduleTitle": "Cancelar agendamento?",
       "unscheduleMessage": "Esta fatura não será mais enviada automaticamente."
     },
-    "saved": "Fatura guardada"
+    "saved": "Fatura guardada",
+    "viewInvoice": "Ver fatura"
   },
   "quotes": {
     "title": "Orçamentos",

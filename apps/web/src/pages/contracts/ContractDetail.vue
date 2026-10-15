@@ -148,7 +148,7 @@ onMounted(() => {
         </template>
 
         <v-row>
-          <v-col cols="6" md="3"><div class="text-caption">{{ t("contracts.fields.clientId") }}</div>{{ clientNameOf(contract.clientId) ?? "\u2014" }}</v-col>
+          <v-col cols="6" md="3"><div class="text-caption">{{ t("invoices.fields.client") }}</div>{{ clientNameOf(contract.clientId) ?? "\u2014" }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("contracts.fields.type") }}</div>{{ enumLabel(t, "contractType", contract.type) }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("contracts.fields.startDate") }}</div>{{ contract.startDate }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("contracts.fields.endDate") }}</div>{{ contract.endDate ?? "—" }}</v-col>

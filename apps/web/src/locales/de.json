@@ -291,7 +291,8 @@
       "unscheduleTitle": "Planung abbrechen?",
       "unscheduleMessage": "Diese Rechnung wird nicht mehr automatisch versendet."
     },
-    "saved": "Rechnung gespeichert"
+    "saved": "Rechnung gespeichert",
+    "viewInvoice": "Rechnung anzeigen"
   },
   "quotes": {
     "title": "Angebote",

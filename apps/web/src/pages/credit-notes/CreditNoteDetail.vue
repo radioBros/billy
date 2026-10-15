@@ -18,6 +18,7 @@ import AppCard from "@/components/AppCard.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import { useIsMobile } from "@/composables/useIsMobile";
 import DocumentActions from "@/components/DocumentActions.vue";
+import InvoiceLink from "@/components/InvoiceLink.vue";
 import { confirm } from "@/composables/useConfirm";
 import { useToast } from "@/composables/useToast";
 import { useEInvoicing } from "@/stores/einvoicing";
@@ -190,13 +191,11 @@ onMounted(() => {
             <div>
               <div class="dd-label">{{ t("creditNotes.fields.creditedInvoice") }}</div>
               <div class="dd-value">
-                <router-link
-                  v-if="creditNote.creditedInvoiceNumber"
-                  :to="{ name: 'invoice-detail', params: { id: creditNote.creditedInvoiceId } }"
-                  class="dd-link"
-                >
-                  {{ creditNote.creditedInvoiceNumber }}
-                </router-link>
+                <InvoiceLink
+                  v-if="creditNote.creditedInvoiceId"
+                  :invoice-id="creditNote.creditedInvoiceId"
+                  :number="creditNote.creditedInvoiceNumber"
+                />
                 <template v-else>&mdash;</template>
               </div>
             </div>
@@ -245,7 +244,12 @@ onMounted(() => {
           <v-col cols="6" md="3"><div class="text-caption">{{ t("creditNotes.fields.client") }}</div>{{ clientNameOf(creditNote.clientId) ?? "\u2014" }}</v-col>
           <v-col cols="6" md="3">
             <div class="text-caption">{{ t("creditNotes.fields.creditedInvoice") }}</div>
-            {{ creditNote.creditedInvoiceNumber ?? creditNote.creditedInvoiceId }}
+            <InvoiceLink
+              v-if="creditNote.creditedInvoiceId"
+              :invoice-id="creditNote.creditedInvoiceId"
+              :number="creditNote.creditedInvoiceNumber"
+            />
+            <template v-else>&mdash;</template>
           </v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("creditNotes.fields.currency") }}</div>{{ creditNote.currency }}</v-col>
           <v-col cols="6" md="3"><div class="text-caption">{{ t("creditNotes.fields.issueDate") }}</div>{{ creditNote.issueDate }}</v-col>
@@ -451,11 +455,6 @@ onMounted(() => {
 .dd-hero__meta > .dd-hero__meta-wide {
   grid-column: 1 / -1;
   text-align: left;
-}
-.dd-link {
-  color: rgb(var(--v-theme-primary));
-  font-weight: 600;
-  text-decoration: none;
 }
 .dd-actions {
   display: flex;

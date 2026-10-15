@@ -291,7 +291,8 @@
       "unscheduleTitle": "Cancel schedule?",
       "unscheduleMessage": "This invoice will no longer be sent automatically."
     },
-    "saved": "Invoice saved"
+    "saved": "Invoice saved",
+    "viewInvoice": "View invoice"
   },
   "quotes": {
     "title": "Quotes",

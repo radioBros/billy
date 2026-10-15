@@ -113,4 +113,26 @@ describe("QuoteDetail", () => {
     expect(wrapper.findComponent(DocumentActions).exists()).toBe(true);
     wrapper.unmount();
   });
+
+  it("desktop: the converted alert names the invoice by NUMBER, never its raw id", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/quotes/q_1"))
+          return jsonResponse({ data: { ...quote, status: "converted", convertedInvoiceId: "inv_77" }, meta: {}, error: null });
+        if (url.includes("/v1/invoices/inv_77"))
+          return jsonResponse({ data: { id: "inv_77", invoiceNumber: "INV-2026-0077" }, meta: {}, error: null });
+        return jsonResponse({ data: [], meta: { page: 1, limit: 50, total: 0, pageCount: 1 }, error: null });
+      }),
+    );
+    const wrapper = mount(QuoteDetail, { global: { plugins: [vuetifyAt(1280), i18n] } });
+    await flushPromises();
+    await flushPromises();
+
+    const alert = wrapper.find(".v-alert");
+    expect(alert.text()).toContain("INV-2026-0077");
+    expect(wrapper.text()).not.toContain("inv_77");
+    wrapper.unmount();
+  });
 });

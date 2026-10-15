@@ -20,6 +20,7 @@ import { minorToDisplay } from "@/utils/money";
 import StatusChip from "@/components/StatusChip.vue";
 import AppCard from "@/components/AppCard.vue";
 import DocumentActions from "@/components/DocumentActions.vue";
+import InvoiceLink from "@/components/InvoiceLink.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import { confirm } from "@/composables/useConfirm";
 import { useIsMobile } from "@/composables/useIsMobile";
@@ -263,7 +264,10 @@ onMounted(() => {
           density="compact"
           class="mb-4"
         >
-          {{ t("quotes.converted", { id: quote.convertedInvoiceId }) }}
+          <!-- The {id} slot is the invoice NUMBER as a link, never the raw id. -->
+          <i18n-t keypath="quotes.converted" tag="span">
+            <template #id><InvoiceLink :invoice-id="quote.convertedInvoiceId" /></template>
+          </i18n-t>
         </v-alert>
 
         <v-row>

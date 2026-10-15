@@ -18,6 +18,7 @@ import { apiErrorReason } from "@/utils/validationMessages";
 import type { TimeEntry } from "@/types/domain";
 import { useTimerStore } from "@/stores/timer";
 import ClientSelector from "@/components/ClientSelector.vue";
+import ProjectSelect from "@/components/ProjectSelect.vue";
 import { useIsMobile } from "@/composables/useIsMobile";
 import type { VuetifyFormRef } from "@/composables/useFormSubmit";
 
@@ -40,7 +41,7 @@ const pendingMinutes = ref(0);
 const description = ref("");
 const date = ref(new Date().toISOString().slice(0, 10));
 const clientId = ref<string | null>(null);
-const projectId = ref("");
+const projectId = ref<string | null>(null);
 const billable = ref(true);
 
 const required = (v: unknown): boolean | string =>
@@ -61,7 +62,7 @@ const onStop = (): void => {
   pendingMinutes.value = timer.stop();
   description.value = "";
   clientId.value = null;
-  projectId.value = "";
+  projectId.value = null;
   billable.value = true;
   date.value = new Date().toISOString().slice(0, 10);
   errorMessage.value = null;
@@ -83,7 +84,7 @@ const confirmCreate = async (): Promise<void> => {
     billable: billable.value,
   };
   if (clientId.value) payload.clientId = clientId.value;
-  if (projectId.value.trim()) payload.projectId = projectId.value.trim();
+  if (projectId.value) payload.projectId = projectId.value;
   try {
     await api.post<TimeEntry>("/v1/time-entries", payload);
     dialog.value = false;
@@ -192,14 +193,7 @@ const cancelDialog = (): void => {
               :label="t('subscriptions.fields.client')"
               class="mb-2"
             />
-            <v-text-field
-              v-model="projectId"
-              :label="t('timeEntries.fields.projectId')"
-              density="comfortable"
-              :hint="t('timeEntries.projectIdHint')"
-              persistent-hint
-              class="mb-2"
-            />
+            <ProjectSelect v-model="projectId" class="mb-2" />
             <v-switch
               v-model="billable"
               :label="t('timeEntries.fields.billable')"

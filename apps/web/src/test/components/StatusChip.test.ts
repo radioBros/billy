@@ -49,4 +49,10 @@ describe("StatusChip", () => {
     expect(mountChip(null).text()).toBe("—");
     expect(mountChip("bogus").html()).toContain("surface-variant");
   });
+
+  it("gives issued (proformas / credit notes) the same info role as finalized", () => {
+    const html = mountChip("issued").html();
+    expect(html).toContain("info");
+    expect(html).not.toContain("surface-variant");
+  });
 });

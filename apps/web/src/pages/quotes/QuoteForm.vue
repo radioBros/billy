@@ -246,7 +246,7 @@ onMounted(() => {
           <v-col cols="12" md="6">
             <ClientSelector
               v-model="clientId"
-              :label="t('quotes.fields.clientId')"
+              :label="t('invoices.fields.client')"
               :rules="[required]"
               :error-messages="fieldErrors.clientId"
               :disabled="nonDraft"
