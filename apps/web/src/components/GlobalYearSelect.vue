@@ -8,9 +8,11 @@
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { usePeriodStore } from "@/stores/period";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const period = usePeriodStore();
+const isMobile = useIsMobile();
 
 onMounted(() => {
   void period.loadRange();
@@ -27,10 +29,12 @@ const label = computed<string>(() => t("period.year", { year: period.year }));
         variant="tonal"
         color="primary"
         class="global-year-btn"
+        :class="{ 'global-year-btn--mobile': isMobile }"
         append-icon="mdi-menu-down"
         :aria-label="label"
       >
-        {{ label }}
+        <!-- Phone app bar is tight: just "2026" + caret (the aria-label keeps "Year 2026"). -->
+        {{ isMobile ? period.year : label }}
       </v-btn>
     </template>
     <v-list density="compact" nav>
@@ -56,5 +60,14 @@ const label = computed<string>(() => t("period.year", { year: period.year }));
 .global-year-btn {
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+.global-year-btn--mobile {
+  height: 40px !important;
+  min-width: 0 !important;
+  padding: 0 6px 0 12px !important;
+  font-variant-numeric: tabular-nums;
+}
+.global-year-btn--mobile :deep(.v-btn__append) {
+  margin-inline-start: 2px;
 }
 </style>

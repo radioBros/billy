@@ -468,6 +468,12 @@ const onLogout = async (): Promise<void> => {
 .billy-appbar__year {
   margin-right: 2px;
 }
+/* Phone overflow menu: a lifted rounded panel so it separates from the page. */
+.billy-more-menu {
+  border-radius: 16px !important;
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14) !important;
+}
 .billy-container--mobile {
   padding: 12px 12px 24px;
 }

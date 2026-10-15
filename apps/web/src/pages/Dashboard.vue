@@ -37,6 +37,9 @@ import MonthlyCountsChart from "@/components/dashboard/MonthlyCountsChart.vue";
 import PeriodBar from "@/components/PeriodBar.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import EInvoiceNotSentCard from "@/components/dashboard/EInvoiceNotSentCard.vue";
+import PageHeader from "@/components/PageHeader.vue";
+import { minorToCompact, monthKeyToAbbr } from "@/components/dashboard/chartFormat";
+import { useIsMobile } from "@/composables/useIsMobile";
 import type { MoneyByCurrency, MonthlyCount, RevenueMonth } from "@/components/dashboard/types";
 
 const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue"));
@@ -45,6 +48,10 @@ const { t } = useI18n();
 const theme = useTheme();
 const auth = useAuthStore();
 const period = usePeriodStore();
+const isMobile = useIsMobile();
+
+/** Chart height: phone charts are shorter so a whole chart fits with its title. */
+const chartHeight = computed<string>(() => (isMobile.value ? "240px" : "320px"));
 
 // ── Contract shapes ──────────────────────────────────────────────────────────
 interface DashboardSummary {
@@ -206,17 +213,23 @@ const revenueChartOption = computed(() => {
   const invoiced = rows.map((r) => (cur ? (r.invoiced[cur] ?? 0) : 0));
   const collected = rows.map((r) => (cur ? (r.collected[cur] ?? 0) : 0));
   const c = theme.current.value.colors;
+  const phone = isMobile.value;
   return {
     tooltip: {
       trigger: "axis",
       valueFormatter: (v: number) => minorToDisplay(v, cur),
     },
     legend: { data: [t("dashboard.chart.invoiced"), t("dashboard.chart.collected")], top: 0 },
-    grid: { left: 8, right: 16, bottom: 8, top: 40, containLabel: true },
-    xAxis: { type: "category", boundaryGap: false, data: months },
+    grid: phone
+      ? { left: 0, right: 8, bottom: 0, top: 32, containLabel: true }
+      : { left: 8, right: 16, bottom: 8, top: 40, containLabel: true },
+    // Phones: "Mar" instead of "2026-03" and compact money ticks ("€12K").
+    xAxis: { type: "category", boundaryGap: false, data: phone ? months.map(monthKeyToAbbr) : months },
     yAxis: {
       type: "value",
-      axisLabel: { formatter: (v: number) => minorToDisplay(v, cur) },
+      axisLabel: {
+        formatter: (v: number) => (phone ? minorToCompact(v, cur) : minorToDisplay(v, cur)),
+      },
     },
     series: [
       {
@@ -249,17 +262,29 @@ const outstandingChartOption = computed(() => {
   const overdue = (cur && f ? f.invoiceQuote.overdue[cur] : 0) ?? 0;
   // "Outstanding" includes overdue; show the current (not-yet-overdue) slice vs overdue.
   const current = Math.max(outstanding - overdue, 0);
+  const phone = isMobile.value;
   return {
     tooltip: {
       trigger: "item",
       valueFormatter: (v: number) => minorToDisplay(v, cur),
     },
     legend: { bottom: 0, data: [t("dashboard.chart.current"), t("dashboard.chart.overdue")] },
+    // Phones: the outstanding total sits in the donut's hole (finance-app style).
+    ...(phone
+      ? {
+          title: {
+            text: minorToCompact(outstanding, cur),
+            left: "center",
+            top: "center",
+            textStyle: { fontSize: 20, fontWeight: 700, color: c["on-surface"] },
+          },
+        }
+      : {}),
     series: [
       {
         name: t("dashboard.cards.outstanding"),
         type: "pie",
-        radius: ["55%", "78%"],
+        radius: phone ? ["62%", "84%"] : ["55%", "78%"],
         avoidLabelOverlap: false,
         label: { show: false },
         data: [
@@ -270,6 +295,13 @@ const outstandingChartOption = computed(() => {
     ],
   };
 });
+
+/** Phone KPI tiles step long amounts down a size instead of truncating them. */
+const valueSizeClass = (text: string): string => {
+  if (text.length > 13) return "kpi-tile__value--xs";
+  if (text.length > 10) return "kpi-tile__value--sm";
+  return "";
+};
 
 const outstandingEmpty = computed<boolean>(() => {
   const f = financials.value;
@@ -355,8 +387,24 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px; flex-wrap: wrap">
+  <div :class="{ 'dash--mobile': isMobile }">
+    <!-- Phone: the shared PageHeader title row; the currency picker (only with
+         several currencies) gets its own row under the title. -->
+    <PageHeader v-if="isMobile" :title="greeting">
+      <template v-if="!loading && hasFinancials && currencies.length > 1" #actions>
+        <v-select
+          v-model="selectedCurrency"
+          :items="currencies"
+          :label="t('dashboard.currency')"
+          density="compact"
+          hide-details
+          variant="outlined"
+          class="dash-currency"
+          :aria-label="t('dashboard.currency')"
+        />
+      </template>
+    </PageHeader>
+    <div v-else class="d-flex align-center mb-4" style="gap: 16px; flex-wrap: wrap">
       <h1 class="text-h5">{{ greeting }}</h1>
       <v-spacer />
       <v-select
@@ -376,7 +424,7 @@ onMounted(() => {
          scopes the KPI cards + summary. Charts dim unselected months. Uses the
          invoices totals as the revenue-representative bar (same nice bar as the
          list pages). -->
-    <PeriodBar v-if="!loading" v-model:months="selectedMonths" kind="invoices" class="mb-5" />
+    <PeriodBar v-if="!loading" v-model:months="selectedMonths" kind="invoices" :class="isMobile ? 'mb-2' : 'mb-5'" />
 
     <v-alert
       v-if="errorMessage"
@@ -393,7 +441,13 @@ onMounted(() => {
     </v-alert>
 
     <!-- ── Loading skeletons ─────────────────────────────────────────────── -->
-    <template v-if="loading">
+    <template v-if="loading && isMobile">
+      <div class="kpi-grid mb-3">
+        <v-skeleton-loader v-for="n in 4" :key="n" type="list-item-two-line" class="kpi-tile kpi-tile--skeleton" />
+      </div>
+      <v-skeleton-loader type="image" class="rounded-xl" />
+    </template>
+    <template v-else-if="loading">
       <v-row class="mb-2">
         <v-col v-for="n in 4" :key="n" cols="12" sm="6" md="3">
           <v-skeleton-loader type="article" class="rounded-lg" />
@@ -410,15 +464,50 @@ onMounted(() => {
            The slot is ALWAYS present at a fixed height (only the bar's opacity
            toggles), so showing/hiding it can't reflow the page — that reflow was
            flashing the scrollbar when a period committed. -->
-      <div class="refetch-slot mb-2">
+      <div class="refetch-slot" :class="isMobile ? 'mb-1' : 'mb-2'">
         <v-progress-linear v-show="yearLoading" indeterminate color="primary" />
       </div>
 
       <!-- ── Action list: documents not yet sent to SdI (e-invoicing only) ──── -->
       <EInvoiceNotSentCard />
 
+      <!-- ── Phone KPI tiles: a tight 2-column grid, money first. Icon + label on
+           top, the value gets the tile's full width (never ellipsized: long
+           amounts step the font down instead). ─────────────────────────────── -->
+      <template v-if="isMobile">
+        <div v-if="hasFinancials" class="kpi-grid mb-2" data-test="kpi-grid-money">
+          <div
+            v-for="card in moneyCards"
+            :key="card.key"
+            class="kpi-tile"
+            :class="{ 'kpi-tile--alert': card.emphasize }"
+          >
+            <div class="kpi-tile__head">
+              <span class="kpi-tile__icon">
+                <v-icon :icon="card.icon" size="18" />
+              </span>
+              <span class="kpi-tile__label">{{ t(card.labelKey) }}</span>
+            </div>
+            <div class="kpi-tile__value" :class="valueSizeClass(money(card.minor))">
+              {{ money(card.minor) }}
+            </div>
+          </div>
+        </div>
+        <div class="kpi-grid mb-3" data-test="kpi-grid-counts">
+          <div v-for="card in countCards" :key="card.key" class="kpi-tile">
+            <div class="kpi-tile__head">
+              <span class="kpi-tile__icon">
+                <v-icon :icon="card.icon" size="18" />
+              </span>
+              <span class="kpi-tile__label">{{ t(card.labelKey) }}</span>
+            </div>
+            <div class="kpi-tile__value">{{ card.value }}</div>
+          </div>
+        </div>
+      </template>
+
       <!-- ── KPI: counts (year-scoped) ─────────────────────────────────────── -->
-      <v-row class="mb-1">
+      <v-row v-if="!isMobile" class="mb-1">
         <v-col v-for="card in countCards" :key="card.key" cols="12" sm="6" md="3">
           <v-card class="kpi-card h-100" variant="flat" border>
             <v-card-text class="d-flex align-start" style="gap: 14px">
@@ -435,7 +524,7 @@ onMounted(() => {
       </v-row>
 
       <!-- ── KPI: financials (year-scoped) ─────────────────────── -->
-      <v-row v-if="hasFinancials" class="mb-2">
+      <v-row v-if="hasFinancials && !isMobile" class="mb-2">
         <v-col v-for="card in moneyCards" :key="card.key" cols="12" sm="6" md="3">
           <v-card
             class="kpi-card h-100"
@@ -482,7 +571,22 @@ onMounted(() => {
       </v-row>
 
       <!-- ── Recent activity strip (rolling-30d, NOT year-filtered) ────────── -->
-      <v-card variant="flat" class="my-4">
+      <section v-if="isMobile" class="dash-section activity-m" data-test="activity-mobile">
+        <div class="dash-section__head">
+          <span class="dash-section__title">{{ t("dashboard.activity.title") }}</span>
+          <span class="dash-section__hint">{{ t("dashboard.activity.window", { days: activityWindow }) }}</span>
+        </div>
+        <div class="activity-m__grid">
+          <div v-for="item in activityItems" :key="item.key" class="activity-m__item">
+            <span class="activity-m__icon"><v-icon :icon="item.icon" size="18" /></span>
+            <div class="activity-m__text">
+              <div class="activity-m__value">{{ item.value }}</div>
+              <div class="activity-m__label">{{ t(item.labelKey) }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <v-card v-else variant="flat" class="my-4">
         <v-card-title class="text-subtitle-1 font-weight-medium d-flex align-center">
           {{ t("dashboard.activity.title") }}
           <span class="text-caption kpi-label ml-2">
@@ -509,14 +613,14 @@ onMounted(() => {
       </v-card>
 
       <!-- ── Financial charts ─────────────────────────────────── -->
-      <v-row v-if="hasFinancials">
+      <v-row v-if="hasFinancials" class="dash-chart-row">
         <v-col cols="12" md="8">
-          <v-card variant="flat" border class="h-100">
+          <v-card variant="flat" border class="h-100 dash-card">
             <v-card-title class="text-subtitle-1 font-weight-medium">
               {{ t("dashboard.chart.revenueTitle", { year: selectedYear }) }}
             </v-card-title>
             <v-card-text>
-              <EChart v-if="hasRevenue" :option="revenueChartOption" height="320px" />
+              <EChart v-if="hasRevenue" :option="revenueChartOption" :height="chartHeight" />
               <div v-else class="chart-empty">
                 <v-icon icon="mdi-chart-line" size="36" class="mb-2" />
                 <div class="text-body-2">{{ t("dashboard.chart.revenueEmpty") }}</div>
@@ -525,12 +629,12 @@ onMounted(() => {
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
-          <v-card variant="flat" border class="h-100">
+          <v-card variant="flat" border class="h-100 dash-card">
             <v-card-title class="text-subtitle-1 font-weight-medium">
               {{ t("dashboard.chart.outstandingTitle") }}
             </v-card-title>
             <v-card-text>
-              <EChart v-if="!outstandingEmpty" :option="outstandingChartOption" height="320px" />
+              <EChart v-if="!outstandingEmpty" :option="outstandingChartOption" :height="isMobile ? '220px' : '320px'" />
               <div v-else class="chart-empty">
                 <v-icon icon="mdi-check-circle-outline" size="36" class="mb-2" />
                 <div class="text-body-2">{{ t("dashboard.chart.outstandingEmpty") }}</div>
@@ -541,7 +645,7 @@ onMounted(() => {
       </v-row>
 
       <!-- ── Revenue / expense chart ──────────────────────────── -->
-      <v-card v-if="hasFinancials" variant="flat" border class="mt-4">
+      <v-card v-if="hasFinancials" variant="flat" border class="dash-card" :class="isMobile ? 'mt-3' : 'mt-4'">
         <v-card-title class="text-subtitle-1 font-weight-medium">
           {{ t("dashboard.chart.revenueExpenseTitle", { year: selectedYear }) }}
         </v-card-title>
@@ -551,8 +655,9 @@ onMounted(() => {
       </v-card>
 
       <!-- ── Monthly counts + drilldown (not gated) ────────────────────────── -->
-      <div class="mt-4">
+      <div :class="isMobile ? 'mt-3' : 'mt-4'">
         <MonthlyCountsChart
+          class="dash-card"
           v-model:months="selectedMonths"
           :rows="monthlyCounts"
           :year="selectedYear"
@@ -560,11 +665,11 @@ onMounted(() => {
       </div>
 
       <!-- ── Activity heatmap (not gated) ──────────────────────────────────── -->
-      <v-card variant="flat" border class="mt-4">
+      <v-card variant="flat" border class="dash-card" :class="isMobile ? 'mt-3' : 'mt-4'">
         <v-card-title class="text-subtitle-1 font-weight-medium">
           {{ t("dashboard.heatmap.title", { year: selectedYear }) }}
         </v-card-title>
-        <v-card-text class="pb-0">
+        <v-card-text :class="{ 'pb-0': !isMobile }">
           <ActivityHeatmap :rows="monthlyCounts" />
         </v-card-text>
       </v-card>
@@ -627,5 +732,185 @@ onMounted(() => {
   .kpi-card {
     transition: none;
   }
+}
+
+/* ── Phone (< 600px) ─────────────────────────────────────────────────────── */
+.dash-currency {
+  min-width: 120px;
+  max-width: 160px;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.kpi-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--v-billy-border);
+  border-radius: 16px;
+  background: rgb(var(--v-theme-surface));
+}
+.kpi-tile--skeleton {
+  padding: 0;
+  overflow: hidden;
+}
+.kpi-tile__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.kpi-tile__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+.kpi-tile__label {
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v-billy-text-3);
+  overflow-wrap: anywhere;
+  /* Two lines reserved so every value starts at the same height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.4em;
+  padding-top: 1px;
+}
+.kpi-tile__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--v-billy-text-1, rgb(var(--v-theme-on-surface)));
+}
+.kpi-tile__value--sm {
+  font-size: 1.0625rem;
+}
+.kpi-tile__value--xs {
+  font-size: 0.9375rem;
+}
+/* Overdue > 0: a tinted alert tile (the desktop solid-red card is too loud on a phone grid). */
+.kpi-tile--alert {
+  border-color: rgba(var(--v-theme-error), 0.45);
+  background: rgba(var(--v-theme-error), 0.08);
+}
+.kpi-tile--alert .kpi-tile__icon {
+  color: rgb(var(--v-theme-error));
+  background: rgba(var(--v-theme-error), 0.16);
+}
+.kpi-tile--alert .kpi-tile__label,
+.kpi-tile--alert .kpi-tile__value {
+  color: rgb(var(--v-theme-error));
+}
+
+.dash-section {
+  border: 1px solid var(--v-billy-border);
+  border-radius: 16px;
+  background: rgb(var(--v-theme-surface));
+  padding: 12px 14px 14px;
+  margin-bottom: 12px;
+}
+.dash-section__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 10px;
+}
+.dash-section__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v-billy-text-3);
+}
+.dash-section__hint {
+  font-size: 0.75rem;
+  color: var(--v-billy-text-3);
+}
+.activity-m__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+}
+.activity-m__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.activity-m__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: rgb(var(--v-theme-secondary));
+  background: rgba(var(--v-theme-secondary), 0.12);
+}
+.activity-m__text {
+  min-width: 0;
+}
+.activity-m__value {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.activity-m__label {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--v-billy-text-2);
+  overflow-wrap: anywhere;
+}
+/* Chart cards stack with a 12px rhythm (v-row's 24px gutters are desktop-sized). */
+.dash--mobile .dash-chart-row {
+  margin-top: -6px;
+  margin-bottom: -6px;
+}
+.dash--mobile .dash-chart-row > .v-col {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.dash--mobile .chart-empty {
+  height: 200px;
+}
+/* Phone section cards: 16px radius, a light inline title instead of the
+   desktop grey title band — reads like one calm feed of cards. */
+.dash--mobile :deep(.v-card.dash-card) {
+  border-radius: 16px !important;
+}
+.dash--mobile :deep(.dash-card > .v-card-title) {
+  min-height: 0;
+  padding: 14px 14px 2px;
+  background-color: transparent;
+  font-size: 0.9375rem !important; /* beats the global .text-subtitle-1 */
+  font-weight: 700 !important;
+  letter-spacing: -0.005em;
+}
+.dash--mobile :deep(.dash-card > .v-card-text) {
+  padding: 8px 12px 12px;
 }
 </style>

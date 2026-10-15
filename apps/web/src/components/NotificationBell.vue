@@ -11,10 +11,12 @@ import { useI18n } from "vue-i18n";
 import { useNotificationsStore } from "@/stores/notifications";
 import { usePushNotifications } from "@/composables/usePushNotifications";
 import type { Notification, NotificationSeverity } from "@/types/domain";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const store = useNotificationsStore();
 const router = useRouter();
 const { t } = useI18n();
+const isMobile = useIsMobile();
 
 // Web-push subscribe/unsubscribe, surfaced as a small toggle in the bell menu.
 // Only shown when supported (SW + PushManager + VAPID key configured).
@@ -109,7 +111,13 @@ const bodyFor = (n: Notification): string => {
 </script>
 
 <template>
-  <v-menu location="bottom end" :close-on-content-click="false">
+  <!-- Phone: the menu becomes a full-width panel under the app bar (see the
+       unscoped .notif-menu--mobile rule below — the overlay is teleported). -->
+  <v-menu
+    location="bottom end"
+    :close-on-content-click="false"
+    :content-class="isMobile ? 'notif-menu--mobile' : undefined"
+  >
     <template #activator="{ props }">
       <v-btn
         v-bind="props"
@@ -128,14 +136,19 @@ const bodyFor = (n: Notification): string => {
       </v-btn>
     </template>
 
-    <v-card min-width="340" max-width="420">
+    <v-card
+      :min-width="isMobile ? undefined : 340"
+      :max-width="isMobile ? undefined : 420"
+      :class="{ 'notif-card--mobile': isMobile }"
+    >
       <v-toolbar density="compact" flat>
-        <v-toolbar-title class="text-subtitle-1">{{ t("notifications.title") }}</v-toolbar-title>
-        <v-spacer />
+        <v-toolbar-title class="text-subtitle-1" :class="{ 'notif-title--mobile': isMobile }">{{ t("notifications.title") }}</v-toolbar-title>
+        <v-spacer v-if="!isMobile" />
         <v-btn
           v-if="unread > 0"
           color="primary"
-          size="small"
+          :size="isMobile ? 'default' : 'small'"
+          :variant="isMobile ? 'text' : undefined"
           @click="onMarkAllRead"
         >
           {{ t("notifications.markAllRead") }}
@@ -175,7 +188,13 @@ const bodyFor = (n: Notification): string => {
         <v-divider />
       </template>
 
-      <v-list v-if="unreadItems.length > 0" density="comfortable" lines="two" max-height="420">
+      <v-list
+        v-if="unreadItems.length > 0"
+        density="comfortable"
+        lines="two"
+        :max-height="isMobile ? 'calc(100dvh - 240px)' : 420"
+        :class="{ 'notif-list--mobile': isMobile }"
+      >
         <v-list-item
           v-for="n in unreadItems"
           :key="n.id"
@@ -200,3 +219,30 @@ const bodyFor = (n: Notification): string => {
     </v-card>
   </v-menu>
 </template>
+
+<style>
+/* Phone: full-width panel (8px side gutters) hanging under the app bar. Unscoped
+   because v-menu teleports its content out of this component. */
+.notif-menu--mobile {
+  left: 8px !important;
+  right: 8px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+.notif-card--mobile {
+  border-radius: 16px !important;
+  border: 1px solid var(--v-billy-border);
+}
+.notif-title--mobile {
+  flex: 1 1 auto;
+  margin-inline-start: 16px !important;
+  font-weight: 700;
+}
+.notif-title--mobile .v-toolbar-title__placeholder {
+  overflow: visible;
+}
+.notif-list--mobile .v-list-item-subtitle {
+  overflow-wrap: anywhere;
+}
+</style>
