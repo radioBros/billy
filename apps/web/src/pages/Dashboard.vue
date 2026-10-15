@@ -224,7 +224,7 @@ const revenueChartOption = computed(() => {
       ? { left: 0, right: 8, bottom: 0, top: 32, containLabel: true }
       : { left: 8, right: 16, bottom: 8, top: 40, containLabel: true },
     // Phones: "Mar" instead of "2026-03" and compact money ticks ("€12K").
-    xAxis: { type: "category", boundaryGap: false, data: phone ? months.map(monthKeyToAbbr) : months },
+    xAxis: { type: "category", boundaryGap: false, data: months.map(monthKeyToAbbr) },
     yAxis: {
       type: "value",
       axisLabel: {

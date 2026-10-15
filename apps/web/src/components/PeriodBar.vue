@@ -22,7 +22,7 @@ import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { minorToDisplay } from "@/utils/money";
 import { usePeriodStore } from "@/stores/period";
-import { MONTH_ABBR } from "@/components/dashboard/types";
+import { monthAbbr } from "@/components/dashboard/types";
 import { useIsMobile } from "@/composables/useIsMobile";
 
 interface MonthlyTotalsPoint {
@@ -160,9 +160,16 @@ const revealActiveMonth = (): void => {
   if (cell) el.scrollLeft = Math.max(0, cell.offsetLeft - el.clientWidth / 2 + cell.clientWidth / 2);
 };
 
+/**
+ * Whether ANY month carries money totals. Count-only kinds (contracts) and
+ * callers without financial access get none → hide the money line entirely
+ * instead of a meaningless "0.00" under every month.
+ */
+const hasMoney = computed<boolean>(() => rows.value.some((r) => Object.keys(r.totals ?? {}).length > 0));
+
 /** The dominant currency's total for a month + a hint of any extra currencies. */
 const cellMoney = (row: MonthlyTotalsPoint): { text: string; extra: number } => {
-  const entries = Object.entries(row.totals);
+  const entries = Object.entries(row.totals ?? {});
   if (entries.length === 0) return { text: minorToDisplay(0, null), extra: 0 };
   entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const [cur, minor] = entries[0]!;
@@ -181,7 +188,7 @@ const selectionTotal = computed<{ count: string; money: string }>(() => {
   for (const r of rows.value) {
     if (!allSelected.value && !sel.has(r.monthNumber)) continue;
     count += r.count;
-    for (const [cur, minor] of Object.entries(r.totals)) totals[cur] = (totals[cur] ?? 0) + minor;
+    for (const [cur, minor] of Object.entries(r.totals ?? {})) totals[cur] = (totals[cur] ?? 0) + minor;
   }
   const entries = Object.entries(totals).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const countText = t("period.docCount", { count }, count);
@@ -189,7 +196,7 @@ const selectionTotal = computed<{ count: string; money: string }>(() => {
   return { count: countText, money: minorToDisplay(minor, cur) };
 });
 
-const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
+const monthLabel = (n: number): string => monthAbbr(n);
 </script>
 
 <template>
@@ -214,8 +221,8 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
         >
           <span class="period-cell__head">{{ monthLabel(row.monthNumber) }}</span>
           <span class="period-cell__body">
-            <span class="period-cell__count">{{ t("period.docCount", { count: row.count }, row.count) }}</span>
-            <span class="period-cell__money">
+            <span class="period-cell__count" :class="{ 'period-cell__count--solo': !hasMoney }">{{ t("period.docCount", { count: row.count }, row.count) }}</span>
+            <span v-if="hasMoney" class="period-cell__money">
               {{ cellMoney(row).text }}
               <span v-if="cellMoney(row).extra > 0" class="period-cell__extra">+{{ cellMoney(row).extra }}</span>
             </span>
@@ -233,8 +240,8 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
         >
           <span class="period-cell__head">{{ t("period.selectAll") }}</span>
           <span class="period-cell__body">
-            <span class="period-cell__count">{{ selectionTotal.count }}</span>
-            <span class="period-cell__money period-cell__money--all">{{ selectionTotal.money }}</span>
+            <span class="period-cell__count" :class="{ 'period-cell__count--solo': !hasMoney }">{{ selectionTotal.count }}</span>
+            <span v-if="hasMoney" class="period-cell__money period-cell__money--all">{{ selectionTotal.money }}</span>
           </span>
           <span class="period-cell__rail" />
         </button>
@@ -296,6 +303,12 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
   font-size: 0.75rem;
   color: var(--v-billy-text-3);
   white-space: nowrap;
+}
+/* Count-only kinds (no money line): the count is the headline figure. */
+.period-cell__count--solo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--v-billy-text-2);
 }
 /* The All-year total uses the same money shape as a month, in success/green to
    set the aggregate apart from the per-month (primary) amounts. */

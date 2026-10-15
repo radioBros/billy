@@ -11,7 +11,7 @@ import { computed, defineAsyncComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTheme } from "vuetify";
 import { minorToDisplay } from "@/utils/money";
-import { MONTH_ABBR, type RevenueMonth } from "@/components/dashboard/types";
+import { monthAbbr, type RevenueMonth } from "@/components/dashboard/types";
 import { minorToCompact } from "@/components/dashboard/chartFormat";
 import { useIsMobile } from "@/composables/useIsMobile";
 
@@ -46,7 +46,7 @@ const option = computed(() => {
   const invoiced = rows.map((r) => pick(r.invoiced));
   const collected = rows.map((r) => pick(r.collected));
   const expenses = rows.map((r) => pick(r.expenses));
-  const labels = rows.map((_, i) => MONTH_ABBR[i] ?? "");
+  const labels = rows.map((_, i) => monthAbbr(i + 1));
   const names = {
     invoiced: t("dashboard.chart.invoiced"),
     collected: t("dashboard.chart.collected"),

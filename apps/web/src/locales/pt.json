@@ -883,7 +883,25 @@
       "generic": {
         "title": "Notificação",
         "body": "Atualização de {entity}"
+      },
+      "recurring": {
+        "occurrence_generated": {
+          "title": "Documento recorrente gerado",
+          "body": "Foi gerado um novo documento a partir do perfil recorrente {entity}"
+        }
+      },
+      "payment": {
+        "received": {
+          "title": "Pagamento recebido",
+          "body": "Foi recebido um pagamento de {entity}"
+        }
       }
+    },
+    "entityType": {
+      "project": "Projeto",
+      "subscription": "Assinatura",
+      "timeEntry": "Registo de tempo",
+      "payment": "Pagamento"
     }
   },
   "enums": {

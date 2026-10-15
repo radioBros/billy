@@ -15,7 +15,6 @@
 import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { useTheme } from "vuetify";
 import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
 import { minorToDisplay } from "@/utils/money";
@@ -23,7 +22,7 @@ import {
   buildDrilldownQuery,
   DOC_TYPES,
   DRILLDOWN,
-  MONTH_ABBR,
+  monthAbbr,
   type DocType,
   type MonthlyCount,
 } from "@/components/dashboard/types";
@@ -34,7 +33,6 @@ const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue
 const { t } = useI18n();
 const router = useRouter();
 const isMobile = useIsMobile();
-const theme = useTheme();
 
 const props = defineProps<{
   rows: MonthlyCount[];
@@ -67,7 +65,7 @@ const hasData = computed<boolean>(() => props.rows.some((r) => r.total > 0));
 
 const chartOption = computed(() => {
   const rows = props.rows;
-  const labels = rows.map((r) => MONTH_ABBR[r.monthNumber - 1] ?? "");
+  const labels = rows.map((r) => monthAbbr(r.monthNumber));
   const sel = new Set(selectedMonths.value);
   const anySelected = sel.size > 0;
   const series = DOC_TYPES.map((type) => ({
@@ -83,11 +81,9 @@ const chartOption = computed(() => {
   }));
   if (isMobile.value) {
     // Phones: a plain legend that wraps onto two lines (the scroll pager's tiny
-    // arrows are fiddly to tap), slimmer bars, compact grid, and one distinct
-    // colour per doc type (the shared 4-colour palette repeats for 6 series).
-    const c = theme.current.value.colors;
+    // arrows are fiddly to tap), slimmer bars, compact grid. Colours come from
+    // EChart's shared ≥8-colour palette (one distinct colour per doc type).
     return {
-      color: [c.primary, c.success, c.info, c.error, c.warning, "#14b8a6"],
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       legend: { data: DOC_TYPES.map((type) => t(`dashboard.docType.${type}`)), top: 0, left: 0, right: 0, type: "plain" },
       grid: { left: 0, right: 4, bottom: 0, top: 52, containLabel: true },
@@ -125,7 +121,7 @@ const monthsLabel = computed<string>(() => {
   if (selectedMonths.value.length === 0) return t("dashboard.drilldown.allMonths");
   return [...selectedMonths.value]
     .sort((a, b) => a - b)
-    .map((m) => MONTH_ABBR[m - 1] ?? "")
+    .map((m) => monthAbbr(m))
     .join(", ");
 });
 

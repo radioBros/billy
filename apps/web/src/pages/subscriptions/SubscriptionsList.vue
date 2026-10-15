@@ -65,6 +65,8 @@ const itemsPerPage = ref(50);
 const sortBy = ref<SortItem[]>([{ key: "nextBillingDate", order: "asc" }]);
 const search = ref("");
 const statusFilter = ref<SubscriptionStatus | null>(null);
+/** Filters differing from their default — badges the phone filter button. */
+const activeFilterCount = computed<number>(() => (statusFilter.value != null ? 1 : 0));
 
 const toSortParam = (items_: SortItem[]): string | undefined => {
   if (items_.length === 0) return undefined;
@@ -156,6 +158,7 @@ onMounted(() => {
         :total="total"
         :loading="loading"
         :card-layout="cardLayout"
+        :active-filters="activeFilterCount"
         @click:row="openRow"
       >
         <template #toolbar>

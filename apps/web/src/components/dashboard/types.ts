@@ -10,6 +10,7 @@
  * Money is per-currency integer minor units, NEVER blended. financials +
  * a non-empty revenue series are gated on canViewFinancialTotals.
  */
+import { i18n } from "@/plugins/i18n";
 
 /** Per-currency minor-unit amounts (e.g. { USD: 250000 }). */
 export type MoneyByCurrency = Record<string, number>;
@@ -133,18 +134,27 @@ export const buildDrilldownQuery = (type: DocType, year: number, monthNumbers: n
   return query;
 };
 
-/** English month abbreviations used as chart category labels (locale-independent axis). */
-export const MONTH_ABBR = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
+/** Cached short-month formatters per locale (Intl construction isn't free). */
+const monthFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * Locale-aware short month name for a 1-based month ("Mar" / "mar" / "März").
+ * Reads the GLOBAL i18n locale ref, so computeds/templates that call it re-run
+ * on a locale switch. UTC both ways so no timezone can shift the month.
+ */
+export const monthAbbr = (n: number): string => {
+  if (!Number.isInteger(n) || n < 1 || n > 12) return String(n);
+  const locale = String(i18n.global.locale.value || "en");
+  let fmt = monthFormatters.get(locale);
+  if (!fmt) {
+    try {
+      fmt = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+    } catch {
+      fmt = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
+    }
+    monthFormatters.set(locale, fmt);
+  }
+  const name = fmt.format(Date.UTC(2000, n - 1, 1));
+  // Axis/strip headers read better capitalised ("gen" → "Gen").
+  return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+};

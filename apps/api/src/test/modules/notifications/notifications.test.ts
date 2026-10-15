@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import type { Collection } from "mongodb";
+import type { Collection, Db } from "mongodb";
 import { createLogger } from "@billy/shared";
 import type { AuthContext, BaseDoc } from "@billy/types";
 import type { DomainEvent, DomainEventEmitter } from "@/platform/service.js";
 import { NotificationRepository, NotificationPreferencesRepository } from "@/modules/notifications/repository.js";
 import { NotificationService, categoryForEvent } from "@/modules/notifications/service.js";
 import type { Notification, NotificationPreferences } from "@/modules/notifications/types.js";
+import { createEntityLabelResolver, type EntityLabelResolver } from "@/modules/notifications/entity-labels.js";
 
 // ── Test doubles ─────────────────────────────────────────────────────────────
 
@@ -357,5 +358,113 @@ describe("NE8 domain-event emission", () => {
     const [n] = await svc.createFromEvent(eventOf("invoice.paid"), [ALICE.userId], "default");
     await svc.markRead(BOB, n!.id); // Bob does not own it → null → no emit
     expect(events.filter((e) => e.name === "notification.updated")).toHaveLength(0);
+  });
+});
+
+// ── Human entity labels (params.entity — never the raw id) ───────────────────
+
+describe("entity labels", () => {
+  const RAW_ID = "6a5e57c2b1d4e3f2a1b0c9d8";
+  const withResolver = (impl: EntityLabelResolver["labelFor"]) => {
+    const repo = new FakeNotificationRepository();
+    const prefsRepo = new FakePreferencesRepository();
+    const { emitter } = newEmitter();
+    const calls: [string, string, string][] = [];
+    const svc = new NotificationService({
+      repo,
+      prefsRepo,
+      emitter,
+      logger,
+      entityLabels: {
+        labelFor: async (accountId, entityType, entityId) => {
+          calls.push([accountId, entityType, entityId]);
+          return impl(accountId, entityType, entityId);
+        },
+      },
+    });
+    return { svc, calls };
+  };
+
+  it("puts the resolved human label in params.entity and keeps entityType/entityId for linking", async () => {
+    const { svc, calls } = withResolver(async () => ({ label: "INV-2026-0007" }));
+    const [n] = await svc.createFromEvent(eventOf("invoice.paid", RAW_ID), [ALICE.userId, BOB.userId], "acct-1");
+    // Resolved once per event, within the event's account.
+    expect(calls).toEqual([["acct-1", "invoice", RAW_ID]]);
+    expect(n!.params).toMatchObject({ entity: "INV-2026-0007", entityType: "invoice", entityId: RAW_ID });
+    expect(n!.entityId).toBe(RAW_ID);
+    expect(n!.title).toBe("Invoice paid");
+    expect(n!.body).toBe("Invoice INV-2026-0007 was paid in full");
+  });
+
+  it("flags unnumbered documents as drafts so the client can translate 'Draft'", async () => {
+    const { svc } = withResolver(async () => ({ label: "Draft", draft: true }));
+    const [n] = await svc.createFromEvent(eventOf("invoice.scheduled", RAW_ID), [ALICE.userId], "acct-1");
+    expect(n!.params).toMatchObject({ entity: "Draft", entityDraft: "1" });
+  });
+
+  it("without a resolver the label is empty and no text contains the raw id", async () => {
+    const { svc } = newService();
+    const [n] = await svc.createFromEvent(eventOf("invoice.paid", RAW_ID), [ALICE.userId], "default");
+    expect(n!.params!.entity).toBe("");
+    expect(n!.params!.entityId).toBe(RAW_ID);
+    expect(n!.body).toBe("An invoice was paid in full");
+    expect(`${n!.title} ${n!.body} ${n!.params!.entity}`).not.toContain(RAW_ID);
+  });
+
+  it("a failing resolver never drops the notification (empty label)", async () => {
+    const { svc } = withResolver(async () => {
+      throw new Error("db down");
+    });
+    const created = await svc.createFromEvent(eventOf("quote.sent", RAW_ID), [ALICE.userId], "acct-1");
+    expect(created).toHaveLength(1);
+    expect(created[0]!.params!.entity).toBe("");
+    expect(created[0]!.body).not.toContain(RAW_ID);
+  });
+
+  it("unmapped events get a humanized English title, never the raw id", async () => {
+    const { svc } = newService();
+    const [n] = await svc.createFromEvent(eventOf("client.created", RAW_ID), [ALICE.userId], "default");
+    expect(n!.title).toBe("Client created");
+    expect(n!.body).not.toContain(RAW_ID);
+  });
+});
+
+// ── Mongo-backed resolver (account-scoped lookups) ───────────────────────────
+
+describe("createEntityLabelResolver", () => {
+  /** Minimal Db double: per-collection docs, findOne matching every filter key. */
+  const fakeDb = (data: Record<string, Record<string, unknown>[]>) => {
+    return {
+      collection: (name: string) => ({
+        findOne: async (filter: Record<string, unknown>) =>
+          (data[name] ?? []).find((d) => Object.entries(filter).every(([k, v]) => d[k] === v)) ?? null,
+      }),
+    } as unknown as Db;
+  };
+
+  const db = fakeDb({
+    invoices: [
+      { id: "i1", accountId: "a1", invoiceNumber: "INV-2026-0001" },
+      { id: "i2", accountId: "a1", invoiceNumber: null },
+    ],
+    clients: [{ id: "c1", accountId: "a1", displayName: "Acme Srl" }],
+    expenses: [{ id: "x1", accountId: "a1", vendor: "", description: "Train ticket" }],
+    recurringProfiles: [{ id: "r1", accountId: "a1", clientId: "c1", subject: null }],
+  });
+  const resolver = createEntityLabelResolver(db);
+
+  it("resolves document numbers, Draft for unnumbered, names and fallbacks", async () => {
+    expect(await resolver.labelFor("a1", "invoice", "i1")).toEqual({ label: "INV-2026-0001" });
+    expect(await resolver.labelFor("a1", "invoice", "i2")).toEqual({ label: "Draft", draft: true });
+    expect(await resolver.labelFor("a1", "client", "c1")).toEqual({ label: "Acme Srl" });
+    expect(await resolver.labelFor("a1", "expense", "x1")).toEqual({ label: "Train ticket" });
+    // Recurring profile without a subject → its client's name.
+    expect(await resolver.labelFor("a1", "recurring_profile", "r1")).toEqual({ label: "Acme Srl" });
+  });
+
+  it("never reads across accounts and returns an empty label for unknown entities", async () => {
+    expect(await resolver.labelFor("other", "invoice", "i1")).toEqual({ label: "" });
+    expect(await resolver.labelFor("a1", "invoice", "missing")).toEqual({ label: "" });
+    expect(await resolver.labelFor("a1", "spaceship", "i1")).toEqual({ label: "" });
   });
 });

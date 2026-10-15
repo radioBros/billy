@@ -95,6 +95,8 @@ const itemsPerPage = ref(50);
 const sortBy = ref<SortItem[]>([{ key: "displayName", order: "asc" }]);
 const search = ref("");
 const showArchived = ref(false);
+/** Filters differing from their default — badges the phone filter button. */
+const activeFilterCount = computed<number>(() => (showArchived.value ? 1 : 0));
 
 // ── Row lifecycle actions ─────────────────────────────────────────────────────
 
@@ -287,6 +289,7 @@ onMounted(() => {
         :total="total"
         :loading="loading"
         :card-layout="cardLayout"
+        :active-filters="activeFilterCount"
         @click:row="openRow"
       >
         <template v-if="isMobile" #toolbar>

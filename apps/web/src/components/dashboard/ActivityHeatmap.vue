@@ -7,7 +7,7 @@
 import { computed, defineAsyncComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTheme } from "vuetify";
-import { MONTH_ABBR, type MonthlyCount } from "@/components/dashboard/types";
+import { monthAbbr, type MonthlyCount } from "@/components/dashboard/types";
 import { useIsMobile } from "@/composables/useIsMobile";
 
 const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue"));
@@ -26,7 +26,7 @@ const option = computed(() => {
   const max = Math.max(1, ...totals);
   // [monthIndex, rowIndex(0), value] cells.
   const data = props.rows.map((r, i) => [i, 0, r.total]);
-  const labels = props.rows.map((_, i) => MONTH_ABBR[i] ?? "");
+  const labels = props.rows.map((_, i) => monthAbbr(i + 1));
   if (isMobile.value) {
     // Phones: one condensed strip — no row label/legend (the card title says
     // what it is), every month labelled, rounded cells with a surface gap.

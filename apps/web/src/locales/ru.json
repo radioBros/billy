@@ -883,7 +883,25 @@
       "generic": {
         "title": "Уведомление",
         "body": "Обновление по {entity}"
+      },
+      "recurring": {
+        "occurrence_generated": {
+          "title": "Создан регулярный документ",
+          "body": "Создан новый документ по регулярному профилю {entity}"
+        }
+      },
+      "payment": {
+        "received": {
+          "title": "Платёж получен",
+          "body": "Получен платёж по {entity}"
+        }
       }
+    },
+    "entityType": {
+      "project": "Проект",
+      "subscription": "Подписка",
+      "timeEntry": "Запись времени",
+      "payment": "Платёж"
     }
   },
   "enums": {

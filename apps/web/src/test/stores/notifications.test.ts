@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { useNotificationsStore } from "@/stores/notifications";
+import {
+  isRawEntityRef,
+  notificationBody,
+  notificationTitle,
+  useNotificationsStore,
+  type NotificationTranslate,
+} from "@/stores/notifications";
+import { i18n, setI18nLocale } from "@/plugins/i18n";
 import type { Notification, WsEvent } from "@/types/domain";
 
 const jsonResponse = (body: unknown, status = 200): Response => {
@@ -152,5 +159,68 @@ describe("notifications store", () => {
     expect(store.items).toHaveLength(0);
     expect(store.unreadCount).toBe(0);
     expect(store.seeded).toBe(false);
+  });
+});
+
+// ── Display text: never a raw id ─────────────────────────────────────────────
+
+describe("notification display text", () => {
+  const HEX = "6a5e57c282ed0a773ca0f182";
+  const t: NotificationTranslate = (key, params) => i18n.global.t(key, params ?? {});
+  afterEach(() => setI18nLocale("en"));
+
+  /** Legacy doc as stored before human labels: params.entity = "invoice <hex>". */
+  const legacy = (over: Partial<Notification> = {}): Notification =>
+    notif({
+      type: "invoice.paid",
+      title: "Invoice Paid",
+      body: `invoice ${HEX}`,
+      titleKey: "notification.event.invoice.paid.title",
+      bodyKey: "notification.event.invoice.paid.body",
+      params: { entity: `invoice ${HEX}`, entityType: "invoice", entityId: HEX },
+      entityId: HEX,
+      ...over,
+    });
+
+  it("detects raw entity references", () => {
+    expect(isRawEntityRef(`invoice ${HEX}`)).toBe(true);
+    expect(isRawEntityRef(HEX)).toBe(true);
+    expect(isRawEntityRef("recurring_profile 6a5e57c282ed0a773ca0f1aa")).toBe(true);
+    expect(isRawEntityRef("INV-2026-0001")).toBe(false);
+    expect(isRawEntityRef("")).toBe(false);
+  });
+
+  it("renders a human label from params.entity", () => {
+    const n = legacy({ params: { entity: "INV-2026-0007", entityType: "invoice", entityId: HEX } });
+    expect(notificationTitle(t, n)).toBe("Invoice paid");
+    expect(notificationBody(t, n)).toBe("Invoice INV-2026-0007 was paid in full");
+  });
+
+  it("drops a legacy raw id from the sentence (en + it)", () => {
+    expect(notificationBody(t, legacy())).toBe("Invoice was paid in full");
+    setI18nLocale("it");
+    const body = notificationBody(t, legacy());
+    expect(body).toBe("La fattura è stata pagata per intero");
+    expect(body).not.toContain(HEX);
+  });
+
+  it("translates the draft marker", () => {
+    const n = legacy({ params: { entity: "Draft", entityDraft: "1", entityType: "invoice", entityId: HEX } });
+    setI18nLocale("it");
+    expect(notificationBody(t, n)).not.toContain("Draft");
+  });
+
+  it("an event without a catalog key + raw stored body falls back to the generic text with the entity type", () => {
+    const n = legacy({
+      type: "recurring.something_new",
+      title: "Recurring Something New",
+      body: `recurring_profile ${HEX}`,
+      titleKey: "notification.event.recurring.something_new.title",
+      bodyKey: "notification.event.recurring.something_new.body",
+      params: { entity: `recurring_profile ${HEX}`, entityType: "recurring_profile", entityId: HEX },
+      entityType: "recurring_profile",
+    });
+    expect(notificationTitle(t, n)).toBe("Recurring Something New");
+    expect(notificationBody(t, n)).toBe("Update for Recurring profile");
   });
 });

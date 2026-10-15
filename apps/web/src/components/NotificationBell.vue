@@ -8,7 +8,7 @@
 import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useNotificationsStore } from "@/stores/notifications";
+import { notificationBody, notificationTitle, useNotificationsStore } from "@/stores/notifications";
 import { usePushNotifications } from "@/composables/usePushNotifications";
 import type { Notification, NotificationSeverity } from "@/types/domain";
 import { useIsMobile } from "@/composables/useIsMobile";
@@ -95,19 +95,10 @@ const onMarkAllRead = async (): Promise<void> => {
   await store.markAllRead();
 };
 
-const localized = (key: string | null | undefined, params: Record<string, string> | null | undefined, fallback: string): string => {
-  if (!key) return fallback;
-  const out = t(key, params ?? {});
-  return out === key ? fallback : out;
-};
+// Localized text; never a raw id (legacy notifications stored "invoice <hex>").
+const titleFor = (n: Notification): string => notificationTitle(t, n);
 
-const titleFor = (n: Notification): string => {
-  return localized(n.titleKey, n.params, n.title);
-};
-
-const bodyFor = (n: Notification): string => {
-  return localized(n.bodyKey, n.params, n.body);
-};
+const bodyFor = (n: Notification): string => notificationBody(t, n);
 </script>
 
 <template>

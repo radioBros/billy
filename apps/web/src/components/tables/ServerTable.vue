@@ -68,6 +68,8 @@ const props = withDefaults(defineProps<{
   showColManager?: boolean;
   maxHeight?: number;
   cardLayout?: ServerTableCardLayout;
+  /** How many #toolbar filters differ from their default — phones badge the filter button with it. */
+  activeFilters?: number;
 }>(), {
   showColManager: true,
 });
@@ -360,10 +362,11 @@ const setSort = (key: string): void => {
         variant="tonal"
         color="primary"
         class="st-m__filter-btn px-0"
-        :aria-label="t('tables.filters')"
+        :aria-label="(activeFilters ?? 0) > 0 ? `${t('tables.filters')} (${activeFilters})` : t('tables.filters')"
         @click="sheetOpen = true"
       >
         <v-icon icon="mdi-tune-variant" />
+        <span v-if="(activeFilters ?? 0) > 0" class="st-m__filter-badge" data-test="filter-badge">{{ activeFilters }}</span>
       </v-btn>
     </div>
 
@@ -602,6 +605,32 @@ const setSort = (key: string): void => {
   width: 44px !important;
   height: 44px !important;
   min-width: 0 !important;
+}
+/* Active-filter count, pinned to the filter button's top-right corner. */
+.st-m__filter-btn :deep(.v-btn__content) {
+  position: static;
+}
+.st-m__filter-btn {
+  overflow: visible;
+}
+.st-m__filter-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  box-sizing: border-box;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  border: 2px solid rgb(var(--v-theme-background));
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 .st-m__count {
   display: flex;

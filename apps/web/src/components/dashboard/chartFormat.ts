@@ -5,7 +5,7 @@
  * so phone charts label the money axis in compact notation ("€12K") and the
  * month axis with short month names. Tooltips keep the exact amounts.
  */
-import { MONTH_ABBR } from "@/components/dashboard/types";
+import { monthAbbr } from "@/components/dashboard/types";
 
 /** Compact currency for axis ticks: minor units → "€12K" / "$1.5M" (plain number when no currency). */
 export const minorToCompact = (minor: number, currency: string | null | undefined): string => {
@@ -22,8 +22,9 @@ export const minorToCompact = (minor: number, currency: string | null | undefine
   }
 };
 
-/** "2026-03" → "Mar" (falls back to the raw value when it isn't a YYYY-MM key). */
+/** "2026-03" → "Mar" / "mar" (locale-aware; the raw value when it isn't a YYYY-MM key). */
 export const monthKeyToAbbr = (month: string): string => {
+  if (!/^\d{4}-\d{2}/u.test(month)) return month;
   const n = Number(month.slice(5, 7));
-  return MONTH_ABBR[n - 1] ?? month;
+  return n >= 1 && n <= 12 ? monthAbbr(n) : month;
 };

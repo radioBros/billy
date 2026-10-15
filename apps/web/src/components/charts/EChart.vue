@@ -77,6 +77,7 @@ const themeTokens = () => {
     success: cur.colors.success,
     error: cur.colors.error,
     info: cur.colors.info,
+    warning: cur.colors.warning,
     surface: cur.colors.surface,
     onSurface: cur.colors["on-surface"],
     text1: String(v["billy-text-1"] ?? cur.colors["on-surface"]),
@@ -86,11 +87,21 @@ const themeTokens = () => {
   };
 };
 
+/**
+ * Extra series colours after the theme's semantic ones — Tailwind 600 shades on
+ * light surfaces, 400 shades on dark (readable on both, distinct from the theme
+ * primary/success/info/error/warning hues): teal, pink, slate, lime.
+ */
+const EXTRA_LIGHT = ["#0d9488", "#db2777", "#64748b", "#65a30d"];
+const EXTRA_DARK = ["#2dd4bf", "#f472b6", "#94a3b8", "#a3e635"];
+
 const baseOption = (): EChartsCoreOption => {
   const tk = themeTokens();
   const base: EChartsCoreOption = {
     animation: !prefersReducedMotion(),
-    color: [tk.primary, tk.success, tk.info, tk.error],
+    // ≥ 8 distinct colours so multi-series charts (e.g. 6 doc types) never repeat.
+    // The first four stay put so existing 2–4 series charts keep their colours.
+    color: [tk.primary, tk.success, tk.info, tk.error, tk.warning, ...(tk.dark ? EXTRA_DARK : EXTRA_LIGHT)],
     textStyle: { color: tk.text2 },
     legend: { textStyle: { color: tk.text2 }, inactiveColor: tk.text3 },
     tooltip: {
