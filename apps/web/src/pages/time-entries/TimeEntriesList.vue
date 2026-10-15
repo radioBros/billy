@@ -18,7 +18,9 @@ import type { TimeEntry } from "@/types/domain";
 import { minorToDisplay } from "@/utils/money";
 import { useSettingsStore } from "@/stores/settings";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 interface SortItem {
   key: string;
@@ -29,6 +31,7 @@ const { t } = useI18n();
 const router = useRouter();
 const settings = useSettingsStore();
 const timer = useTimerStore();
+const isMobile = useIsMobile();
 
 const startTimer = (): void => {
   timer.start();
@@ -42,6 +45,17 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("timeEntries.columns.billed"), key: "billed", sortable: true },
   { title: t("timeEntries.columns.rate"), key: "rateMinor", sortable: false, align: "end" },
 ]);
+
+/** Phone card: description + date, billable/billed chips, duration as the
+ *  headline figure with the hourly rate underneath. */
+const cardLayout: ServerTableCardLayout = {
+  title: "description",
+  subtitle: "date",
+  status: ["billable", "billed"],
+  amount: "durationMinutes",
+  amountCaption: "rateMinor",
+  meta: [],
+};
 
 // Billable filter has ≤4 options → stays a plain v-select.
 const BILLABLE_OPTIONS = computed(() => [
@@ -128,23 +142,23 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("timeEntries.title") }}</h1>
-      <v-spacer />
-      <v-btn
-        variant="tonal"
-        color="primary"
-        prepend-icon="mdi-timer-outline"
-        :disabled="timer.active"
-        class="mr-2"
-        @click="startTimer"
-      >
-        {{ t("timer.start") }}
-      </v-btn>
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'time-entry-create' }">
-        {{ t("timeEntries.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('timeEntries.title')"
+      :primary="{ label: t('timeEntries.new'), icon: 'mdi-plus', to: { name: 'time-entry-create' } }"
+    >
+      <template #actions>
+        <v-btn
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-timer-outline"
+          :disabled="timer.active"
+          :class="{ 'mr-3': !isMobile }"
+          @click="startTimer"
+        >
+          {{ t("timer.start") }}
+        </v-btn>
+      </template>
+    </PageHeader>
 
     <v-alert
       v-if="errorMessage"
@@ -171,6 +185,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -191,11 +206,22 @@ onMounted(() => {
         <template #[`item.durationMinutes`]="{ item }">
           {{ minutesToHm(item.durationMinutes) }}
         </template>
-        <template #[`item.billable`]="{ item }">
-          {{ item.billable ? t("common.yes") : t("common.no") }}
+        <!-- Phone card: Billable / Billed as chips (shown only when true). -->
+        <template #[`item.billable`]="{ item, card }">
+          <template v-if="card">
+            <v-chip v-if="item.billable" size="small" variant="tonal" color="success" label prepend-icon="mdi-cash-check">
+              {{ t("timeEntries.columns.billable") }}
+            </v-chip>
+          </template>
+          <template v-else>{{ item.billable ? t("common.yes") : t("common.no") }}</template>
         </template>
-        <template #[`item.billed`]="{ item }">
-          {{ item.billed ? t("common.yes") : t("common.no") }}
+        <template #[`item.billed`]="{ item, card }">
+          <template v-if="card">
+            <v-chip v-if="item.billed" size="small" variant="tonal" color="info" label prepend-icon="mdi-receipt-text-check-outline">
+              {{ t("timeEntries.columns.billed") }}
+            </v-chip>
+          </template>
+          <template v-else>{{ item.billed ? t("common.yes") : t("common.no") }}</template>
         </template>
         <template #[`item.rateMinor`]="{ item }">
           {{ minorToDisplay(item.rateMinor, "EUR") }}

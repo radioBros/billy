@@ -293,6 +293,10 @@ const layout = computed<Required<ServerTableCardLayout>>(() => {
   };
 });
 
+/** A page-provided cell slot wins outright — even when it renders nothing (Vue
+ *  would otherwise show the fallback, e.g. a raw id or a stray dash). */
+const hasCellSlot = (key: string): boolean => !!slots[`item.${key}`];
+
 const hasActions = computed(() => props.headers.some((h) => h.key === "actions"));
 const labelOf = (key: string): string => headerByKey.value.get(key)?.title ?? key;
 /** Same shape as v-data-table's item slot props, plus `card: true` so a page
@@ -312,6 +316,11 @@ const rawValue = (item: T, key: string): string => {
 /** Renderless VVirtualScroll hands each item an `itemRef` to bind for height
  *  measurement; its slot type is a union, so read it defensively. */
 const itemRefOf = (scope: unknown): any => (scope as { itemRef?: unknown }).itemRef;
+
+const hasValue = (item: T, key: string): boolean => {
+  const v = (item as Record<string, unknown>)[key];
+  return v !== null && v !== undefined && v !== "";
+};
 
 const onCardClick = (event: unknown, item: T): void => {
   emit("click:row", event, { item });
@@ -396,14 +405,12 @@ const setSort = (key: string): void => {
               <div class="st-card__head">
                 <div class="st-card__titles">
                   <div class="st-card__title">
-                    <slot :name="`item.${layout.title}`" v-bind="slotProps(scope.item, layout.title, scope.index)">
-                      {{ rawValue(scope.item, layout.title) }}
-                    </slot>
+                    <slot v-if="hasCellSlot(layout.title)" :name="`item.${layout.title}`" v-bind="slotProps(scope.item, layout.title, scope.index)" />
+                    <template v-else>{{ rawValue(scope.item, layout.title) }}</template>
                   </div>
                   <div v-if="layout.subtitle" class="st-card__subtitle">
-                    <slot :name="`item.${layout.subtitle}`" v-bind="slotProps(scope.item, layout.subtitle, scope.index)">
-                      {{ rawValue(scope.item, layout.subtitle) }}
-                    </slot>
+                    <slot v-if="hasCellSlot(layout.subtitle)" :name="`item.${layout.subtitle}`" v-bind="slotProps(scope.item, layout.subtitle, scope.index)" />
+                    <template v-else>{{ rawValue(scope.item, layout.subtitle) }}</template>
                   </div>
                 </div>
                 <div v-if="hasActions" class="st-card__actions" @click.stop>
@@ -414,22 +421,19 @@ const setSort = (key: string): void => {
               <div v-if="layout.status.length || layout.amount" class="st-card__mid">
                 <div class="st-card__chips">
                   <template v-for="key in layout.status" :key="key">
-                    <slot :name="`item.${key}`" v-bind="slotProps(scope.item, key, scope.index)">
-                      <span class="st-card__plain">{{ rawValue(scope.item, key) }}</span>
-                    </slot>
+                    <slot v-if="hasCellSlot(key)" :name="`item.${key}`" v-bind="slotProps(scope.item, key, scope.index)" />
+                    <template v-else><span class="st-card__plain">{{ rawValue(scope.item, key) }}</span></template>
                   </template>
                 </div>
                 <div v-if="layout.amount" class="st-card__amount">
                   <div class="st-card__amount-main">
-                    <slot :name="`item.${layout.amount}`" v-bind="slotProps(scope.item, layout.amount, scope.index)">
-                      {{ rawValue(scope.item, layout.amount) }}
-                    </slot>
+                    <slot v-if="hasCellSlot(layout.amount)" :name="`item.${layout.amount}`" v-bind="slotProps(scope.item, layout.amount, scope.index)" />
+                    <template v-else>{{ rawValue(scope.item, layout.amount) }}</template>
                   </div>
-                  <div v-if="layout.amountCaption" class="st-card__amount-caption">
+                  <div v-if="layout.amountCaption && hasValue(scope.item, layout.amountCaption)" class="st-card__amount-caption">
                     {{ labelOf(layout.amountCaption) }}
-                    <slot :name="`item.${layout.amountCaption}`" v-bind="slotProps(scope.item, layout.amountCaption, scope.index)">
-                      {{ rawValue(scope.item, layout.amountCaption) }}
-                    </slot>
+                    <slot v-if="hasCellSlot(layout.amountCaption)" :name="`item.${layout.amountCaption}`" v-bind="slotProps(scope.item, layout.amountCaption, scope.index)" />
+                    <template v-else>{{ rawValue(scope.item, layout.amountCaption) }}</template>
                   </div>
                 </div>
               </div>
@@ -438,9 +442,8 @@ const setSort = (key: string): void => {
                 <div v-for="key in layout.meta" :key="key" class="st-card__meta-scope.item">
                   <div class="st-card__meta-label">{{ labelOf(key) }}</div>
                   <div class="st-card__meta-value">
-                    <slot :name="`item.${key}`" v-bind="slotProps(scope.item, key, scope.index)">
-                      {{ rawValue(scope.item, key) }}
-                    </slot>
+                    <slot v-if="hasCellSlot(key)" :name="`item.${key}`" v-bind="slotProps(scope.item, key, scope.index)" />
+                    <template v-else>{{ rawValue(scope.item, key) }}</template>
                   </div>
                 </div>
               </div>

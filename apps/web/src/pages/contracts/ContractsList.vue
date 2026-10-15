@@ -21,7 +21,8 @@ import { useClientNames } from "@/composables/useClientNames";
 import { confirm } from "@/composables/useConfirm";
 import StatusChip from "@/components/StatusChip.vue";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import { useClonePrefill } from "@/composables/useClonePrefill";
@@ -62,6 +63,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("contracts.columns.value"), key: "valueMinor", sortable: false, align: "end" },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: title + customer, status + type chips, value, term dates. */
+const cardLayout: ServerTableCardLayout = {
+  title: "title",
+  subtitle: "clientId",
+  status: ["status", "type"],
+  amount: "valueMinor",
+  meta: ["startDate", "endDate"],
+};
 
 const { cloneRow } = useClonePrefill();
 
@@ -251,13 +261,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("contracts.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'contract-create' }">
-        {{ t("contracts.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('contracts.title')"
+      :primary="{ label: t('contracts.new'), icon: 'mdi-plus', to: { name: 'contract-create' } }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -288,6 +295,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -313,8 +321,11 @@ onMounted(() => {
         <template #[`item.status`]="{ item }">
           <StatusChip :status="item.status" />
         </template>
-        <template #[`item.type`]="{ item }">
-          {{ enumLabel(t, "contractType", item.type) }}
+        <template #[`item.type`]="{ item, card }">
+          <v-chip v-if="card" size="small" variant="outlined" label>
+            {{ enumLabel(t, "contractType", item.type) }}
+          </v-chip>
+          <template v-else>{{ enumLabel(t, "contractType", item.type) }}</template>
         </template>
         <template #[`item.endDate`]="{ item }">
           {{ item.endDate ?? "—" }}

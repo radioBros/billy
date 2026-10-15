@@ -18,7 +18,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useClientNames } from "@/composables/useClientNames";
 import { minorToDisplay } from "@/utils/money";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import { useClonePrefill } from "@/composables/useClonePrefill";
@@ -66,6 +67,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("creditNotes.columns.total"), key: "grandTotalMinor", sortable: true, align: "end" },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: number + customer, status (+ SdI) chips + total, issue date. */
+const cardLayout: ServerTableCardLayout = {
+  title: "creditNoteNumber",
+  subtitle: "clientId",
+  status: ["status", "einvoice"],
+  amount: "grandTotalMinor",
+  meta: ["issueDate"],
+};
 
 const { cloneRow } = useClonePrefill();
 
@@ -238,13 +248,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("creditNotes.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'credit-note-create' }">
-        {{ t("creditNotes.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('creditNotes.title')"
+      :primary="{ label: t('creditNotes.new'), icon: 'mdi-plus', to: { name: 'credit-note-create' } }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -275,6 +282,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -286,9 +294,9 @@ onMounted(() => {
         <template #[`item.status`]="{ item }">
           <StatusChip :status="(item as CreditNote).status" />
         </template>
-        <template #[`item.einvoice`]="{ item }">
+        <template #[`item.einvoice`]="{ item, card }">
           <EInvoiceStatusChip v-if="(item as CreditNote).einvoice" :status="(item as CreditNote).einvoice!.status" />
-          <span v-else>&mdash;</span>
+          <span v-else-if="!card">&mdash;</span>
         </template>
         <template #[`item.grandTotalMinor`]="{ item }">
           {{ minorToDisplay((item as CreditNote).grandTotalMinor, (item as CreditNote).currency) }}

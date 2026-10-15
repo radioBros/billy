@@ -18,7 +18,8 @@ import { enumLabel } from "@/utils/enums";
 import { useSettingsStore } from "@/stores/settings";
 import StatusChip from "@/components/StatusChip.vue";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 
 interface SortItem {
   key: string;
@@ -37,6 +38,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("subscriptions.columns.status"), key: "status", sortable: true },
   { title: t("subscriptions.columns.nextBilling"), key: "nextBillingDate", sortable: true },
 ]);
+
+/** Phone card: name + plan, status chip + amount, interval and next billing date. */
+const cardLayout: ServerTableCardLayout = {
+  title: "name",
+  subtitle: "plan",
+  status: ["status"],
+  amount: "amountMinor",
+  meta: ["interval", "nextBillingDate"],
+};
 
 // Status filter has ≤4 options → stays a plain v-select.
 const STATUS_OPTIONS: SubscriptionStatus[] = ["active", "paused", "cancelled"];
@@ -115,13 +125,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("subscriptions.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'subscription-create' }">
-        {{ t("subscriptions.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('subscriptions.title')"
+      :primary="{ label: t('subscriptions.new'), icon: 'mdi-plus', to: { name: 'subscription-create' } }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -148,6 +155,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>

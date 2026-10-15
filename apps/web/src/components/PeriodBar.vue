@@ -340,7 +340,10 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
 /* ── Phone: a horizontally scrollable strip; "All year" pinned on the left. ── */
 .period-bar--mobile .period-bar__cells {
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  /* Snap whole month cells against the pinned "All year" cell (112px) so no
+     half-hidden sliver ever peeks out from under it. */
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 112px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }

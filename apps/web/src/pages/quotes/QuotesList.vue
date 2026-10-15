@@ -21,7 +21,8 @@ import { useClientNames } from "@/composables/useClientNames";
 import { confirm } from "@/composables/useConfirm";
 import StatusChip from "@/components/StatusChip.vue";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import { useClonePrefill } from "@/composables/useClonePrefill";
@@ -60,6 +61,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("quotes.columns.total"), key: "grandTotalMinor", sortable: true, align: "end" },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: number + customer, status chip + total, issue/expiry dates. */
+const cardLayout: ServerTableCardLayout = {
+  title: "quoteNumber",
+  subtitle: "clientId",
+  status: ["status"],
+  amount: "grandTotalMinor",
+  meta: ["issueDate", "expiryDate"],
+};
 
 const { cloneRow } = useClonePrefill();
 
@@ -213,11 +223,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("quotes.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'quote-create' }">{{ t("quotes.new") }}</v-btn>
-    </div>
+    <PageHeader
+      :title="t('quotes.title')"
+      :primary="{ label: t('quotes.new'), icon: 'mdi-plus', to: { name: 'quote-create' } }"
+    />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -241,6 +250,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -254,7 +264,9 @@ onMounted(() => {
             :aria-label="t('quotes.filterStatus')"
           />
         </template>
-        <template #[`item.quoteNumber`]="{ item }">{{ item.quoteNumber ?? "—" }}</template>
+        <template #[`item.quoteNumber`]="{ item, card }">
+          {{ item.quoteNumber ?? (card ? t("quotes.draftUnnumbered") : "—") }}
+        </template>
         <template #[`item.status`]="{ item }">
           <StatusChip :status="item.status" />
         </template>
