@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} es demasiado grande — el total de adjuntos debe mantenerse por debajo de {max}",
     "remove": "Eliminar",
     "previewPdf": "Vista previa del PDF",
-    "uploadError": "No se pudo subir {name}"
+    "uploadError": "No se pudo subir {name}",
+    "tapHint": "Toca para adjuntar archivos"
   },
   "placeholders": {
     "legendButton": "Marcadores",
@@ -2131,6 +2132,7 @@
     "billing": "Facturación",
     "schedule": "Programación",
     "content": "Contenido",
-    "attachments": "Adjuntos"
+    "attachments": "Adjuntos",
+    "period": "Fechas y valor"
   }
 }

@@ -18,9 +18,14 @@ import { apiErrorReason } from "@/utils/validationMessages";
 import type { TimeEntry } from "@/types/domain";
 import { useTimerStore } from "@/stores/timer";
 import ClientSelector from "@/components/ClientSelector.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
 
 const { t } = useI18n();
 const timer = useTimerStore();
+// Phone: the save dialog is a small form → fullscreen sheet with a sticky
+// Discard / Save bar instead of a bottom sheet.
+const isMobile = useIsMobile();
 
 // ---- Stop → confirm dialog --------------------------------------------------
 
@@ -28,6 +33,7 @@ const dialog = ref(false);
 const saving = ref(false);
 const errorMessage = ref<string | null>(null);
 const formValid = ref(false);
+const formRef = ref<VuetifyFormRef | null>(null);
 
 // Pre-filled fields for the created time entry.
 const pendingMinutes = ref(0);
@@ -63,6 +69,11 @@ const onStop = (): void => {
 };
 
 const confirmCreate = async (): Promise<void> => {
+  // Show the field errors (e.g. empty description) instead of a server round-trip.
+  if (formRef.value) {
+    const { valid } = await formRef.value.validate();
+    if (!valid) return;
+  }
   errorMessage.value = null;
   saving.value = true;
   const payload: Record<string, unknown> = {
@@ -139,8 +150,8 @@ const cancelDialog = (): void => {
     </v-card>
 
     <!-- Stop → confirm/create dialog, pre-filled with the elapsed duration. -->
-    <v-dialog v-model="dialog" max-width="520" persistent>
-      <v-card rounded="lg">
+    <v-dialog v-model="dialog" max-width="520" persistent :fullscreen="isMobile">
+      <v-card rounded="lg" :class="{ 'timer-dialog--mobile': isMobile }">
         <v-card-title class="text-h6">{{ t("timer.saveTitle") }}</v-card-title>
         <v-card-text>
           <v-alert
@@ -160,7 +171,7 @@ const cancelDialog = (): void => {
             <strong>{{ durationLabel }}</strong>
           </div>
 
-          <v-form v-model="formValid" @submit.prevent="confirmCreate">
+          <v-form ref="formRef" v-model="formValid" @submit.prevent="confirmCreate">
             <v-text-field
               v-model="description"
               :label="t('timeEntries.fields.description')"
@@ -201,7 +212,12 @@ const cancelDialog = (): void => {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="cancelDialog">{{ t("timer.discard") }}</v-btn>
-          <v-btn color="primary" :loading="saving" @click="confirmCreate">
+          <v-btn
+            color="primary"
+            :loading="saving"
+            v-bind="isMobile ? { variant: 'flat' } : {}"
+            @click="confirmCreate"
+          >
             {{ t("timer.saveEntry") }}
           </v-btn>
         </v-card-actions>
@@ -231,6 +247,32 @@ const cancelDialog = (): void => {
   }
 }
 
+/* Phone: fullscreen save dialog — scrolling body, Discard / Save bar pinned. */
+.timer-dialog--mobile {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 !important;
+}
+.timer-dialog--mobile > .v-card-title {
+  padding: 16px 16px 8px;
+}
+.timer-dialog--mobile > .v-card-text {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 16px 16px;
+}
+.timer-dialog--mobile > .v-card-actions {
+  flex-wrap: nowrap;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  border-top: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+}
+.timer-dialog--mobile > .v-card-actions > .v-btn {
+  flex: 1 1 0;
+  height: 48px;
+}
+.timer-dialog--mobile > .v-card-actions > .v-btn:last-child {
+  flex-grow: 1.6;
+}
 .timer-overlay__time {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;

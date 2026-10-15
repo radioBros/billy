@@ -12,6 +12,7 @@
  */
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{
   src: string;
@@ -21,6 +22,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+// Phone: the zoomed image takes the whole screen (not a bottom sheet).
+const isMobile = useIsMobile();
 const open = ref(false);
 const failed = ref(false);
 
@@ -52,8 +55,8 @@ const thumbStyle = computed(() => ({
       <v-icon icon="mdi-image-off-outline" size="20" />
     </span>
 
-    <v-dialog v-model="open" max-width="1200" @update:model-value="open = $event">
-      <v-card class="image-zoom__overlay" rounded="lg">
+    <v-dialog v-model="open" max-width="1200" :fullscreen="isMobile" @update:model-value="open = $event">
+      <v-card class="image-zoom__overlay" :class="{ 'image-zoom__overlay--mobile': isMobile }" rounded="lg">
         <div class="d-flex justify-end pa-2">
           <v-btn
             icon="mdi-close"
@@ -96,6 +99,21 @@ const thumbStyle = computed(() => ({
    viewer's light/dark theme. */
 .image-zoom__overlay {
   background: #ffffff;
+}
+.image-zoom__overlay--mobile {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 !important;
+}
+.image-zoom__overlay--mobile .image-zoom__full {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+.image-zoom__overlay--mobile .image-zoom__full-img {
+  max-height: calc(100dvh - 96px);
 }
 .image-zoom__full {
   cursor: pointer;

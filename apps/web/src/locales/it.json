@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} è troppo grande — il totale degli allegati deve restare sotto {max}",
     "remove": "Rimuovi",
     "previewPdf": "Anteprima PDF",
-    "uploadError": "Impossibile caricare {name}"
+    "uploadError": "Impossibile caricare {name}",
+    "tapHint": "Tocca per allegare file"
   },
   "placeholders": {
     "legendButton": "Segnaposto",
@@ -2131,6 +2132,7 @@
     "billing": "Fatturazione",
     "schedule": "Pianificazione",
     "content": "Contenuto",
-    "attachments": "Allegati"
+    "attachments": "Allegati",
+    "period": "Date e valore"
   }
 }

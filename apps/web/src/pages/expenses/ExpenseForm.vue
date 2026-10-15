@@ -25,6 +25,12 @@ import { useRecurringProfile } from "@/composables/useRecurringProfile";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { createReusableTemplate } from "@/composables/useReusableTemplate";
+import PageHeader from "@/components/PageHeader.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -32,6 +38,18 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps. Desktop keeps the single card — both layouts render the
+ *  same field groups via the reusable templates below. */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-receipt-text-outline" },
+  { key: "billing", title: t("formSteps.billing"), icon: "mdi-account-cash-outline" },
+]);
+const { Define: DefineExpense, Reuse: ReuseExpense } = createReusableTemplate();
+const { Define: DefineAssignment, Reuse: ReuseAssignment } = createReusableTemplate();
+const { Define: DefineDescription, Reuse: ReuseDescription } = createReusableTemplate();
+const { Define: DefineBillable, Reuse: ReuseBillable } = createReusableTemplate();
 
 // Recurring is a property of a NEW expense, set via RecurringToggle (create only).
 const recurrence = ref<RecurrenceConfig | null>(null);
@@ -183,10 +201,94 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("expenses.editTitle") : t("expenses.newTitle") }}</h1>
-    </div>
+    <!-- Field groups, defined once: the desktop card and the phone steps below
+         both render them (see composables/useReusableTemplate). -->
+    <DefineExpense>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model.number="amountMajor"
+          :label="t('expenses.fields.amount')"
+          type="number"
+          :rules="[amountRule]"
+          :error-messages="fieldErrors.amountMinor"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="currency"
+          :label="t('expenses.fields.currency')"
+          :rules="[required, currencyRule]"
+          :error-messages="fieldErrors.currency"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="category"
+          :label="t('expenses.fields.category')"
+          :rules="[required]"
+          :error-messages="fieldErrors.category"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="date"
+          :label="t('expenses.fields.date')"
+          type="date"
+          :rules="[required]"
+          :error-messages="fieldErrors.date"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="vendor"
+          :label="t('expenses.fields.vendor')"
+          :rules="[required]"
+          :error-messages="fieldErrors.vendor"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineExpense>
+    <DefineAssignment>
+      <v-col cols="12" md="6">
+        <ClientSelector
+          v-model="clientId"
+          :label="t('expenses.fields.clientId')"
+          :error-messages="fieldErrors.clientId"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
+      </v-col>
+    </DefineAssignment>
+    <DefineDescription>
+      <v-col cols="12">
+        <v-textarea
+          v-model="description"
+          :label="t('expenses.fields.description')"
+          rows="2"
+          auto-grow
+          :error-messages="fieldErrors.description"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineDescription>
+    <DefineBillable>
+      <v-col cols="12">
+        <v-switch
+          v-model="billable"
+          :label="t('expenses.fields.billable')"
+          color="primary"
+          hide-details
+          :error-messages="fieldErrors.billable"
+        />
+      </v-col>
+    </DefineBillable>
+
+    <PageHeader back :title="isEdit ? t('expenses.editTitle') : t('expenses.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -197,84 +299,41 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
-      <AppCard>
+      <!-- Phone: details → billing (client / project / billable / recurring) wizard. -->
+      <FormSteps v-if="isMobile" :steps="formSteps">
+        <template #details>
+          <AppCard>
+            <v-row>
+              <ReuseExpense />
+              <ReuseDescription />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #billing>
+          <AppCard>
+            <v-row>
+              <ReuseAssignment />
+              <ReuseBillable />
+            </v-row>
+
+            <RecurringToggle v-if="!isEdit" v-model="recurrence" :disabled="submitting" />
+          </AppCard>
+        </template>
+        <template #actions>
+          <FormActions>
+            <v-btn color="primary" variant="flat" type="submit" :loading="submitting">
+              {{ isEdit ? t("common.saveChanges") : t("expenses.create") }}
+            </v-btn>
+          </FormActions>
+        </template>
+      </FormSteps>
+
+      <AppCard v-else>
         <v-row>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model.number="amountMajor"
-              :label="t('expenses.fields.amount')"
-              type="number"
-              :rules="[amountRule]"
-              :error-messages="fieldErrors.amountMinor"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="currency"
-              :label="t('expenses.fields.currency')"
-              :rules="[required, currencyRule]"
-              :error-messages="fieldErrors.currency"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="category"
-              :label="t('expenses.fields.category')"
-              :rules="[required]"
-              :error-messages="fieldErrors.category"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="date"
-              :label="t('expenses.fields.date')"
-              type="date"
-              :rules="[required]"
-              :error-messages="fieldErrors.date"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="vendor"
-              :label="t('expenses.fields.vendor')"
-              :rules="[required]"
-              :error-messages="fieldErrors.vendor"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <ClientSelector
-              v-model="clientId"
-              :label="t('expenses.fields.clientId')"
-              :error-messages="fieldErrors.clientId"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
-          </v-col>
-          <v-col cols="12">
-            <v-textarea
-              v-model="description"
-              :label="t('expenses.fields.description')"
-              rows="2"
-              auto-grow
-              :error-messages="fieldErrors.description"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12">
-            <v-switch
-              v-model="billable"
-              :label="t('expenses.fields.billable')"
-              color="primary"
-              hide-details
-              :error-messages="fieldErrors.billable"
-            />
-          </v-col>
+          <ReuseExpense />
+          <ReuseAssignment />
+          <ReuseDescription />
+          <ReuseBillable />
         </v-row>
 
         <RecurringToggle v-if="!isEdit" v-model="recurrence" :disabled="submitting" />

@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} слишком большой — общий размер вложений должен оставаться менее {max}",
     "remove": "Удалить",
     "previewPdf": "Предпросмотр PDF",
-    "uploadError": "Не удалось загрузить {name}"
+    "uploadError": "Не удалось загрузить {name}",
+    "tapHint": "Нажмите, чтобы прикрепить файлы"
   },
   "placeholders": {
     "legendButton": "Подстановки",
@@ -2131,6 +2132,7 @@
     "billing": "Оплата",
     "schedule": "Расписание",
     "content": "Содержание",
-    "attachments": "Вложения"
+    "attachments": "Вложения",
+    "period": "Сроки и сумма"
   }
 }

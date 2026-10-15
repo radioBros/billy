@@ -22,6 +22,12 @@ import AppCard from "@/components/AppCard.vue";
 import { majorToMinor, minorToMajor } from "@/utils/money";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { createReusableTemplate } from "@/composables/useReusableTemplate";
+import PageHeader from "@/components/PageHeader.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -29,6 +35,16 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps. Desktop keeps the single card — both layouts render the
+ *  same field groups via the reusable templates below. */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-clock-outline" },
+  { key: "billing", title: t("formSteps.billing"), icon: "mdi-cash-clock" },
+]);
+const { Define: DefineWork, Reuse: ReuseWork } = createReusableTemplate();
+const { Define: DefineBilling, Reuse: ReuseBilling } = createReusableTemplate();
 
 const description = ref("");
 const date = ref(new Date().toISOString().slice(0, 10));
@@ -125,10 +141,84 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("timeEntries.editTitle") : t("timeEntries.newTitle") }}</h1>
-    </div>
+    <!-- Field groups, defined once: the desktop card and the phone steps below
+         both render them (see composables/useReusableTemplate). -->
+    <DefineWork>
+      <v-col cols="12">
+        <v-text-field
+          v-model="description"
+          :label="t('timeEntries.fields.description')"
+          :rules="[required]"
+          :error-messages="fieldErrors.description"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="date"
+          :label="t('timeEntries.fields.date')"
+          type="date"
+          :rules="[required]"
+          :error-messages="fieldErrors.date"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model.number="durationMinutes"
+          :label="t('timeEntries.fields.duration')"
+          type="number"
+          min="0"
+          step="1"
+          :rules="[durationRule]"
+          :error-messages="fieldErrors.durationMinutes"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineWork>
+    <DefineBilling>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-text-field
+          v-model.number="rateMajor"
+          :label="t('timeEntries.fields.rate')"
+          type="number"
+          min="0"
+          step="0.01"
+          :error-messages="fieldErrors.rateMinor"
+          density="comfortable"
+          :hint="t('timeEntries.rateHint')"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12" md="6" class="d-flex align-center" :class="{ 'py-2': isMobile }">
+        <v-switch
+          v-model="billable"
+          :label="t('timeEntries.fields.billable')"
+          color="primary"
+          density="comfortable"
+          hide-details
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <ClientSelector
+          v-model="clientId"
+          :label="t('timeEntries.fields.clientId')"
+          :error-messages="fieldErrors.clientId"
+        />
+      </v-col>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-text-field
+          v-model="projectId"
+          :label="t('timeEntries.fields.projectId')"
+          :error-messages="fieldErrors.projectId"
+          density="comfortable"
+          :hint="t('timeEntries.projectIdHint')"
+          persistent-hint
+        />
+      </v-col>
+    </DefineBilling>
+
+    <PageHeader back :title="isEdit ? t('timeEntries.editTitle') : t('timeEntries.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -139,78 +229,35 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
-      <AppCard>
+      <!-- Phone: details → billing (rate / billable / client / project) wizard. -->
+      <FormSteps v-if="isMobile" :steps="formSteps">
+        <template #details>
+          <AppCard>
+            <v-row>
+              <ReuseWork />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #billing>
+          <AppCard>
+            <v-row>
+              <ReuseBilling />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #actions>
+          <FormActions>
+            <v-btn color="primary" variant="flat" type="submit" :loading="submitting">
+              {{ isEdit ? t("common.saveChanges") : t("timeEntries.create") }}
+            </v-btn>
+          </FormActions>
+        </template>
+      </FormSteps>
+
+      <AppCard v-else>
         <v-row>
-          <v-col cols="12">
-            <v-text-field
-              v-model="description"
-              :label="t('timeEntries.fields.description')"
-              :rules="[required]"
-              :error-messages="fieldErrors.description"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="date"
-              :label="t('timeEntries.fields.date')"
-              type="date"
-              :rules="[required]"
-              :error-messages="fieldErrors.date"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model.number="durationMinutes"
-              :label="t('timeEntries.fields.duration')"
-              type="number"
-              min="0"
-              step="1"
-              :rules="[durationRule]"
-              :error-messages="fieldErrors.durationMinutes"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model.number="rateMajor"
-              :label="t('timeEntries.fields.rate')"
-              type="number"
-              min="0"
-              step="0.01"
-              :error-messages="fieldErrors.rateMinor"
-              density="comfortable"
-              :hint="t('timeEntries.rateHint')"
-              persistent-hint
-            />
-          </v-col>
-          <v-col cols="12" md="6" class="d-flex align-center">
-            <v-switch
-              v-model="billable"
-              :label="t('timeEntries.fields.billable')"
-              color="primary"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <ClientSelector
-              v-model="clientId"
-              :label="t('timeEntries.fields.clientId')"
-              :error-messages="fieldErrors.clientId"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="projectId"
-              :label="t('timeEntries.fields.projectId')"
-              :error-messages="fieldErrors.projectId"
-              density="comfortable"
-              :hint="t('timeEntries.projectIdHint')"
-              persistent-hint
-            />
-          </v-col>
+          <ReuseWork />
+          <ReuseBilling />
         </v-row>
         <template #actions>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>

@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} est trop volumineux — le total des pièces jointes doit rester sous {max}",
     "remove": "Supprimer",
     "previewPdf": "Aperçu du PDF",
-    "uploadError": "Impossible de téléverser {name}"
+    "uploadError": "Impossible de téléverser {name}",
+    "tapHint": "Touchez pour joindre des fichiers"
   },
   "placeholders": {
     "legendButton": "Marqueurs",
@@ -2131,6 +2132,7 @@
     "billing": "Facturation",
     "schedule": "Planification",
     "content": "Contenu",
-    "attachments": "Pièces jointes"
+    "attachments": "Pièces jointes",
+    "period": "Dates et valeur"
   }
 }

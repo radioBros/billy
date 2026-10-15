@@ -30,6 +30,12 @@ import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { createReusableTemplate } from "@/composables/useReusableTemplate";
+import PageHeader from "@/components/PageHeader.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -37,6 +43,18 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps. Desktop keeps the single card — both layouts render the
+ *  same field groups via the reusable templates below. */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-file-document-outline" },
+  { key: "period", title: t("formSteps.period"), icon: "mdi-calendar-range" },
+  { key: "content", title: t("formSteps.content"), icon: "mdi-text-box-edit-outline" },
+]);
+const { Define: DefineDetails, Reuse: ReuseDetails } = createReusableTemplate();
+const { Define: DefinePeriod, Reuse: ReusePeriod } = createReusableTemplate();
+const { Define: DefineContent, Reuse: ReuseContent } = createReusableTemplate();
 
 const TYPE_OPTIONS: ContractType[] = [
   "development",
@@ -177,10 +195,107 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("contracts.editTitle") : t("contracts.newTitle") }}</h1>
-    </div>
+    <!-- Field groups, defined once: the desktop card and the phone steps below
+         both render them (see composables/useReusableTemplate). -->
+    <DefineDetails>
+      <v-col cols="12" md="6">
+        <ClientSelector
+          v-model="clientId"
+          :label="t('contracts.fields.clientId')"
+          :rules="[required]"
+          :error-messages="fieldErrors.clientId"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="title"
+          :label="t('contracts.fields.title')"
+          :rules="[required]"
+          :error-messages="fieldErrors.title"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <AutocompleteSearch
+          v-model="type"
+          :items="TYPE_ITEMS"
+          :label="t('contracts.fields.type')"
+          :rules="[required]"
+          :error-messages="fieldErrors.type"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineDetails>
+    <DefinePeriod>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="startDate"
+          :label="t('contracts.fields.startDate')"
+          type="date"
+          :rules="[required]"
+          :error-messages="fieldErrors.startDate"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="endDate"
+          :label="t('contracts.fields.endDate')"
+          type="date"
+          :rules="[endDateRule]"
+          :error-messages="fieldErrors.endDate"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-text-field
+          v-model.number="valueMajor"
+          :label="t('contracts.fields.value')"
+          type="number"
+          :error-messages="fieldErrors.valueMinor"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-text-field
+          v-model="currency"
+          :label="t('contracts.fields.currency')"
+          :rules="[currencyRule]"
+          :error-messages="fieldErrors.currency"
+          density="comfortable"
+        />
+      </v-col>
+    </DefinePeriod>
+    <DefineContent>
+      <v-col cols="12">
+        <!-- Contract content body: a full WYSIWYG (rich text + HTML source),
+             not a plain textarea — the terms are the main body of the contract. -->
+        <RichTextEditor v-model="terms" :label="t('contracts.fields.terms')" doc-type="contract" />
+        <div v-if="fieldErrors.terms" class="text-error text-caption mt-1">{{ fieldErrors.terms }}</div>
+      </v-col>
+      <v-col cols="12">
+        <v-textarea
+          v-model="notes"
+          :label="t('contracts.fields.notes')"
+          rows="2"
+          auto-grow
+          :error-messages="fieldErrors.notes"
+          density="comfortable"
+          class="placeholder-field"
+          @contextmenu="onContextMenu"
+        >
+          <template #append-inner>
+            <PlaceholderLegend doc-type="contract" />
+          </template>
+        </v-textarea>
+        <PlaceholderInsertMenu :state="menuState" doc-type="contract" @insert="insertToken" />
+      </v-col>
+    </DefineContent>
+
+    <PageHeader back :title="isEdit ? t('contracts.editTitle') : t('contracts.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -191,99 +306,43 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
-      <AppCard>
+      <!-- Phone: details → dates & value → content wizard. -->
+      <FormSteps v-if="isMobile" :steps="formSteps">
+        <template #details>
+          <AppCard>
+            <v-row>
+              <ReuseDetails />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #period>
+          <AppCard>
+            <v-row>
+              <ReusePeriod />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #content>
+          <AppCard>
+            <v-row>
+              <ReuseContent />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #actions>
+          <FormActions>
+            <v-btn color="primary" variant="flat" type="submit" :loading="submitting">
+              {{ isEdit ? t("common.saveChanges") : t("contracts.create") }}
+            </v-btn>
+          </FormActions>
+        </template>
+      </FormSteps>
+
+      <AppCard v-else>
         <v-row>
-          <v-col cols="12" md="6">
-            <ClientSelector
-              v-model="clientId"
-              :label="t('contracts.fields.clientId')"
-              :rules="[required]"
-              :error-messages="fieldErrors.clientId"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="title"
-              :label="t('contracts.fields.title')"
-              :rules="[required]"
-              :error-messages="fieldErrors.title"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <AutocompleteSearch
-              v-model="type"
-              :items="TYPE_ITEMS"
-              :label="t('contracts.fields.type')"
-              :rules="[required]"
-              :error-messages="fieldErrors.type"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="startDate"
-              :label="t('contracts.fields.startDate')"
-              type="date"
-              :rules="[required]"
-              :error-messages="fieldErrors.startDate"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="endDate"
-              :label="t('contracts.fields.endDate')"
-              type="date"
-              :rules="[endDateRule]"
-              :error-messages="fieldErrors.endDate"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model.number="valueMajor"
-              :label="t('contracts.fields.value')"
-              type="number"
-              :error-messages="fieldErrors.valueMinor"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model="currency"
-              :label="t('contracts.fields.currency')"
-              :rules="[currencyRule]"
-              :error-messages="fieldErrors.currency"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12">
-            <!-- Contract content body: a full WYSIWYG (rich text + HTML source),
-                 not a plain textarea — the terms are the main body of the contract. -->
-            <RichTextEditor v-model="terms" :label="t('contracts.fields.terms')" doc-type="contract" />
-            <div v-if="fieldErrors.terms" class="text-error text-caption mt-1">{{ fieldErrors.terms }}</div>
-          </v-col>
-          <v-col cols="12">
-            <v-textarea
-              v-model="notes"
-              :label="t('contracts.fields.notes')"
-              rows="2"
-              auto-grow
-              :error-messages="fieldErrors.notes"
-              density="comfortable"
-              class="placeholder-field"
-              @contextmenu="onContextMenu"
-            >
-              <template #append-inner>
-                <PlaceholderLegend doc-type="contract" />
-              </template>
-            </v-textarea>
-            <PlaceholderInsertMenu :state="menuState" doc-type="contract" @insert="insertToken" />
-          </v-col>
+          <ReuseDetails />
+          <ReusePeriod />
+          <ReuseContent />
         </v-row>
         <template #actions>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>

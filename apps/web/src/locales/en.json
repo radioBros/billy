@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} is too large — attachment total must stay under {max}",
     "remove": "Remove",
     "previewPdf": "Preview PDF",
-    "uploadError": "Could not upload {name}"
+    "uploadError": "Could not upload {name}",
+    "tapHint": "Tap to attach files"
   },
   "placeholders": {
     "legendButton": "Placeholders",
@@ -2131,6 +2132,7 @@
     "billing": "Billing",
     "schedule": "Schedule",
     "content": "Content",
-    "attachments": "Attachments"
+    "attachments": "Attachments",
+    "period": "Dates & value"
   }
 }

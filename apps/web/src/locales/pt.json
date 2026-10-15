@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} é muito grande — o total de anexos deve permanecer abaixo de {max}",
     "remove": "Remover",
     "previewPdf": "Pré-visualizar PDF",
-    "uploadError": "Não foi possível enviar {name}"
+    "uploadError": "Não foi possível enviar {name}",
+    "tapHint": "Toque para anexar arquivos"
   },
   "placeholders": {
     "legendButton": "Marcadores",
@@ -2131,6 +2132,7 @@
     "billing": "Faturação",
     "schedule": "Agendamento",
     "content": "Conteúdo",
-    "attachments": "Anexos"
+    "attachments": "Anexos",
+    "period": "Datas e valor"
   }
 }

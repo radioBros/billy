@@ -341,7 +341,11 @@ html .v-row {
     padding-top: 2px;
     padding-bottom: 2px;
   }
-  /* …but an error line must never touch the next field's floating label. */
+  /* A column holding a persistent hint/message needs room below it. */
+  .v-card > .v-card-text .v-row > [class*="v-col"]:has(.v-messages__message) {
+    padding-bottom: 12px;
+  }
+  /* …and an error line must never touch the next field's floating label. */
   .v-input--error > .v-input__details {
     margin-bottom: 6px;
   }

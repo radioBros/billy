@@ -1460,7 +1460,8 @@
     "tooLarge": "{name} ist zu groß — die Gesamtgröße der Anhänge muss unter {max} bleiben",
     "remove": "Entfernen",
     "previewPdf": "PDF-Vorschau",
-    "uploadError": "{name} konnte nicht hochgeladen werden"
+    "uploadError": "{name} konnte nicht hochgeladen werden",
+    "tapHint": "Tippen, um Dateien anzuhängen"
   },
   "placeholders": {
     "legendButton": "Platzhalter",
@@ -2131,6 +2132,7 @@
     "billing": "Abrechnung",
     "schedule": "Zeitplan",
     "content": "Inhalt",
-    "attachments": "Anhänge"
+    "attachments": "Anhänge",
+    "period": "Laufzeit & Wert"
   }
 }

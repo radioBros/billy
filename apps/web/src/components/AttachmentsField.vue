@@ -20,6 +20,7 @@ import { useI18n } from "vue-i18n";
 import ImageZoom from "@/components/ImageZoom.vue";
 import { uploadFile, logoUrlFor } from "@/api/files";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 export interface Attachment {
   fileId: string;
@@ -58,6 +59,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
+// Phone: "tap to add" wording (no drag & drop), 44px row buttons and a
+// fullscreen PDF preview with an open-in-new-tab escape hatch (mobile browsers
+// often render only the first page of a PDF inside an iframe).
+const isMobile = useIsMobile();
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const dragActive = ref(false);
@@ -190,6 +195,7 @@ const src = logoUrlFor;
     <div
       class="attachments-field__zone"
       :class="{
+        'attachments-field__zone--mobile': isMobile,
         'attachments-field__zone--active': dragActive,
         'attachments-field__zone--disabled': disabled,
       }"
@@ -203,7 +209,7 @@ const src = logoUrlFor;
       @drop.prevent="onDrop"
     >
       <v-icon icon="mdi-paperclip" size="24" class="mb-1" />
-      <div class="text-body-2">{{ t("attachments.dropHint") }}</div>
+      <div class="text-body-2">{{ isMobile ? t("attachments.tapHint") : t("attachments.dropHint") }}</div>
       <v-btn
         class="mt-2"
         size="small"
@@ -249,7 +255,7 @@ const src = logoUrlFor;
             v-if="isPdf(item)"
             icon="mdi-eye-outline"
             variant="text"
-            size="small"
+            :size="isMobile ? 'default' : 'small'"
             :aria-label="t('attachments.previewPdf')"
             :title="t('attachments.previewPdf')"
             @click="openPreview(item)"
@@ -257,7 +263,7 @@ const src = logoUrlFor;
           <v-btn
             icon="mdi-close"
             variant="text"
-            size="small"
+            :size="isMobile ? 'default' : 'small'"
             color="error"
             :disabled="disabled"
             :aria-label="t('attachments.remove')"
@@ -285,12 +291,22 @@ const src = logoUrlFor;
     <v-dialog
       :model-value="pdfPreview !== null"
       max-width="900"
+      :fullscreen="isMobile"
       @update:model-value="pdfPreview = null"
     >
-      <v-card variant="outlined" rounded="lg">
+      <v-card variant="outlined" rounded="lg" :class="{ 'attachments-field__preview--mobile': isMobile }">
         <v-card-title class="d-flex align-center">
-          {{ pdfPreview?.filename }}
+          <span class="attachments-field__preview-title">{{ pdfPreview?.filename }}</span>
           <v-spacer />
+          <v-btn
+            v-if="isMobile && pdfPreview"
+            icon="mdi-open-in-new"
+            variant="text"
+            :href="src(pdfPreview.fileId)"
+            target="_blank"
+            rel="noopener"
+            :aria-label="t('rowActions.open')"
+          />
           <v-btn
             icon="mdi-close"
             variant="text"
@@ -302,6 +318,7 @@ const src = logoUrlFor;
           <iframe
             v-if="pdfPreview"
             :src="src(pdfPreview.fileId)"
+            class="attachments-field__iframe"
             style="width: 100%; height: 80vh; border: 0; background: #fff"
           />
         </v-card-text>
@@ -334,6 +351,45 @@ const src = logoUrlFor;
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+.attachments-field__zone--mobile {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+}
+.attachments-field__zone--mobile > .v-icon {
+  margin-bottom: 0 !important;
+}
+.attachments-field__zone--mobile > .text-body-2 {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+.attachments-field__zone--mobile > .v-btn {
+  margin-top: 0 !important;
+  min-height: 40px;
+}
+.attachments-field__preview--mobile {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 !important;
+}
+.attachments-field__preview--mobile .attachments-field__preview-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachments-field__preview--mobile > .v-card-text {
+  flex: 1 1 auto;
+  display: flex;
+}
+.attachments-field__preview--mobile .attachments-field__iframe {
+  height: auto !important;
+  flex: 1 1 auto;
 }
 .attachments-field__name--link {
   cursor: pointer;
