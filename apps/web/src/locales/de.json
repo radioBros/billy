@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Andere Methoden"
     },
     "schedule": {
-      "action": "Versand planen",
+      "action": "Finalisierung planen",
       "unscheduleAction": "Planung aufheben",
-      "dialogTitle": "Versand planen",
-      "dialogHint": "Die Rechnung bleibt ein Entwurf und wird am gewählten Datum automatisch finalisiert.",
-      "dateLabel": "Versanddatum",
+      "dialogTitle": "Finalisierung planen",
+      "dialogHint": "Die Rechnung bleibt bis zum gewählten Datum ein Entwurf. An diesem Datum wird sie automatisch finalisiert: Sie erhält ihre Nummer und dieses Datum als Rechnungsdatum (und wird an das SdI übermittelt, wenn Sie die Option unten aktivieren). Sie wird nicht per E-Mail an den Kunden gesendet – versenden Sie sie danach selbst.",
+      "dateLabel": "Finalisierungsdatum",
       "dateError": "Wählen Sie heute oder ein späteres Datum.",
       "confirm": "Planen",
       "cancel": "Abbrechen",
-      "banner": "Für die Finalisierung am {date} geplant."
+      "banner": "Wird am {date} automatisch finalisiert. Sie wird nicht per E-Mail an den Kunden gesendet.",
+      "bannerSdi": "Wird am {date} automatisch finalisiert und an das SdI übermittelt. Sie wird nicht per E-Mail an den Kunden gesendet."
     },
     "bankAccountHint": "Zahlungsdetails, die auf diesem Dokument angezeigt werden.",
     "completion": {
       "title": "Rechnung erstellt",
       "hint": "Ihr Rechnungsentwurf ist gespeichert. Was möchten Sie als Nächstes tun?",
       "finalizeAndSend": "Finalisieren & senden",
-      "schedule": "Planen",
+      "schedule": "Finalisierung planen",
       "keepDraft": "Als Entwurf behalten"
     },
     "confirm": {
       "finalizeTitle": "Rechnung finalisieren?",
-      "finalizeMessage": "Das Finalisieren vergibt eine Nummer und sperrt die Rechnung. Dies kann nicht rückgängig gemacht werden.",
+      "finalizeMessage": "Beim Finalisieren erhält die Rechnung eine Nummer und wird gesperrt. Liegt ihr Rechnungsdatum in der Vergangenheit, wird es auf heute gesetzt (das Zahlungsziel bleibt erhalten). Dies kann nicht rückgängig gemacht werden.",
       "voidTitle": "Rechnung stornieren?",
       "voidMessage": "Das Stornieren annulliert diese Rechnung dauerhaft. Dies kann nicht rückgängig gemacht werden.",
-      "unscheduleTitle": "Planung abbrechen?",
-      "unscheduleMessage": "Diese Rechnung wird nicht mehr automatisch versendet."
+      "unscheduleTitle": "Geplante Finalisierung abbrechen?",
+      "unscheduleMessage": "Die Rechnung wird wieder zum Entwurf und wird nicht mehr automatisch finalisiert."
     },
     "saved": "Rechnung gespeichert",
     "viewInvoice": "Rechnung anzeigen"
@@ -573,7 +574,9 @@
       "dayOfMonthHint": "Kürzere Monate verwenden ihren letzten Tag.",
       "startDate": "Startdatum",
       "endDate": "Enddatum",
-      "notes": "Notizen"
+      "notes": "Notizen",
+      "paymentTermDays": "Zahlungsziel (Tage)",
+      "paymentTermDaysHint": "Fälligkeit = Rechnungsdatum + diese Anzahl Tage (0 = sofort fällig)."
     },
     "lineCols": {
       "description": "Beschreibung",
@@ -622,7 +625,9 @@
       "message": "Der Entwurf wird zu einem wiederkehrenden Profil und die Dokumente erzeugt ab jetzt das Profil — der Entwurf selbst wird entfernt. Liegt das Startdatum bereits an, wird das erste Dokument sofort erzeugt (und bei entsprechender Konfiguration automatisch versendet).",
       "confirm": "Umwandeln",
       "draftKept": "Wiederkehrendes Profil erstellt — der Entwurf konnte nicht entfernt werden und bleibt als Einzeldokument bestehen."
-    }
+    },
+    "paymentTermValue": "Sofort fällig | {n} Tag | {n} Tage",
+    "generateQueued": "Erstellung gestartet — das Dokument erscheint gleich."
   },
   "creditNotes": {
     "title": "Gutschriften",
@@ -843,7 +848,7 @@
         },
         "scheduled": {
           "title": "Rechnung geplant",
-          "body": "Der Versand von Rechnung {entity} wurde geplant"
+          "body": "Die Finalisierung von Rechnung {entity} wurde geplant"
         },
         "paid": {
           "title": "Rechnung bezahlt",

@@ -722,6 +722,8 @@ interface StoredQuote extends QuoteView {
 interface StoredProforma {
   id: string;
   proformaNumber?: string | null;
+  /** Snapshotted bank account chosen on the proforma; source of its bank block. */
+  bankSnapshot?: { label: string; details: string } | null;
   currency: string;
   issueDate: string;
   expiryDate?: string | null;
@@ -786,7 +788,7 @@ const fetchCreditNote = async (id: string): Promise<StoredCreditNote | null> => 
   return (doc as StoredCreditNote | null) ?? null;
 };
 
-const fetchContract = async (id: string): Promise<StoredContract | null> => {
+const fetchContract = async (id: string, accountId: string): Promise<StoredContract | null> => {
   const db = getMongo().db();
   const doc = (await db
     .collection<StoredContract>("contracts")
@@ -795,11 +797,12 @@ const fetchContract = async (id: string): Promise<StoredContract | null> => {
   // Contracts carry no embedded client snapshot — resolve the live client so
   // the rendered PDF shows the client's NAME (never the raw id). Archived
   // clients still resolve (no archivedAt filter); a deleted/missing client
-  // leaves the snapshot absent and the renderer shows a dash.
+  // leaves the snapshot absent and the renderer shows a dash. STRICTLY scoped to
+  // the job's account: another account's client must never land on the document.
   if (!doc.clientSnapshot && doc.clientId) {
     const client = (await db
       .collection("clients")
-      .findOne({ id: doc.clientId, deletedAt: null } as never, { projection: { _id: 0 } })) as {
+      .findOne({ id: doc.clientId, accountId, deletedAt: null } as never, { projection: { _id: 0 } })) as {
       displayName?: string | null;
       legalName?: string | null;
       email?: string | null;
@@ -836,6 +839,17 @@ const proformaToInvoiceView = (p: StoredProforma): InvoiceView => {
     status: p.status,
   };
 };
+
+/**
+ * Proforma → HTML via the invoice template. A proforma prints the bank chosen on
+ * it (its `bankSnapshot`), exactly like an invoice prints its own.
+ */
+export const renderProformaHtml = (proforma: StoredProforma, branding: BrandingView, locale?: string): string =>
+  renderInvoiceHtml(
+    proformaToInvoiceView(proforma),
+    { ...branding, bankLines: bankLinesFromSnapshot(proforma.bankSnapshot) },
+    locale,
+  );
 
 const creditNoteToInvoiceView = (c: StoredCreditNote): InvoiceView => {
   return {
@@ -1130,8 +1144,8 @@ export const pdfHandler = async (payload: PdfJob, ctx: ProcessorContext): Promis
     const { locale, branding } = brandingFor(invoice.clientSnapshot?.preferredLanguage);
     // Resolve {{...}} placeholders in the doc's free text BEFORE the pure builder.
     const resolved = resolveDocText(invoice, branding, docNumber);
-    // Bank lines come from the INVOICE's bankSnapshot (not settings). Non-invoice
-    // types carry no snapshot, so their bankLines stay empty.
+    // Bank lines come from the INVOICE's bankSnapshot (not settings). Proformas
+    // carry their own snapshot too; quotes/credit notes/contracts print none.
     html = renderInvoiceHtml(resolved, { ...branding, bankLines: bankLinesFromSnapshot(invoice.bankSnapshot) }, locale);
   } else if (documentType === "quote") {
     const quote = await fetchQuote(documentId);
@@ -1144,7 +1158,7 @@ export const pdfHandler = async (payload: PdfJob, ctx: ProcessorContext): Promis
     if (!proforma) throw new AppError("PDF_GENERATION_FAILED", `Proforma not found: ${documentId}`);
     docNumber = proforma.proformaNumber ?? `proforma-${documentId}`;
     const { locale, branding } = brandingFor(proforma.clientSnapshot?.preferredLanguage);
-    html = renderInvoiceHtml(proformaToInvoiceView(resolveDocText(proforma, branding, docNumber)), branding, locale);
+    html = renderProformaHtml(resolveDocText(proforma, branding, docNumber), branding, locale);
   } else if (documentType === "credit-note") {
     const creditNote = await fetchCreditNote(documentId);
     if (!creditNote) throw new AppError("PDF_GENERATION_FAILED", `Credit note not found: ${documentId}`);
@@ -1152,7 +1166,7 @@ export const pdfHandler = async (payload: PdfJob, ctx: ProcessorContext): Promis
     const { locale, branding } = brandingFor(creditNote.clientSnapshot?.preferredLanguage);
     html = renderInvoiceHtml(creditNoteToInvoiceView(resolveDocText(creditNote, branding, docNumber)), branding, locale);
   } else {
-    const contract = await fetchContract(documentId);
+    const contract = await fetchContract(documentId, accountId);
     if (!contract) throw new AppError("PDF_GENERATION_FAILED", `Contract not found: ${documentId}`);
     docNumber = contract.contractNumber ?? contract.title ?? `contract-${documentId}`;
     const { locale, branding } = brandingFor(contract.clientSnapshot?.preferredLanguage);

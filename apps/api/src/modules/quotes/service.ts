@@ -5,6 +5,7 @@ import { BaseService, assertTransition, type ServiceDeps } from "@/platform/serv
 import { computeDocumentTotals, type LineItemComputed, type LineItemInput } from "@/platform/money.js";
 import { formatDocumentNumber, nextSequence, type Counter } from "@/platform/numbering.js";
 import type { SupportedEmailLocale } from "@/modules/email/service.js";
+import { formatMoney } from "@/modules/pdf-generation/template.js";
 import type { ShareTokenStore } from "@/modules/public-links/share-tokens.js";
 import type { QuoteRepository } from "@/modules/quotes/repository.js";
 import { QUOTE_LIST_WHITELIST, type QuoteCreateInput, type QuoteUpdateInput } from "@/modules/quotes/schema.js";
@@ -12,6 +13,7 @@ import type {
   ClientSnapshot,
   ConvertToInvoiceLineInput,
   ConvertToInvoicePayload,
+  ConvertedInvoiceRef,
   Quote,
   QuoteStatus,
 } from "@/modules/quotes/types.js";
@@ -69,6 +71,24 @@ export interface QuoteEmailPort {
   }): Promise<string>;
 }
 
+/**
+ * Invoice ports used by `convert` (quotes → invoices seam). The router wires them
+ * to the invoices module (`InvoiceService.createFromQuote` + a scoped lookup), so
+ * this module never imports the invoices service directly and tests can fake them.
+ */
+export interface QuoteInvoicePorts {
+  /** Create a DRAFT invoice from the conversion payload. */
+  createInvoiceFromQuote(ctx: AuthContext, payload: ConvertToInvoicePayload): Promise<ConvertedInvoiceRef>;
+  /**
+   * An existing (non-deleted, non-void) invoice already created from this quote in
+   * the caller's account — lets a retry after a failed link reuse it instead of
+   * creating a duplicate.
+   */
+  findInvoiceForQuote(ctx: AuthContext, quoteId: string): Promise<ConvertedInvoiceRef | null>;
+  /** Discard a draft invoice this request created but lost the race to link. Optional. */
+  discardInvoice?(ctx: AuthContext, invoiceId: string): Promise<void>;
+}
+
 export interface QuoteServiceDeps extends ServiceDeps<Quote> {
   repo: QuoteRepository;
   db: Db;
@@ -76,11 +96,18 @@ export interface QuoteServiceDeps extends ServiceDeps<Quote> {
   emailer?: QuoteEmailPort;
   /** Hashed share-token store (public-links); required for `/share`. */
   shareTokens?: ShareTokenStore;
+  /** Invoice ports for `convert`. Required for convert (it throws internal when unwired). */
+  invoices?: QuoteInvoicePorts;
 }
 
 const nowIso = (): string => new Date().toISOString();
 
-const toRawLine = (l: LineItemInput): ConvertToInvoiceLineInput => {
+/**
+ * Strip a computed line back to its RAW inputs (the invoice recomputes the money).
+ * Every input field is kept — including the FatturaPA `nature` code, which a 0%
+ * line needs on the e-invoice.
+ */
+export const toRawLine = (l: LineItemInput): ConvertToInvoiceLineInput => {
   const raw: ConvertToInvoiceLineInput = {
     description: l.description,
     quantity: l.quantity,
@@ -88,14 +115,21 @@ const toRawLine = (l: LineItemInput): ConvertToInvoiceLineInput => {
   };
   if (l.discountRate != null) raw.discountRate = l.discountRate;
   if (l.taxRate != null) raw.taxRate = l.taxRate;
+  if (l.nature != null) raw.nature = l.nature;
   return raw;
 };
+
+/** Minimal read shape of the account's business settings (`key: "business"`). */
+interface BusinessSettingsDoc {
+  data?: { businessName?: string | null } | null;
+}
 
 export class QuoteService extends BaseService<Quote> {
   protected override readonly repo: QuoteRepository;
   private readonly db: Db;
   private readonly emailer?: QuoteEmailPort;
   private readonly shareTokens?: ShareTokenStore;
+  private readonly invoices?: QuoteInvoicePorts;
 
   constructor(deps: QuoteServiceDeps) {
     super(deps);
@@ -103,6 +137,15 @@ export class QuoteService extends BaseService<Quote> {
     this.db = deps.db;
     this.emailer = deps.emailer;
     this.shareTokens = deps.shareTokens;
+    this.invoices = deps.invoices;
+  }
+
+  /** The ACCOUNT's own business name (business settings), for the client-facing email. */
+  private async businessName(accountId: string): Promise<string> {
+    const doc = (await this.db
+      .collection("settings")
+      .findOne({ key: "business", accountId }, { projection: { _id: 0, "data.businessName": 1 } })) as BusinessSettingsDoc | null;
+    return doc?.data?.businessName ?? "";
   }
 
   /** The 7 supported locales; anything else (or null) → "en". */
@@ -225,7 +268,7 @@ export class QuoteService extends BaseService<Quote> {
 
     const client = await this.db
       .collection<ClientRecord>("clients")
-      .findOne({ id: quote.clientId, deletedAt: null }, { projection: { _id: 0 } });
+      .findOne({ id: quote.clientId, accountId: ctx.accountId, deletedAt: null }, { projection: { _id: 0 } });
     if (!client) throw errors.notFound("Client not found for snapshot");
 
     const clientSnapshot: ClientSnapshot = {
@@ -242,7 +285,9 @@ export class QuoteService extends BaseService<Quote> {
       snapshotAt: nowIso(),
     };
 
-    const year = new Date().getUTCFullYear();
+    // The series year is the quote's OWN issue year (like every other document
+    // type), not the wall-clock year — a quote dated 2025 sent in 2026 is Q-…/2025.
+    const year = Number(quote.issueDate.slice(0, 4));
     const seq = await nextSequence(this.db.collection<Counter>("counters"), ctx.accountId, `quote-${year}`);
     const quoteNumber = formatDocumentNumber({ prefix: "Q", seq, padding: 4, year, style: "slashYear" });
 
@@ -272,8 +317,13 @@ export class QuoteService extends BaseService<Quote> {
           locale: this.localeOf(client.preferredLanguage),
           data: {
             quoteNumber,
-            total: String(updated.grandTotalMinor ?? ""),
-            businessName: clientSnapshot.legalName ?? "",
+            // Formatted money in the quote's currency (e.g. "EUR 1,234.56"), never raw minor units.
+            total: updated.grandTotalMinor != null ? formatMoney(updated.grandTotalMinor, updated.currency) : "",
+            // The SENDER is this account's business, not the client.
+            businessName: await this.businessName(ctx.accountId),
+            // Same as the invoice email: no public link is minted on send (minting would
+            // rotate — and kill — any share link the user already handed out).
+            viewUrl: "",
           },
           idempotencyParts: [updated.id, "sent"],
         });
@@ -309,43 +359,95 @@ export class QuoteService extends BaseService<Quote> {
   }
 
   /**
-   * Convert (accepted → converted). Produces the
-   * `ConvertToInvoicePayload` the invoices module consumes to create an invoice.
-   * `lineItems` are the RAW inputs (invoices recomputes totals server-side).
-   * Guards double-conversion with `QUOTE_ALREADY_CONVERTED` BEFORE the transition
-   * guard, so a re-convert reports the domain error, not a generic transition error.
-   * The caller links the created invoice back via `linkConvertedInvoice`.
+   * Convert (accepted → converted) — creates the DRAFT invoice server-side in the
+   * same request and links it. Order (so a failure can never leave the quote
+   * "converted" without an invoice):
+   *   1. guards: already converted → QUOTE_ALREADY_CONVERTED; transition; snapshot;
+   *      stale `expectedVersion` → VERSION_CONFLICT BEFORE any invoice is created;
+   *   2. reuse an invoice already created from this quote (a previous attempt whose
+   *      link failed) or create one via `createFromQuote` (raw lines incl. `nature`,
+   *      subject, projectId, notes, client snapshot);
+   *   3. ONE version-guarded write sets `status: converted` AND `convertedInvoiceId`
+   *      together. If it fails, the quote stays `accepted` and the draft invoice
+   *      exists: a race loser discards its own draft; otherwise the error names the
+   *      invoice and a retry reuses it (step 2).
+   * REPAIR: a quote marked `converted` WITHOUT a linked invoice (converted by the
+   * old flow, which never created one) is convertible again — it gets its invoice.
    */
   async convert(
     ctx: AuthContext,
     id: string,
     expectedVersion: number,
-  ): Promise<{ quote: Quote; payload: ConvertToInvoicePayload }> {
+  ): Promise<{ quote: Quote; invoice: ConvertedInvoiceRef }> {
+    if (!this.invoices) throw errors.internal("Quote convert not configured");
     const quote = await this.get(ctx, id);
-    if (quote.status === "converted" || quote.convertedInvoiceId) {
+    if (quote.convertedInvoiceId) {
       throw new AppError("QUOTE_ALREADY_CONVERTED", "Quote already converted to an invoice");
     }
-    assertTransition<QuoteStatus>(quote.status, "converted", QUOTE_TRANSITIONS);
+    // Legacy "converted" with no invoice → repair (create + link); otherwise accepted → converted.
+    if (quote.status !== "converted") assertTransition<QuoteStatus>(quote.status, "converted", QUOTE_TRANSITIONS);
 
     if (!quote.clientSnapshot) {
       // Snapshot is frozen at send; an accepted quote always has one, but guard defensively.
       throw new AppError("INVALID_STATE_TRANSITION", "Quote has no client snapshot to convert");
     }
+    // Fail fast on a stale click: never create an invoice we could not link.
+    if (quote.version !== expectedVersion) throw errors.versionConflict();
 
-    const payload: ConvertToInvoicePayload = {
+    const payload = this.toInvoicePayload(quote, quote.clientSnapshot);
+    const existing = await this.invoices.findInvoiceForQuote(ctx, quote.id);
+    const invoice = existing ?? (await this.invoices.createInvoiceFromQuote(ctx, payload));
+    const createdHere = !existing;
+
+    let updated: Quote;
+    try {
+      updated = await this.repo.updateVersioned(ctx, id, expectedVersion, {
+        status: "converted",
+        convertedInvoiceId: invoice.id,
+      } as Partial<Quote>);
+    } catch (err) {
+      // Lost a race to a concurrent convert? Then drop OUR draft (it would be a duplicate).
+      const current = await this.repo.findById(ctx, id).catch(() => null);
+      // A concurrent request already linked THIS very invoice (we reused it) → success.
+      if (current?.convertedInvoiceId === invoice.id) return { quote: current, invoice };
+      if (current?.convertedInvoiceId && current.convertedInvoiceId !== invoice.id) {
+        if (createdHere && this.invoices.discardInvoice) {
+          await this.invoices.discardInvoice(ctx, invoice.id).catch((e: unknown) => {
+            this.logger.warn({ err: e, quoteId: id, invoiceId: invoice.id }, "quote.convert: discarding duplicate draft failed");
+          });
+        }
+        throw new AppError("QUOTE_ALREADY_CONVERTED", "Quote already converted to an invoice");
+      }
+      this.logger.error({ err, quoteId: id, invoiceId: invoice.id }, "quote.convert: invoice created but linking it to the quote failed");
+      const code = err instanceof AppError ? err.code : "INTERNAL_ERROR";
+      throw new AppError(
+        code,
+        `Draft invoice ${invoice.id} was created but could not be linked to the quote; retry the conversion to link it`,
+        { details: { invoiceId: invoice.id } },
+      );
+    }
+    await this.emit({
+      name: "quote.converted",
+      actorId: ctx.userId,
+      entityType: "quote",
+      entityId: updated.id,
+      payload: { invoiceId: invoice.id },
+    });
+    return { quote: updated, invoice };
+  }
+
+  /** The `createFromQuote` handoff: RAW lines (the invoice recomputes money). */
+  private toInvoicePayload(quote: Quote, clientSnapshot: ClientSnapshot): ConvertToInvoicePayload {
+    return {
       quoteId: quote.id,
       clientId: quote.clientId,
-      clientSnapshot: quote.clientSnapshot,
+      clientSnapshot,
       currency: quote.currency,
       lineItems: quote.lineItems.map(toRawLine),
       notes: quote.notes ?? null,
+      subject: quote.subject ?? null,
+      projectId: quote.projectId ?? null,
     };
-
-    const updated = await this.repo.updateVersioned(ctx, id, expectedVersion, {
-      status: "converted",
-    } as Partial<Quote>);
-    await this.emit({ name: "quote.converted", actorId: ctx.userId, entityType: "quote", entityId: updated.id });
-    return { quote: updated, payload };
   }
 
   /** Link the invoice created from a converted quote (invoices module supplies the id). */

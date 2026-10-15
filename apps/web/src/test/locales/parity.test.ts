@@ -47,8 +47,8 @@ describe("locale catalog parity", () => {
     expect(Object.keys(catalogs).sort()).toEqual([...SUPPORTED_LOCALES].sort());
   });
 
-  it("en.json defines 1681 leaf keys", () => {
-    expect(baseKeys.length).toBe(1681);
+  it("en.json defines 1686 leaf keys", () => {
+    expect(baseKeys.length).toBe(1686);
   });
 
   for (const loc of Object.keys(catalogs)) {

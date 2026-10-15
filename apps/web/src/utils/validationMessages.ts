@@ -15,6 +15,7 @@ const CODE_KEYS: Record<string, string> = {
   "quantity.must_be_positive": "validations.quantityPositive",
   "currency.invalid": "validations.currencyInvalid",
   "date.due_before_issue": "validations.dueBeforeIssue",
+  "date.not_past": "validations.dates.notPast",
 };
 
 const t = (key: string, params?: Record<string, unknown>): string =>

@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Other methods"
     },
     "schedule": {
-      "action": "Schedule send",
+      "action": "Schedule finalization",
       "unscheduleAction": "Unschedule",
-      "dialogTitle": "Schedule send",
-      "dialogHint": "The invoice stays a draft and is automatically finalized on the chosen date.",
-      "dateLabel": "Send date",
+      "dialogTitle": "Schedule finalization",
+      "dialogHint": "The invoice stays a draft until the chosen date. On that date it is finalized automatically: it gets its number and that date as issue date (and is sent to SdI if you tick the option below). It is not emailed to the client — send it yourself afterwards.",
+      "dateLabel": "Finalization date",
       "dateError": "Choose today or a later date.",
       "confirm": "Schedule",
       "cancel": "Cancel",
-      "banner": "Scheduled to finalize on {date}."
+      "banner": "Will be finalized automatically on {date}. It will not be emailed to the client.",
+      "bannerSdi": "Will be finalized and sent to SdI automatically on {date}. It will not be emailed to the client."
     },
     "bankAccountHint": "Payment details shown on this document.",
     "completion": {
       "title": "Invoice created",
       "hint": "Your draft invoice is saved. What would you like to do next?",
       "finalizeAndSend": "Finalize & send",
-      "schedule": "Schedule",
+      "schedule": "Schedule finalization",
       "keepDraft": "Keep as draft"
     },
     "confirm": {
       "finalizeTitle": "Finalize invoice?",
-      "finalizeMessage": "Finalizing assigns a number and locks the invoice. This cannot be undone.",
+      "finalizeMessage": "Finalizing assigns a number and locks the invoice. If its issue date is in the past, it is re-dated to today (the payment term is kept). This cannot be undone.",
       "voidTitle": "Void invoice?",
       "voidMessage": "Voiding permanently cancels this invoice. This cannot be undone.",
-      "unscheduleTitle": "Cancel schedule?",
-      "unscheduleMessage": "This invoice will no longer be sent automatically."
+      "unscheduleTitle": "Cancel scheduled finalization?",
+      "unscheduleMessage": "The invoice goes back to being a draft and will no longer be finalized automatically."
     },
     "saved": "Invoice saved",
     "viewInvoice": "View invoice"
@@ -573,7 +574,9 @@
       "dayOfMonthHint": "Shorter months use their last day.",
       "startDate": "Start date",
       "endDate": "End date",
-      "notes": "Notes"
+      "notes": "Notes",
+      "paymentTermDays": "Payment term (days)",
+      "paymentTermDaysHint": "Due date = issue date + this many days (0 = due on issue)."
     },
     "lineCols": {
       "description": "Description",
@@ -622,7 +625,9 @@
       "message": "The draft becomes a recurring profile and the profile generates the documents from now on — the draft itself is removed. If the start date is already due, the first document is generated (and auto-sent, if configured) right away.",
       "confirm": "Convert",
       "draftKept": "Recurring profile created — the draft could not be removed and stays as a one-off document."
-    }
+    },
+    "paymentTermValue": "Due on issue | {n} day | {n} days",
+    "generateQueued": "Generation started — the document will appear in a moment."
   },
   "creditNotes": {
     "title": "Credit notes",
@@ -843,7 +848,7 @@
         },
         "scheduled": {
           "title": "Invoice scheduled",
-          "body": "Invoice {entity} was scheduled to send"
+          "body": "Invoice {entity} was scheduled to be finalized"
         },
         "paid": {
           "title": "Invoice paid",

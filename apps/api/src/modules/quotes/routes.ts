@@ -1,16 +1,27 @@
 import Router from "@koa/router";
 import type { Db } from "mongodb";
 import { errors, type Logger } from "@billy/shared";
+import { todayInZone } from "@billy/einvoice";
 import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
 import { validate } from "@/platform/validate.js";
 import { canSeeFinancials, respondCreated, respondList, respondOk, stripFinancial } from "@/platform/serializer.js";
+import { formatDocumentNumber, nextSequence, type Counter } from "@/platform/numbering.js";
 import { requireAuth } from "@/modules/auth/middleware.js";
 import { QuoteRepository, QUOTES_COLLECTION } from "@/modules/quotes/repository.js";
-import { QuoteService } from "@/modules/quotes/service.js";
+import { QuoteService, type QuoteInvoicePorts } from "@/modules/quotes/service.js";
 import { QuoteCreateSchema, QuoteUpdateSchema } from "@/modules/quotes/schema.js";
-import type { Quote } from "@/modules/quotes/types.js";
+import type { ConvertedInvoiceRef, Quote } from "@/modules/quotes/types.js";
+import {
+  InvoiceRepository,
+  INVOICES_COLLECTION,
+  InvoiceService,
+  type BankAccountRecord,
+  type ClientRecord as InvoiceClientRecord,
+  type CreateFromQuoteInput,
+  type Invoice,
+} from "@/modules/invoices/index.js";
 import { EmailService } from "@/modules/email/service.js";
 import { ShareTokenStore } from "@/modules/public-links/share-tokens.js";
 import type { QueueRegistry } from "@/platform/queue.js";
@@ -58,7 +69,77 @@ export const createQuotesRouter = (deps: {
   // emails the client (best-effort, in the client's locale). Absent in tests.
   const emailer = deps.queue ? new EmailService({ queue: deps.queue, logger: deps.logger }) : undefined;
   const shareTokens = new ShareTokenStore(deps.db);
-  const service = new QuoteService({ repo, emitter: deps.emitter, logger: deps.logger, db: deps.db, emailer, shareTokens });
+
+  // ── Invoice seam (convert) ──────────────────────────────────────────────────
+  // Convert creates the draft invoice server-side. We compose an InvoiceService
+  // here (same per-module factory pattern as proforma/routes.ts) and hand the
+  // quote service narrow ports — strictly account-scoped reads throughout.
+  const clients = deps.db.collection("clients");
+  const settings = deps.db.collection("settings");
+  const counters = deps.db.collection<Counter>("counters");
+  const invoicesCol = deps.db.collection<Invoice>(INVOICES_COLLECTION);
+  const invoiceRepo = new InvoiceRepository(invoicesCol);
+  const invoiceService = new InvoiceService({
+    repo: invoiceRepo,
+    emitter: deps.emitter,
+    logger: deps.logger,
+    loadClient: async (ctx, clientId): Promise<InvoiceClientRecord | null> =>
+      (await clients.findOne(
+        { id: clientId, accountId: ctx.accountId, deletedAt: null },
+        { projection: { _id: 0 } },
+      )) as InvoiceClientRecord | null,
+    nextInvoiceNumber: async (accountId, year): Promise<string> => {
+      const seq = await nextSequence(counters, accountId, `invoice-${year}`);
+      return formatDocumentNumber({ prefix: "INV", seq, padding: 4, year, style: "slashYear" });
+    },
+    loadBankAccounts: async (ctx): Promise<BankAccountRecord[]> => {
+      const doc = (await settings.findOne(
+        { key: "business", accountId: ctx.accountId },
+        { projection: { _id: 0, "data.bankAccounts": 1 } },
+      )) as { data?: { bankAccounts?: BankAccountRecord[] } } | null;
+      return doc?.data?.bankAccounts ?? [];
+    },
+    // "Today" in THIS account's business timezone (default Europe/Rome) — the
+    // converted invoice's issue date; same helper as invoices/routes.ts.
+    todayFor: async (ctx): Promise<string> => {
+      const doc = (await settings.findOne(
+        { key: "business", accountId: ctx.accountId },
+        { projection: { _id: 0, "data.timezone": 1 } },
+      )) as { data?: { timezone?: string | null } } | null;
+      return todayInZone(doc?.data?.timezone || "Europe/Rome");
+    },
+  });
+  const toRef = (inv: Pick<Invoice, "id" | "invoiceNumber" | "status">): ConvertedInvoiceRef => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber ?? null,
+    status: inv.status,
+  });
+  const invoicePorts: QuoteInvoicePorts = {
+    createInvoiceFromQuote: async (ctx, payload) => {
+      // Typed variable (not an inline literal): it also carries subject/projectId.
+      const input: CreateFromQuoteInput = payload;
+      return toRef(await invoiceService.createFromQuote(ctx, input));
+    },
+    findInvoiceForQuote: async (ctx, quoteId) => {
+      const inv = (await invoicesCol.findOne(
+        { accountId: ctx.accountId, convertedFromQuoteId: quoteId, deletedAt: null, status: { $ne: "void" } } as never,
+        { projection: { _id: 0, id: 1, invoiceNumber: 1, status: 1 } },
+      )) as Pick<Invoice, "id" | "invoiceNumber" | "status"> | null;
+      return inv ? toRef(inv) : null;
+    },
+    // A just-created, never-finalized draft (no number burned) → soft-delete it.
+    discardInvoice: async (ctx, invoiceId) => invoiceRepo.softDelete(ctx, invoiceId),
+  };
+
+  const service = new QuoteService({
+    repo,
+    emitter: deps.emitter,
+    logger: deps.logger,
+    db: deps.db,
+    emailer,
+    shareTokens,
+    invoices: invoicePorts,
+  });
 
   const r = new Router<AppState>({ prefix: "/api/v1/quotes" });
 
@@ -141,12 +222,14 @@ export const createQuotesRouter = (deps: {
     respondOk(ctx, serializeQuote(auth, declined));
   });
 
-  // POST /api/v1/quotes/:id/convert — accepted → converted (returns quote + handoff payload)
+  // POST /api/v1/quotes/:id/convert — accepted → converted. Creates the DRAFT
+  // invoice server-side and links it, in one request. Returns the updated quote
+  // plus the new invoice's id/number/status (no money — nothing to strip).
   r.post("/:id/convert", async (ctx) => {
     const auth = ctx.state.authContext!;
     const expectedVersion = resolveVersion(ctx.get("if-match"), bodyVersion(ctx.request.body));
-    const { quote, payload } = await service.convert(auth, ctx.params.id!, expectedVersion);
-    respondOk(ctx, { quote: serializeQuote(auth, quote), invoicePayload: payload });
+    const { quote, invoice } = await service.convert(auth, ctx.params.id!, expectedVersion);
+    respondOk(ctx, { quote: serializeQuote(auth, quote), invoice });
   });
 
   // POST /api/v1/quotes/:id/share — mint public token (returned RAW once; stored hashed)

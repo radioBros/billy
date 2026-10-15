@@ -11,7 +11,7 @@
  * goes via If-Match.
  */
 import { ref, computed, onMounted, watch } from "vue";
-import { addDays, todayIso } from "@/utils/dates";
+import { addDays, daysBetween, todayIso } from "@/utils/dates";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "@/api/client";
@@ -192,6 +192,12 @@ const lineItemErrors = computed<Record<string, string>>(() => {
 });
 
 
+/** Issue → expiry gap in days for a recurring profile (undefined when no expiry). */
+const recurringTermDays = (): number | undefined => {
+  const expiry = expiryDate.value.trim();
+  return expiry ? Math.max(0, daysBetween(issueDate.value, expiry)) : undefined;
+};
+
 const save = async (): Promise<void> => {
   errorMessage.value = null;
   fieldErrors.value = {};
@@ -225,6 +231,11 @@ const save = async (): Promise<void> => {
         recurrence: recurrence.value,
         subject: subject.value.trim() || null,
         notes: notes.value.trim() || null,
+        // Keep the form's validity (issue → expiry) on every generated proforma;
+        // no expiry ⇒ server default.
+        paymentTermDays: recurringTermDays(),
+        bankAccountId: bankAccountId.value,
+        projectId: projectId.value || null,
       });
       if (profileError) {
         errorMessage.value = profileError;
@@ -255,6 +266,11 @@ const save = async (): Promise<void> => {
         recurrence: recurrence.value,
         subject: subject.value.trim() || null,
         notes: notes.value.trim() || null,
+        // Keep the form's validity (issue → expiry) on every generated proforma;
+        // no expiry ⇒ server default.
+        paymentTermDays: recurringTermDays(),
+        bankAccountId: bankAccountId.value,
+        projectId: projectId.value || null,
       });
       if (profileError) errorMessage.value = profileError;
     } else {

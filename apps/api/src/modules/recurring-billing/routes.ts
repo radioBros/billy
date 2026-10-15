@@ -1,6 +1,7 @@
 import Router from "@koa/router";
 import type { Db } from "mongodb";
 import { errors, type Logger } from "@billy/shared";
+import { todayInTimeZone } from "@billy/shared/recurrence";
 import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { MinioConn } from "@/infrastructure/minio.js";
@@ -34,6 +35,22 @@ export const createRecurringBillingRouter = (deps: {
     logger: deps.logger,
     db: deps.db,
     minio: deps.minio,
+    // "Today" in the account's business timezone (default Europe/Rome) — the
+    // same day the worker uses, so resume never back-fills a paused period.
+    todayFor: async (auth: AuthContext): Promise<string> => {
+      let tz = "Europe/Rome";
+      try {
+        const doc = (await deps.db
+          .collection("settings")
+          .findOne({ key: "business", accountId: auth.accountId }, { projection: { _id: 0, "data.timezone": 1 } })) as
+          | { data?: { timezone?: string | null } }
+          | null;
+        if (doc?.data?.timezone) tz = doc.data.timezone;
+      } catch {
+        /* default zone */
+      }
+      return todayInTimeZone(tz);
+    },
     ...(queue
       ? {
           enqueueTick: async (profile: { id: string; nextRunAt: string; accountId: string }) => {
@@ -45,6 +62,18 @@ export const createRecurringBillingRouter = (deps: {
                 accountId: profile.accountId,
               },
               { idempotencyParts: ["create-tick", profile.id, profile.nextRunAt] },
+            );
+          },
+          enqueueGenerateNow: async (profile: { id: string; nextRunAt: string; accountId: string }) => {
+            await queue.enqueue(
+              "recurring",
+              {
+                recurringProfileId: profile.id,
+                scheduledOccurrenceDate: profile.nextRunAt,
+                accountId: profile.accountId,
+                generateNow: true,
+              },
+              { idempotencyParts: ["generate-now", profile.id, profile.nextRunAt] },
             );
           },
         }
@@ -137,7 +166,7 @@ export const createRecurringBillingRouter = (deps: {
   // the profile completed without generating.
   r.post("/:id/generate", async (ctx) => {
     const auth = ctx.state.authContext!;
-    const payload = await service.generateOccurrence(auth, ctx.params.id!);
+    const payload = await service.requestGenerateNow(auth, ctx.params.id!);
     respondOk(ctx, payload);
   });
 

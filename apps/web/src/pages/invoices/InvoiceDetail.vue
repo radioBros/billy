@@ -95,8 +95,10 @@ const PAYMENT_METHOD_ITEMS = computed(() => {
   return items;
 });
 
-// today (YYYY-MM-DD) — used as the date-picker floor and the schedule default.
-const today = new Date().toISOString().slice(0, 10);
+// today (YYYY-MM-DD, the user's LOCAL day, not UTC) — the date-picker floor and
+// the schedule default. The API enforces the same floor in the account timezone.
+const nowLocal = new Date();
+const today = new Date(nowLocal.getTime() - nowLocal.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 
 const isDraft = computed<boolean>(() => invoice.value?.status === "draft");
 const isScheduled = computed<boolean>(() => invoice.value?.status === "scheduled");
@@ -193,6 +195,14 @@ const submitOnFinalize = ref(false);
 // is a credit note. Fed by the e-invoice panel; also learned from a 409.
 const legallyIssued = ref(false);
 const einvoiceInfo = ref<EInvoiceInfo | null>(null);
+// Scheduling only FINALIZES the invoice on the date (+ SdI submission when chosen);
+// it never emails the client — the banner says exactly that.
+const scheduleBanner = computed<string>(() => {
+  const date = invoice.value?.scheduledSendDate ?? "";
+  return einvoicing.enabled && einvoiceInfo.value?.submitOnFinalize
+    ? t("invoices.schedule.bannerSdi", { date })
+    : t("invoices.schedule.banner", { date });
+});
 // The SdI panel is collapsed by default; it opens by itself (once) when something needs attention.
 const einvoiceOpen = ref(false);
 let einvoiceAutoOpened = false;
@@ -429,13 +439,14 @@ onMounted(() => {
 
           <v-alert
             v-if="isScheduled && invoice.scheduledSendDate"
+            data-test="schedule-banner"
             type="warning"
             variant="tonal"
             density="compact"
             class="mt-3"
             icon="mdi-calendar-clock"
           >
-            {{ t("invoices.schedule.banner", { date: invoice.scheduledSendDate }) }}
+            {{ scheduleBanner }}
           </v-alert>
 
           <div class="dd-label mt-4">{{ t("invoices.totals.total") }}</div>
@@ -527,13 +538,14 @@ onMounted(() => {
 
         <v-alert
           v-if="isScheduled && invoice.scheduledSendDate"
+          data-test="schedule-banner"
           type="warning"
           variant="tonal"
           density="compact"
           class="mb-4"
           icon="mdi-calendar-clock"
         >
-          {{ t("invoices.schedule.banner", { date: invoice.scheduledSendDate }) }}
+          {{ scheduleBanner }}
         </v-alert>
 
         <v-row>

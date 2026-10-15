@@ -1,6 +1,7 @@
 import Router from "@koa/router";
 import type { Db } from "mongodb";
 import { AppError, errors, resolveDocumentLocale, type Logger } from "@billy/shared";
+import { todayInZone } from "@billy/einvoice";
 import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
@@ -27,7 +28,6 @@ import {
 import { assembleBranding } from "@/modules/pdf-generation/preview.js";
 import {
   AddPaymentSchema,
-  CreateFromQuoteSchema,
   InvoiceCreateSchema,
   InvoiceUpdateSchema,
   ScheduleSchema,
@@ -79,6 +79,15 @@ export const createInvoicesRouter = (deps: {
         { projection: { _id: 0, "data.bankAccounts": 1 } },
       )) as { data?: { bankAccounts?: BankAccountRecord[] } } | null;
       return doc?.data?.bankAccounts ?? [];
+    },
+    // "Today" in THIS account's business timezone (default Europe/Rome) — drives
+    // finalize re-dating and the schedule not-in-the-past rule, matching the worker.
+    todayFor: async (ctx): Promise<string> => {
+      const doc = (await settings.findOne(
+        { key: "business", accountId: ctx.accountId },
+        { projection: { _id: 0, "data.timezone": 1 } },
+      )) as { data?: { timezone?: string | null } } | null;
+      return todayInZone(doc?.data?.timezone || "Europe/Rome");
     },
   });
 
@@ -144,13 +153,9 @@ export const createInvoicesRouter = (deps: {
     respondCreated(ctx, stripInvoiceFinancial(auth, created));
   });
 
-  // POST /api/v1/invoices/from-quote — draft from an accepted quote
-  r.post("/from-quote", async (ctx) => {
-    const auth = ctx.state.authContext!;
-    const input = validate(CreateFromQuoteSchema, ctx.request.body);
-    const created = await service.createFromQuote(auth, input);
-    respondCreated(ctx, stripInvoiceFinancial(auth, created));
-  });
+  // (No public /from-quote route: it trusted a client-supplied payload with no
+  // quote ownership/state check. Conversion is POST /v1/quotes/:id/convert,
+  // which creates + links the invoice server-side via createFromQuote.)
 
   // PATCH /api/v1/invoices/:id — versioned draft update
   r.patch("/:id", async (ctx) => {

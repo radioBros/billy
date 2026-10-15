@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Altri metodi"
     },
     "schedule": {
-      "action": "Programma invio",
+      "action": "Programma finalizzazione",
       "unscheduleAction": "Annulla programmazione",
-      "dialogTitle": "Programma invio",
-      "dialogHint": "La fattura resta una bozza e viene finalizzata automaticamente nella data scelta.",
-      "dateLabel": "Data di invio",
+      "dialogTitle": "Programma finalizzazione",
+      "dialogHint": "La fattura resta una bozza fino alla data scelta. In quella data viene finalizzata automaticamente: riceve il numero e quella data come data di emissione (e viene inviata allo SdI se selezioni l'opzione qui sotto). Non viene inviata via email al cliente: inviala tu in seguito.",
+      "dateLabel": "Data di finalizzazione",
       "dateError": "Scegli oggi o una data successiva.",
       "confirm": "Programma",
       "cancel": "Annulla",
-      "banner": "Programmata per la finalizzazione il {date}."
+      "banner": "Verrà finalizzata automaticamente il {date}. Non verrà inviata via email al cliente.",
+      "bannerSdi": "Verrà finalizzata e inviata allo SdI automaticamente il {date}. Non verrà inviata via email al cliente."
     },
     "bankAccountHint": "Dettagli di pagamento mostrati su questo documento.",
     "completion": {
       "title": "Fattura creata",
       "hint": "La bozza della fattura è salvata. Cosa vuoi fare ora?",
       "finalizeAndSend": "Finalizza e invia",
-      "schedule": "Pianifica",
+      "schedule": "Programma finalizzazione",
       "keepDraft": "Mantieni come bozza"
     },
     "confirm": {
       "finalizeTitle": "Finalizzare la fattura?",
-      "finalizeMessage": "La finalizzazione assegna un numero e blocca la fattura. Non è reversibile.",
+      "finalizeMessage": "La finalizzazione assegna un numero e blocca la fattura. Se la data di emissione è nel passato, viene aggiornata a oggi (i termini di pagamento restano invariati). L'operazione non può essere annullata.",
       "voidTitle": "Annullare la fattura?",
       "voidMessage": "L'annullamento cancella definitivamente questa fattura. Non è reversibile.",
-      "unscheduleTitle": "Annullare la programmazione?",
-      "unscheduleMessage": "Questa fattura non verrà più inviata automaticamente."
+      "unscheduleTitle": "Annullare la finalizzazione programmata?",
+      "unscheduleMessage": "La fattura torna a essere una bozza e non verrà più finalizzata automaticamente."
     },
     "saved": "Fattura salvata",
     "viewInvoice": "Vedi fattura"
@@ -573,7 +574,9 @@
       "dayOfMonthHint": "I mesi più corti usano il loro ultimo giorno.",
       "startDate": "Data di inizio",
       "endDate": "Data di fine",
-      "notes": "Note"
+      "notes": "Note",
+      "paymentTermDays": "Termine di pagamento (giorni)",
+      "paymentTermDaysHint": "Scadenza = data di emissione + questi giorni (0 = scadenza all'emissione)."
     },
     "lineCols": {
       "description": "Descrizione",
@@ -622,7 +625,9 @@
       "message": "La bozza diventa un profilo ricorrente e da ora in poi i documenti li genera il profilo — la bozza stessa viene rimossa. Se la data di inizio è già raggiunta, il primo documento viene generato (e inviato automaticamente, se configurato) subito.",
       "confirm": "Converti",
       "draftKept": "Profilo ricorrente creato — la bozza non è stata rimossa e resta come documento singolo."
-    }
+    },
+    "paymentTermValue": "Alla emissione | {n} giorno | {n} giorni",
+    "generateQueued": "Generazione avviata — il documento apparirà tra poco."
   },
   "creditNotes": {
     "title": "Note di credito",
@@ -843,7 +848,7 @@
         },
         "scheduled": {
           "title": "Fattura programmata",
-          "body": "L'invio della fattura {entity} è stato programmato"
+          "body": "La finalizzazione della fattura {entity} è stata programmata"
         },
         "paid": {
           "title": "Fattura pagata",

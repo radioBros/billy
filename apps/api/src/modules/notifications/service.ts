@@ -108,7 +108,7 @@ const EN_TEXT: Readonly<Record<string, { title: string; body: string; bare: stri
   "invoice.finalized": { title: "Invoice finalized", body: "Invoice {entity} was finalized", bare: "An invoice was finalized" },
   "invoice.paid": { title: "Invoice paid", body: "Invoice {entity} was paid in full", bare: "An invoice was paid in full" },
   "invoice.void": { title: "Invoice voided", body: "Invoice {entity} was voided", bare: "An invoice was voided" },
-  "invoice.scheduled": { title: "Invoice scheduled", body: "Invoice {entity} was scheduled to send", bare: "An invoice was scheduled to send" },
+  "invoice.scheduled": { title: "Invoice scheduled", body: "Invoice {entity} was scheduled to be finalized", bare: "An invoice was scheduled to be finalized" },
   "quote.sent": { title: "Quote sent", body: "Quote {entity} was sent", bare: "A quote was sent" },
   "quote.accepted": { title: "Quote accepted", body: "Quote {entity} was accepted", bare: "A quote was accepted" },
   "quote.declined": { title: "Quote declined", body: "Quote {entity} was declined", bare: "A quote was declined" },

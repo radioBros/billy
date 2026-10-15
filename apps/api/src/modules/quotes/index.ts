@@ -1,7 +1,7 @@
 /** Quotes module barrel. */
 export { createQuotesRouter } from "@/modules/quotes/routes.js";
 export { QUOTES_COLLECTION, QuoteRepository } from "@/modules/quotes/repository.js";
-export { QuoteService, type QuoteServiceDeps } from "@/modules/quotes/service.js";
+export { QuoteService, type QuoteServiceDeps, type QuoteInvoicePorts } from "@/modules/quotes/service.js";
 export {
   QuoteCreateSchema,
   QuoteUpdateSchema,
@@ -15,4 +15,5 @@ export type {
   ClientSnapshot,
   ConvertToInvoicePayload,
   ConvertToInvoiceLineInput,
+  ConvertedInvoiceRef,
 } from "@/modules/quotes/types.js";

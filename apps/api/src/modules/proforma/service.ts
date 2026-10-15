@@ -1,5 +1,6 @@
 import type { AuthContext, ListMeta } from "@billy/types";
-import { AppError, errors } from "@billy/shared";
+import { AppError, DEFAULT_PAYMENT_TERM_DAYS, errors } from "@billy/shared";
+import { addDaysIso, daysBetweenIso } from "@billy/einvoice";
 import { BaseService, assertTransition, type ServiceDeps } from "@/platform/service.js";
 import { computeDocumentTotals, type LineItemInput } from "@/platform/money.js";
 import type { ProformaRepository } from "@/modules/proforma/repository.js";
@@ -19,12 +20,9 @@ import type { BankSnapshot, ClientSnapshot, Proforma, ProformaStatus } from "@/m
  *  - `proformaNumber` assigned once, inside `issue`; the editor can never set it.
  *  - Issued proformas are immutable (only void/archive/restore, or convert).
  *
- * DEFERRED (see types.ts): convert → real `Invoice` mints an invoice and would
- * require importing/mutating the invoices module — out of scope. The integrator wires
- * it by reading the proforma (line items + `clientSnapshot`), calling the invoices
- * service's `createFromQuote`-style ingestion with `sourceType=proforma`, then calling
- * `markConverted` here with the new invoice id. PDF, send/email, expiry scanner,
- * notifications are separate follow-ups.
+ * Convert → real `Invoice` goes through the injected `mintInvoiceFromProforma`
+ * port (wired in routes.ts to `InvoiceService.create`), guarded by a version-checked
+ * claim so a retry/double-click can never mint twice (see `convert`).
  */
 
 /** Injected client read (issue snapshots the client by reading the clients collection). */
@@ -65,18 +63,49 @@ export type LoadBankAccounts = (ctx: AuthContext) => Promise<BankAccountRecord[]
 
 /**
  * The proforma data handed to the invoice-minting port on convert. Carries
- * everything the invoices module needs to build a DRAFT invoice: the source
- * `clientId`, `currency`, `lineItems`, and `notes`. The mint impl calls
- * `InvoiceService.create` — which re-snapshots the client at finalize from
+ * everything the invoices module needs to build a DRAFT invoice. The mint impl
+ * calls `InvoiceService.create` — which re-snapshots the client at finalize from
  * `clientId` — so we pass the id, consistent with the normal invoice flow.
+ *  - `issueDate` = today (account timezone); `dueDate` = issueDate + the proforma's
+ *    issue→expiry gap, or + DEFAULT_PAYMENT_TERM_DAYS when it has no expiry.
+ *  - `lineItems` are RAW inputs (incl. the FatturaPA `nature`); the invoice recomputes.
+ *  - `bankSnapshot` is the proforma's chosen bank — the invoice must print the same one.
  */
 export interface ProformaConvertData {
   proformaId: string;
   clientId: string;
   currency: string;
-  lineItems: Proforma["lineItems"];
+  issueDate: string;
+  dueDate: string;
+  lineItems: LineItemInput[];
   notes?: string | null;
+  subject?: string | null;
+  projectId?: string | null;
+  bankSnapshot?: BankSnapshot | null;
 }
+
+/** "Today" (YYYY-MM-DD) for the caller's account — the routes wire the business timezone. */
+export type TodayForAccount = (ctx: AuthContext) => Promise<string>;
+
+/** A convert claim older than this is considered abandoned (crashed request) and may be retaken. */
+const CONVERT_CLAIM_TTL_MS = 2 * 60 * 1000;
+
+const nowIso = (): string => new Date().toISOString();
+
+/** Strip a computed line back to its raw inputs — keeps every input field, incl. `nature`. */
+const toRawLine = (l: LineItemInput): LineItemInput => {
+  const raw: LineItemInput = { description: l.description, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor };
+  if (l.discountRate != null) raw.discountRate = l.discountRate;
+  if (l.taxRate != null) raw.taxRate = l.taxRate;
+  if (l.nature != null) raw.nature = l.nature;
+  return raw;
+};
+
+/** Invoice due date for a converted proforma (see ProformaConvertData). */
+export const convertedDueDate = (proforma: Pick<Proforma, "issueDate" | "expiryDate">, invoiceIssueDate: string): string => {
+  const gap = proforma.expiryDate ? Math.max(0, daysBetweenIso(proforma.issueDate, proforma.expiryDate)) : DEFAULT_PAYMENT_TERM_DAYS;
+  return addDaysIso(invoiceIssueDate, gap);
+};
 
 /** Minimal minted-invoice shape convert returns (mirrors the injected-port pattern). */
 export interface MintedInvoice {
@@ -108,6 +137,8 @@ export interface ProformaServiceDeps extends ServiceDeps<Proforma> {
   loadInvoice?: LoadInvoice;
   /** Business bank-accounts loader (multi-bank). Optional — omit to disable bank snapshots. */
   loadBankAccounts?: LoadBankAccounts;
+  /** Account-local "today" for the converted invoice's issue date. Optional — defaults to UTC today. */
+  today?: TodayForAccount;
 }
 
 /** Explicit-action transitions only. */
@@ -123,6 +154,7 @@ export class ProformaService extends BaseService<Proforma> {
   private readonly mintInvoiceFromProforma?: MintInvoiceFromProforma;
   private readonly loadInvoice?: LoadInvoice;
   private readonly loadBankAccounts?: LoadBankAccounts;
+  private readonly today: TodayForAccount;
 
   constructor(deps: ProformaServiceDeps) {
     super(deps);
@@ -132,6 +164,7 @@ export class ProformaService extends BaseService<Proforma> {
     this.mintInvoiceFromProforma = deps.mintInvoiceFromProforma;
     this.loadInvoice = deps.loadInvoice;
     this.loadBankAccounts = deps.loadBankAccounts;
+    this.today = deps.today ?? (async () => nowIso().slice(0, 10));
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -264,21 +297,22 @@ export class ProformaService extends BaseService<Proforma> {
   }
 
   /**
-   * Convert an ISSUED proforma into a DRAFT invoice. The full convert:
+   * Convert an ISSUED proforma into a DRAFT invoice:
    *   1. read the proforma — must be `issued` (else INVALID_STATE_TRANSITION);
    *   2. IDEMPOTENT: if `convertedInvoiceId` is already set, load and return that
-   *      existing invoice — do NOT mint again, do NOT re-`markConverted` (no
-   *      version bump);
-   *   3. else mint a DRAFT invoice from the proforma (clientId + lineItems +
-   *      notes) via the injected `mintInvoiceFromProforma` port (which calls
-   *      `InvoiceService.create`; the invoice re-snapshots the client at finalize);
-   *   4. `markConverted` with the new invoice id, then return the minted invoice
-   *      plus the updated proforma.
+   *      existing invoice — no mint, no version bump;
+   *   3. CLAIM: a version-guarded write stamps `convertingAt` BEFORE minting, so a
+   *      concurrent/double-submitted convert loses with VERSION_CONFLICT instead of
+   *      minting a duplicate (a live claim by someone else → VERSION_CONFLICT too;
+   *      an abandoned claim older than the TTL may be retaken);
+   *   4. mint a DRAFT invoice via the injected port: issue date = today (account
+   *      timezone), due date = + the proforma's issue→expiry gap (else + the default
+   *      payment term), subject/projectId/notes, raw lines incl. `nature`, and the
+   *      proforma's chosen bank. A failed mint releases the claim;
+   *   5. `markConverted` (on the claimed version) links the invoice + clears the claim.
    *
    * A distinct explicit action — NOT auto-on-issue (auto-minting a sequentially
-   * numbered legal invoice per proforma would burn numbers). Bank details are
-   * intentionally NOT propagated here: the proforma's own `bankSnapshot` is dropped
-   * and the new invoice resolves its own bank (single-account default at create).
+   * numbered legal invoice per proforma would burn numbers).
    */
   async convert(
     ctx: AuthContext,
@@ -300,25 +334,49 @@ export class ProformaService extends BaseService<Proforma> {
       return { invoice, proforma: existing };
     }
 
-    const invoice = await this.mintInvoiceFromProforma(ctx, {
-      proformaId: existing.id,
-      clientId: existing.clientId,
-      currency: existing.currency,
-      lineItems: existing.lineItems,
-      notes: existing.notes ?? null,
-    });
-    const proforma = await this.markConverted(ctx, id, expectedVersion, invoice.id);
-    return { invoice, proforma };
+    if (existing.convertingAt && Date.now() - Date.parse(existing.convertingAt) < CONVERT_CLAIM_TTL_MS) {
+      throw errors.versionConflict("This proforma is already being converted");
+    }
+    // Version-guarded claim: exactly one request wins; the loser never mints.
+    const claimed = await this.repo.replaceState(ctx, id, expectedVersion, { convertingAt: nowIso() });
+
+    const issueDate = await this.today(ctx);
+    let invoice: MintedInvoice;
+    try {
+      invoice = await this.mintInvoiceFromProforma(ctx, {
+        proformaId: existing.id,
+        clientId: existing.clientId,
+        currency: existing.currency,
+        issueDate,
+        dueDate: convertedDueDate(existing, issueDate),
+        lineItems: existing.lineItems.map(toRawLine),
+        notes: existing.notes ?? null,
+        subject: existing.subject ?? null,
+        projectId: existing.projectId ?? null,
+        bankSnapshot: existing.bankSnapshot ?? null,
+      });
+    } catch (err) {
+      // Release the claim so the user can retry right away (best effort).
+      await this.repo.replaceState(ctx, id, claimed.version, { convertingAt: null }).catch(() => undefined);
+      throw err;
+    }
+    try {
+      const proforma = await this.markConverted(ctx, id, claimed.version, invoice.id);
+      return { invoice, proforma };
+    } catch (err) {
+      this.logger.error({ err, proformaId: id, invoiceId: invoice.id }, "proforma.convert: invoice minted but linking it failed");
+      const code = err instanceof AppError ? err.code : "INTERNAL_ERROR";
+      throw new AppError(code, `Draft invoice ${invoice.id} was created but could not be linked to the proforma`, {
+        details: { invoiceId: invoice.id },
+      });
+    }
   }
 
   /**
-   * Record that a proforma was converted to an invoice. This is the
-   * in-module half of convert; the actual `Invoice` creation is DEFERRED (it lives
-   * in the invoices module, which we cannot edit). The integrator: (1) reads this
-   * proforma, (2) creates a draft invoice from its line items + `clientSnapshot`
-   * with `sourceType=proforma`, then (3) calls this with the new invoice id. The
-   * `PRO-` number is never reused as the `INV-` — the invoice mints its own at
-   * finalize. Marking a non-issued proforma → INVALID_STATE_TRANSITION.
+   * Record that a proforma was converted to an invoice (links `convertedInvoiceId`
+   * and clears any convert claim). The `PRO-` number is never reused as the `INV-`
+   * — the invoice mints its own at finalize. Marking a non-issued proforma →
+   * INVALID_STATE_TRANSITION.
    */
   async markConverted(
     ctx: AuthContext,
@@ -332,6 +390,7 @@ export class ProformaService extends BaseService<Proforma> {
     }
     const converted = await this.repo.replaceState(ctx, id, expectedVersion, {
       convertedInvoiceId: invoiceId,
+      convertingAt: null,
     });
     await this.emit(this.event("proforma.converted", ctx, converted.id, { invoiceId }));
     return converted;
@@ -388,6 +447,7 @@ export class ProformaService extends BaseService<Proforma> {
       grandTotalMinor: totals.grandTotalMinor,
       status: "draft",
       convertedInvoiceId: null,
+      convertingAt: null,
       notes: input.notes ?? null,
     };
   }

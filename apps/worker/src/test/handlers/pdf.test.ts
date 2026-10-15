@@ -338,6 +338,16 @@ describe("pdfHandler — render + store", () => {
     expect(upsertedDocs[0]!.filename).toBe("Managed Hosting 2026.pdf");
   }, 30000);
 
+  it("resolves the contract's client STRICTLY within the job's account", async () => {
+    const { pdfHandler } = await import("@/handlers/pdf.js");
+    const payload: PdfJob = { documentType: "contract", documentId: "ctr_1", accountId: "biz_1" };
+    // Rendering may fail without Chromium; the client lookup happens before that.
+    await pdfHandler(payload, stubCtx()).catch(() => undefined);
+    const clientLookups = findOne.mock.calls.map(([f]) => f).filter((f) => f.id === "client_42");
+    expect(clientLookups).toHaveLength(1);
+    expect(clientLookups[0]).toMatchObject({ id: "client_42", accountId: "biz_1", deletedAt: null });
+  }, 30000);
+
   it("throws PDF_GENERATION_FAILED when the contract is not found", async () => {
     const { pdfHandler } = await import("@/handlers/pdf.js");
     const payload: PdfJob = { documentType: "contract", documentId: "missing", accountId: "biz_1" };
@@ -441,6 +451,27 @@ describe("renderInvoiceHtml — redesigned layout (byte-identical to api templat
     expect(custom).toContain("Custom letterhead"); // custom fragment replaces only the logo column
     expect(custom).toContain("INV-2026-0009"); // number/date heading still rendered
     expect(custom).toContain("of <strong>2026-07-01</strong>");
+  });
+});
+
+describe("renderProformaHtml — proforma prints its own bank", () => {
+  const branding = { appName: "Acme Billing", companyName: "Acme S.p.A.", logoPosition: "left" as const, showBankDetails: true };
+
+  it("prints the bank lines from the proforma's bankSnapshot", async () => {
+    const { renderProformaHtml } = await import("@/handlers/pdf.js");
+    const html = renderProformaHtml(
+      { ...proformaDoc, bankSnapshot: { label: "Main EUR", details: "Bank: Banca Test\nIBAN: IT60X0542811101000000123456" } },
+      branding,
+    );
+    expect(html).toContain('class="bank-details"');
+    expect(html).toContain("IT60X0542811101000000123456");
+    expect(html).toContain("PRO-2026-0003");
+  });
+
+  it("prints no bank block when the proforma has no bankSnapshot", async () => {
+    const { renderProformaHtml } = await import("@/handlers/pdf.js");
+    const html = renderProformaHtml({ ...proformaDoc, bankSnapshot: null }, branding);
+    expect(html).not.toContain('class="bank-details"');
   });
 });
 

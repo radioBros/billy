@@ -5,7 +5,7 @@ import type { AuthContext, BaseDoc } from "@billy/types";
 import type { DomainEvent, DomainEventEmitter } from "@/platform/service.js";
 import { RecurringProfileRepository } from "@/modules/recurring-billing/repository.js";
 import { RecurringProfileService, advanceDate } from "@/modules/recurring-billing/service.js";
-import { RecurringProfileCreateSchema } from "@/modules/recurring-billing/schema.js";
+import { RecurringProfileCreateSchema, RecurringProfileUpdateSchema } from "@/modules/recurring-billing/schema.js";
 import { stripProfileFinancial } from "@/modules/recurring-billing/routes.js";
 import type { RecurringProfile } from "@/modules/recurring-billing/types.js";
 
@@ -489,5 +489,224 @@ describe("stripProfileFinancial", () => {
       expect(f in line).toBe(false);
     }
     expect(line.description).toBe("Retainer"); // non-money fields survive
+  });
+});
+
+// ── requestGenerateNow: worker-backed "Generate now" ──────────────────────────────
+
+describe("requestGenerateNow", () => {
+  it("enqueues a generate-now job for the next occurrence and reports generated once the profile advances", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    const enqueued: { id: string; nextRunAt: string; accountId: string }[] = [];
+    const svc = new RecurringProfileService({
+      repo,
+      emitter,
+      logger,
+      // Simulate the worker: generating advances the profile.
+      enqueueGenerateNow: async (p) => {
+        enqueued.push(p);
+        const doc = repo.byId.get(p.id)!;
+        repo.byId.set(p.id, { ...doc, occurrencesGenerated: doc.occurrencesGenerated + 1, version: doc.version + 1 });
+      },
+    });
+    const p = await svc.create(ADMIN, createInput());
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 200 });
+    expect(res).toEqual({ generated: true });
+    expect(enqueued).toEqual([{ id: p.id, nextRunAt: p.nextRunAt, accountId: ADMIN.accountId }]);
+  });
+
+  it("reports pending when the worker has not produced the document within the wait", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    const svc = new RecurringProfileService({ repo, emitter, logger, enqueueGenerateNow: async () => undefined });
+    const p = await svc.create(ADMIN, createInput());
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 20 });
+    expect(res).toEqual({ generated: false, pending: true });
+    // Nothing advanced the schedule on the API side.
+    expect(repo.byId.get(p.id)!.occurrencesGenerated).toBe(0);
+  });
+
+  it("completes an exhausted profile without enqueueing (returns null)", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter } = newEmitter();
+    let called = 0;
+    const svc = new RecurringProfileService({ repo, emitter, logger, enqueueGenerateNow: async () => { called++; } });
+    const p = await svc.create(ADMIN, createInput({ maxOccurrences: 1 }));
+    const doc = repo.byId.get(p.id)!;
+    repo.byId.set(p.id, { ...doc, occurrencesGenerated: 1 });
+    const res = await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 20 });
+    expect(res).toBeNull();
+    expect(called).toBe(0);
+    expect(repo.byId.get(p.id)!.status).toBe("completed");
+  });
+
+  it("refuses with QUEUE_UNAVAILABLE when no queue is wired (never advances silently)", async () => {
+    const { svc, repo } = newService();
+    const p = await svc.create(ADMIN, createInput());
+    await expect(svc.requestGenerateNow(ADMIN, p.id)).rejects.toMatchObject({ code: "QUEUE_UNAVAILABLE" });
+    expect(repo.byId.get(p.id)!.occurrencesGenerated).toBe(0);
+  });
+
+  it("stores paymentTermDays from the create payload", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ paymentTermDays: 30 }));
+    expect(p.paymentTermDays).toBe(30);
+  });
+});
+
+// ── Audit fixes: bank/project/expense, clearing bounds, cadence edit, resume, events ──
+
+const update = (overrides: Record<string, unknown>) => RecurringProfileUpdateSchema.parse(overrides);
+
+describe("profile template: bank account, project, expense fields", () => {
+  it("stores bankAccountId (a settings id, not an ObjectId) and projectId", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ bankAccountId: "bank-main", projectId: "a".repeat(24) }));
+    expect(p.bankAccountId).toBe("bank-main");
+    expect(p.projectId).toBe("a".repeat(24));
+  });
+
+  it("stores the expense template for an expense profile (defaults applied)", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ documentType: "expense", expense: { category: "Software", vendor: "Hetzner" } }));
+    expect(p.expense).toEqual({ category: "Software", vendor: "Hetzner", description: "", billable: false });
+  });
+
+  it("drops an expense block sent with a non-expense profile", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ expense: { category: "X", vendor: "Y" } }));
+    expect(p.expense).toBeNull();
+  });
+
+  it("rejects an expense block without vendor/category", () => {
+    expect(() => createInput({ documentType: "expense", expense: { category: "", vendor: "V" } })).toThrow();
+    expect(() => createInput({ documentType: "expense", expense: { category: "C" } })).toThrow();
+  });
+
+  it("edits bank + project on update", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ bankAccountId: "b1" }));
+    const u = await svc.update(ADMIN, p.id, p.version, update({ bankAccountId: "b2", projectId: "b".repeat(24) }));
+    expect(u.bankAccountId).toBe("b2");
+    expect(u.projectId).toBe("b".repeat(24));
+  });
+});
+
+describe("update: clearing bounds", () => {
+  it("an explicit null CLEARS endDate / maxOccurrences / paymentTermDays", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ endDate: "2026-12-31", maxOccurrences: 5, paymentTermDays: 30 }));
+    const u = await svc.update(ADMIN, p.id, p.version, update({ endDate: null, maxOccurrences: null, paymentTermDays: null }));
+    expect(u.endDate).toBeNull();
+    expect(u.maxOccurrences).toBeNull();
+    expect(u.paymentTermDays).toBeNull();
+  });
+
+  it("absent keys keep the existing bounds", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ endDate: "2026-12-31", maxOccurrences: 5, paymentTermDays: 30 }));
+    const u = await svc.update(ADMIN, p.id, p.version, update({ notes: "changed" }));
+    expect(u).toMatchObject({ endDate: "2026-12-31", maxOccurrences: 5, paymentTermDays: 30, notes: "changed" });
+  });
+});
+
+describe("update: cadence edit recomputes nextRunAt", () => {
+  it("a new day-of-month anchor moves nextRunAt to the first anchored day on/after the current one", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ startDate: "2026-03-05" })); // nextRunAt 03-05
+    const later = await svc.update(ADMIN, p.id, p.version, update({ dayOfMonth: 20 }));
+    expect(later.nextRunAt).toBe("2026-03-20");
+    const rolled = await svc.update(ADMIN, later.id, later.version, update({ dayOfMonth: 1 }));
+    // never moves backwards (no back-fill) → next month's 1st
+    expect(rolled.nextRunAt).toBe("2026-04-01");
+  });
+
+  it("switching to weekly drops the anchor and keeps nextRunAt", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ startDate: "2026-03-05", dayOfMonth: 15 })); // 03-15
+    const u = await svc.update(ADMIN, p.id, p.version, update({ interval: "weekly" }));
+    expect(u.dayOfMonth).toBeNull();
+    expect(u.nextRunAt).toBe("2026-03-15");
+  });
+
+  it("interval/count changes alone keep nextRunAt", async () => {
+    const { svc } = newService();
+    const p = await svc.create(ADMIN, createInput({ startDate: "2026-03-05" }));
+    const u = await svc.update(ADMIN, p.id, p.version, update({ interval: "quarterly", intervalCount: 2 }));
+    expect(u.nextRunAt).toBe("2026-03-05");
+  });
+});
+
+describe("resume skips the paused period (no back-fill)", () => {
+  const svcAt = (today: string) => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter, events } = newEmitter();
+    const svc = new RecurringProfileService({ repo, emitter, logger, todayFor: async () => today });
+    return { svc, repo, events };
+  };
+
+  it("moves nextRunAt to the first occurrence on/after today, keeping the anchor", async () => {
+    const { svc, events } = svcAt("2026-10-15");
+    let p = await svc.create(ADMIN, createInput({ startDate: "2026-03-01", dayOfMonth: 1 }));
+    p = await svc.pause(ADMIN, p.id, p.version);
+    p = await svc.resume(ADMIN, p.id, p.version);
+    expect(p.status).toBe("active");
+    expect(p.nextRunAt).toBe("2026-11-01");
+    expect(p.occurrencesGenerated).toBe(0);
+    expect(events.map((e) => e.name)).toContain("recurring.profile_resumed");
+  });
+
+  it("an occurrence due exactly today is kept", async () => {
+    const { svc } = svcAt("2026-10-01");
+    let p = await svc.create(ADMIN, createInput({ startDate: "2026-03-01", dayOfMonth: 1 }));
+    p = await svc.pause(ADMIN, p.id, p.version);
+    p = await svc.resume(ADMIN, p.id, p.version);
+    expect(p.nextRunAt).toBe("2026-10-01");
+  });
+
+  it("leaves a future nextRunAt untouched", async () => {
+    const { svc } = svcAt("2026-01-10");
+    let p = await svc.create(ADMIN, createInput()); // 2026-01-31
+    p = await svc.pause(ADMIN, p.id, p.version);
+    p = await svc.resume(ADMIN, p.id, p.version);
+    expect(p.nextRunAt).toBe("2026-01-31");
+  });
+
+  it("still rejects resuming a non-paused profile", async () => {
+    const { svc } = svcAt("2026-10-15");
+    const p = await svc.create(ADMIN, createInput());
+    const c = await svc.cancel(ADMIN, p.id, p.version);
+    await expect(svc.resume(ADMIN, c.id, c.version)).rejects.toBeInstanceOf(AppError);
+  });
+});
+
+describe("requestGenerateNow emits the occurrence event once the worker advanced the profile", () => {
+  it("emits recurring.occurrence_generated (and profile_completed when the run exhausted it)", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter, events } = newEmitter();
+    const svc = new RecurringProfileService({
+      repo,
+      emitter,
+      logger,
+      enqueueGenerateNow: async (p) => {
+        const doc = repo.byId.get(p.id)!;
+        repo.byId.set(p.id, { ...doc, occurrencesGenerated: 1, status: "completed", version: doc.version + 1 });
+      },
+    });
+    const p = await svc.create(ADMIN, createInput({ maxOccurrences: 1 }));
+    await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 200 });
+    const gen = events.find((e) => e.name === "recurring.occurrence_generated");
+    expect(gen).toMatchObject({ entityId: p.id, payload: { scheduledDate: p.nextRunAt, occurrencesGenerated: 1 } });
+    expect(events.some((e) => e.name === "recurring.profile_completed")).toBe(true);
+  });
+
+  it("emits nothing while the worker has not produced the document", async () => {
+    const repo = new FakeRecurringProfileRepository();
+    const { emitter, events } = newEmitter();
+    const svc = new RecurringProfileService({ repo, emitter, logger, enqueueGenerateNow: async () => undefined });
+    const p = await svc.create(ADMIN, createInput());
+    await svc.requestGenerateNow(ADMIN, p.id, { pollMs: 1, timeoutMs: 10 });
+    expect(events.some((e) => e.name === "recurring.occurrence_generated")).toBe(false);
   });
 });

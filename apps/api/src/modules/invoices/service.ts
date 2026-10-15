@@ -1,5 +1,6 @@
 import type { AuthContext, ListMeta } from "@billy/types";
-import { AppError, errors } from "@billy/shared";
+import { AppError, DEFAULT_PAYMENT_TERM_DAYS, errors } from "@billy/shared";
+import { addDaysIso, daysBetweenIso, todayInZone } from "@billy/einvoice";
 import { BaseService, assertTransition, type ServiceDeps } from "@/platform/service.js";
 import { computeDocumentTotals, type LineItemInput } from "@/platform/money.js";
 import type { ShareTokenStore } from "@/modules/public-links/share-tokens.js";
@@ -71,6 +72,16 @@ export interface BankAccountRecord {
  */
 export type LoadBankAccounts = (ctx: AuthContext) => Promise<BankAccountRecord[]>;
 
+/**
+ * Injected "today" (`YYYY-MM-DD`) in the ACCOUNT's business timezone. Optional —
+ * unwired, the service uses Europe/Rome (the business-settings default). Drives
+ * finalize re-dating and the schedule "not in the past" rule.
+ */
+export type TodayFor = (ctx: AuthContext) => Promise<string>;
+
+/** Default timezone when no account timezone is available (business-settings default). */
+const DEFAULT_TIMEZONE = "Europe/Rome";
+
 export interface InvoiceServiceDeps extends ServiceDeps<Invoice> {
   repo: InvoiceRepository;
   loadClient: LoadClient;
@@ -81,6 +92,8 @@ export interface InvoiceServiceDeps extends ServiceDeps<Invoice> {
   shareTokens?: ShareTokenStore;
   /** Business bank-accounts loader (multi-bank). Optional — omit to disable bank snapshots. */
   loadBankAccounts?: LoadBankAccounts;
+  /** Account-timezone "today" (finalize re-dating, schedule floor). Optional. */
+  todayFor?: TodayFor;
 }
 
 /** Explicit-action transitions only. Paid-family is derived, not routed here. */
@@ -99,6 +112,7 @@ export class InvoiceService extends BaseService<Invoice> {
   private readonly toleranceMinor: number;
   private readonly shareTokens?: ShareTokenStore;
   private readonly loadBankAccounts?: LoadBankAccounts;
+  private readonly todayFor?: TodayFor;
 
   constructor(deps: InvoiceServiceDeps) {
     super(deps);
@@ -108,6 +122,12 @@ export class InvoiceService extends BaseService<Invoice> {
     this.toleranceMinor = deps.overpaymentToleranceMinor ?? 0;
     this.shareTokens = deps.shareTokens;
     this.loadBankAccounts = deps.loadBankAccounts;
+    this.todayFor = deps.todayFor;
+  }
+
+  /** `YYYY-MM-DD` today in the account's timezone (Europe/Rome when unwired). */
+  private async today(ctx: AuthContext): Promise<string> {
+    return this.todayFor ? this.todayFor(ctx) : todayInZone(DEFAULT_TIMEZONE);
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -139,7 +159,13 @@ export class InvoiceService extends BaseService<Invoice> {
   async create(ctx: AuthContext, input: InvoiceCreateInput): Promise<Invoice> {
     const totals = computeDocumentTotals(input.lineItems as LineItemInput[]);
     const bankSnapshot = await this.resolveBankSnapshot(ctx, input.bankAccountId);
-    const created = await this.repo.insert(ctx, this.newDraftFields(input, totals, null, null, bankSnapshot));
+    // API-only clients may omit dueDate: default to the standard payment term
+    // (issue + DEFAULT_PAYMENT_TERM_DAYS), never to the issue date itself.
+    const dueDate = input.dueDate ?? addDaysIso(input.issueDate, DEFAULT_PAYMENT_TERM_DAYS);
+    const created = await this.repo.insert(
+      ctx,
+      this.newDraftFields({ ...input, dueDate }, totals, null, null, bankSnapshot),
+    );
     await this.emit(this.event("invoice.created", ctx, created.id, { status: "draft" }));
     return created;
   }
@@ -200,12 +226,20 @@ export class InvoiceService extends BaseService<Invoice> {
   // ── Finalize ──────────────────────────────────────────────────────────────────
 
   /**
-   * draft → finalized: assign the invoice number (once), snapshot the client, lock
-   * line items. Re-finalize → INVOICE_ALREADY_FINALIZED.
+   * draft|scheduled → finalized: assign the invoice number (once), snapshot the
+   * client, lock line items. Re-finalize → INVOICE_ALREADY_FINALIZED. A scheduled
+   * invoice can be finalized now (overrides the schedule; the send date is cleared).
+   *
+   * RE-DATING (Italian chronological numbering): a draft whose issueDate is before
+   * today (account timezone) is issued TODAY — otherwise a draft finalized weeks
+   * later would be numbered after newer invoices yet dated before them. The
+   * issue→due gap (payment term) is preserved. Same rule as the worker's scheduled
+   * finalize. Future-dated drafts keep their date. The number's year follows the
+   * (possibly new) issue date.
    */
   async finalize(ctx: AuthContext, id: string, expectedVersion: number): Promise<Invoice> {
     const existing = await this.get(ctx, id);
-    if (existing.status !== "draft" || existing.invoiceNumber) {
+    if ((existing.status !== "draft" && existing.status !== "scheduled") || existing.invoiceNumber) {
       throw new AppError("INVOICE_ALREADY_FINALIZED", "Invoice is already finalized");
     }
     assertTransition<InvoiceStatus>(existing.status, "finalized", ALLOWED_TRANSITIONS);
@@ -231,13 +265,22 @@ export class InvoiceService extends BaseService<Invoice> {
       referral: client.referral ?? null,
     };
 
-    const year = Number(existing.issueDate.slice(0, 4));
+    const today = await this.today(ctx);
+    const redate = existing.issueDate < today;
+    const issueDate = redate ? today : existing.issueDate;
+    const dueDate = redate
+      ? addDaysIso(today, Math.max(0, existing.dueDate ? daysBetweenIso(existing.issueDate, existing.dueDate) : 0))
+      : existing.dueDate;
+
+    const year = Number(issueDate.slice(0, 4));
     const invoiceNumber = await this.nextInvoiceNumber(ctx.accountId, year);
 
     const finalized = await this.repo.replaceState(ctx, id, expectedVersion, {
       status: "finalized",
       invoiceNumber,
       clientSnapshot: snapshot,
+      ...(redate ? { issueDate, dueDate } : {}),
+      ...(existing.status === "scheduled" ? { scheduledSendDate: null } : {}),
     });
     await this.emit(this.event("invoice.finalized", ctx, finalized.id, { invoiceNumber }));
     return finalized;
@@ -246,7 +289,10 @@ export class InvoiceService extends BaseService<Invoice> {
   // ── Scheduled send ────────────────────────────────────────────────────────────
 
   /**
-   * Schedule a DRAFT invoice to be finalized + sent on a future date. The invoice
+   * Schedule a DRAFT invoice to be FINALIZED on a date (today or later, account
+   * timezone — an earlier date → VALIDATION_FAILED `date.not_past`). The worker
+   * only finalizes (and submits to SdI when `submitOnFinalize`); it does NOT email
+   * the client. The invoice
    * stays a pre-finalized draft (NO number) — the worker's scheduled-send tick
    * finalizes it on `scheduledSendDate` (assigning the number THEN, so numbering
    * stays ordered by issue date, a tax-compliance requirement). draft→scheduled.
@@ -257,6 +303,9 @@ export class InvoiceService extends BaseService<Invoice> {
       throw new AppError("INVALID_STATE_TRANSITION", "Only an un-finalized draft can be scheduled");
     }
     assertTransition<InvoiceStatus>(existing.status, "scheduled", ALLOWED_TRANSITIONS);
+    if (scheduledSendDate < (await this.today(ctx))) {
+      throw errors.validation("Validation failed", { scheduledSendDate: "date.not_past" });
+    }
     const updated = await this.repo.replaceState(ctx, id, expectedVersion, {
       status: "scheduled",
       scheduledSendDate,
@@ -401,19 +450,25 @@ export class InvoiceService extends BaseService<Invoice> {
    * at finalize.
    */
   async createFromQuote(ctx: AuthContext, input: CreateFromQuoteInput): Promise<Invoice> {
+    // Line items keep every input field (incl. FatturaPA `nature`) — computeLine spreads them.
     const totals = computeDocumentTotals(input.lineItems as LineItemInput[]);
-    const today = new Date().toISOString().slice(0, 10);
-    const draftInput: InvoiceCreateInput = {
+    const issueDate = input.issueDate ?? (await this.today(ctx));
+    const draftInput: InvoiceCreateInput & { dueDate: string } = {
       clientId: input.clientId,
       currency: input.currency,
-      issueDate: input.issueDate ?? today,
-      dueDate: input.dueDate ?? input.issueDate ?? today,
+      issueDate,
+      // Standard payment term, like a fresh invoice — never "due on issue".
+      dueDate: input.dueDate ?? addDaysIso(issueDate, DEFAULT_PAYMENT_TERM_DAYS),
       lineItems: input.lineItems,
       notes: input.notes ?? null,
+      subject: input.subject ?? null,
+      projectId: input.projectId ?? null,
     };
+    // Same bank default as `create`: the chosen account, else the single one.
+    const bankSnapshot = await this.resolveBankSnapshot(ctx, input.bankAccountId);
     const created = await this.repo.insert(
       ctx,
-      this.newDraftFields(draftInput, totals, input.clientSnapshot as ClientSnapshot, input.quoteId, null),
+      this.newDraftFields(draftInput, totals, input.clientSnapshot as ClientSnapshot, input.quoteId, bankSnapshot),
     );
     await this.emit(this.event("invoice.created", ctx, created.id, { convertedFromQuoteId: input.quoteId }));
     return created;
@@ -479,7 +534,7 @@ export class InvoiceService extends BaseService<Invoice> {
 
   /** Build the full non-BaseDoc field set for a fresh draft. */
   private newDraftFields(
-    input: InvoiceCreateInput,
+    input: InvoiceCreateInput & { dueDate: string },
     totals: ReturnType<typeof computeDocumentTotals>,
     clientSnapshot: ClientSnapshot | null,
     convertedFromQuoteId: string | null,

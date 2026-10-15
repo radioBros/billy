@@ -62,7 +62,13 @@ const refineDueDate = (data: { issueDate?: string; dueDate?: string }, ctx: z.Re
  * create then drops it.
  */
 export const InvoiceCreateSchema = z
-  .object({ ...invoiceShape, bankAccountId: NonEmptyString.optional() })
+  .object({
+    ...invoiceShape,
+    /** Optional on create (API-only clients): the service defaults it to
+     *  issueDate + DEFAULT_PAYMENT_TERM_DAYS, the same term the web form uses. */
+    dueDate: DateOnly.optional(),
+    bankAccountId: NonEmptyString.optional(),
+  })
   .superRefine(refineDueDate);
 
 /**
@@ -70,7 +76,12 @@ export const InvoiceCreateSchema = z
  * with INVOICE_NOT_EDITABLE). All fields optional; `version` is the optimistic-
  * concurrency guard, also accepted via `If-Match`.
  */
-/** Schedule payload (POST /invoices/:id/schedule). The worker finalizes on this date. */
+/**
+ * Schedule payload (POST /invoices/:id/schedule). The worker FINALIZES on this
+ * date (and submits to SdI when `submitOnFinalize`); it never emails the client.
+ * "Not before today" is enforced by the service against the ACCOUNT's timezone
+ * (a schema refine cannot know it) → VALIDATION_FAILED `{ scheduledSendDate: "date.not_past" }`.
+ */
 export const ScheduleSchema = z.object({
   scheduledSendDate: DateOnly,
   /** Italian e-invoicing: send to SdI as soon as the worker issues it on the date. */
@@ -137,6 +148,11 @@ export const CreateFromQuoteSchema = z
     issueDate: DateOnly.optional(),
     dueDate: DateOnly.optional(),
     notes: z.string().trim().nullable().optional(),
+    /** Optional extras carried onto the invoice when the source document has them. */
+    subject: z.string().trim().nullable().optional(),
+    projectId: ObjectIdString.nullable().optional(),
+    /** Business bank-account id to snapshot; omitted → the single account, if exactly one. */
+    bankAccountId: NonEmptyString.optional(),
   })
   .superRefine(refineDueDate);
 

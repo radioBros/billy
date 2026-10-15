@@ -1,6 +1,7 @@
 import type { Db } from "mongodb";
 import type { AuthContext, ListMeta } from "@billy/types";
 import { AppError, errors, advanceRecurrence, firstRunOnOrAfter } from "@billy/shared";
+import { advanceUntilOnOrAfter, todayInTimeZone } from "@billy/shared/recurrence";
 import type { MinioConn } from "@/infrastructure/minio.js";
 import { FILES_BUCKET } from "@/modules/files-storage/service.js";
 import { BaseService, assertTransition, type ServiceDeps } from "@/platform/service.js";
@@ -52,6 +53,13 @@ export interface RecurringProfileServiceDeps extends ServiceDeps<RecurringProfil
    * for the next 15-minute repeatable tick. Optional (tests / queue-less boots).
    */
   enqueueTick?: (profile: { id: string; nextRunAt: string; accountId: string }) => Promise<void>;
+  /** Enqueue a worker "generate now" run for the profile's next occurrence. */
+  enqueueGenerateNow?: (profile: { id: string; nextRunAt: string; accountId: string }) => Promise<void>;
+  /**
+   * "Today" (YYYY-MM-DD) in the caller's ACCOUNT business timezone — the same
+   * day the worker uses to decide what is due. Optional: defaults to UTC today.
+   */
+  todayFor?: (ctx: AuthContext) => Promise<string>;
 }
 
 /**
@@ -68,6 +76,8 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
   readonly #db?: Db;
   readonly #minio?: MinioConn;
   readonly #enqueueTick?: RecurringProfileServiceDeps["enqueueTick"];
+  readonly #enqueueGenerateNow?: RecurringProfileServiceDeps["enqueueGenerateNow"];
+  readonly #todayFor: (ctx: AuthContext) => Promise<string>;
 
   constructor(deps: RecurringProfileServiceDeps) {
     super(deps);
@@ -75,6 +85,8 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
     this.#db = deps.db;
     this.#minio = deps.minio;
     this.#enqueueTick = deps.enqueueTick;
+    this.#enqueueGenerateNow = deps.enqueueGenerateNow;
+    this.#todayFor = deps.todayFor ?? (async () => todayInTimeZone("UTC"));
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -125,6 +137,10 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
       nextRunAt: firstRun,
       endDate: input.endDate ?? null,
       maxOccurrences: input.maxOccurrences ?? null,
+      paymentTermDays: input.paymentTermDays ?? null,
+      bankAccountId: input.bankAccountId ?? null,
+      projectId: input.projectId ?? null,
+      expense: input.documentType === "expense" ? (input.expense ?? null) : null,
       occurrencesGenerated: 0,
       status: "active",
       lastRunAt: null,
@@ -176,10 +192,23 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
     const effectiveLines = (input.lineItems ?? existing.lineItems) as LineItemInput[];
     const totals = computeDocumentTotals(effectiveLines);
 
+    // Cadence edit: a weekly cadence carries no day-of-month anchor, and a changed
+    // anchor moves the next run to the first anchored day on/after the current
+    // one (never earlier — no back-fill). Interval/count changes alone keep the
+    // current nextRunAt (it is already a valid occurrence; later steps follow the
+    // new cadence from it).
+    const interval = patch.interval ?? existing.interval;
+    const dayOfMonth = interval === "weekly" ? null : "dayOfMonth" in patch ? (patch.dayOfMonth ?? null) : (existing.dayOfMonth ?? null);
+    const nextRunAt = dayOfMonth != null ? firstRunOnOrAfter(existing.nextRunAt, dayOfMonth) : existing.nextRunAt;
+
+    // `"key" in patch` (zod omits absent keys) lets an explicit null CLEAR a bound.
     const updated = await this.repo.updateVersioned(ctx, id, expectedVersion, {
       ...patch,
-      endDate: patch.endDate ?? existing.endDate ?? null,
-      maxOccurrences: patch.maxOccurrences ?? existing.maxOccurrences ?? null,
+      dayOfMonth,
+      nextRunAt,
+      endDate: "endDate" in patch ? (patch.endDate ?? null) : (existing.endDate ?? null),
+      maxOccurrences: "maxOccurrences" in patch ? (patch.maxOccurrences ?? null) : (existing.maxOccurrences ?? null),
+      paymentTermDays: "paymentTermDays" in patch ? (patch.paymentTermDays ?? null) : (existing.paymentTermDays ?? null),
       lineItems: totals.lines,
       subtotalMinor: totals.subtotalMinor,
       discountMinor: totals.discountMinor,
@@ -196,8 +225,29 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
     return this.transition(ctx, id, expectedVersion, "paused", "recurring.profile_paused");
   }
 
+  /**
+   * Resume a paused profile. Occurrences that fell due while paused are SKIPPED,
+   * not back-filled: `nextRunAt` moves to the first occurrence on/after today
+   * (account timezone), stepping by the profile's own cadence + anchor so the
+   * schedule keeps its phase.
+   */
   async resume(ctx: AuthContext, id: string, expectedVersion: number): Promise<RecurringProfile> {
-    return this.transition(ctx, id, expectedVersion, "active", "recurring.profile_resumed");
+    const existing = await this.get(ctx, id);
+    assertTransition<RecurringProfileStatus>(existing.status, "active", ALLOWED_TRANSITIONS);
+    const today = await this.#todayFor(ctx);
+    const nextRunAt = advanceUntilOnOrAfter(
+      existing.nextRunAt,
+      today,
+      existing.interval,
+      existing.intervalCount,
+      existing.interval === "weekly" ? null : existing.dayOfMonth,
+    );
+    const saved = await this.repo.replaceState(ctx, id, expectedVersion, {
+      status: "active",
+      ...(nextRunAt !== existing.nextRunAt ? { nextRunAt } : {}),
+    });
+    await this.emit(this.event("recurring.profile_resumed", ctx, saved.id, { status: "active" }));
+    return saved;
   }
 
   async cancel(ctx: AuthContext, id: string, expectedVersion: number): Promise<RecurringProfile> {
@@ -235,6 +285,64 @@ export class RecurringProfileService extends BaseService<RecurringProfile> {
    * a prior run satisfies `scheduledDate <= lastRunAt` → OCCURRENCE_ALREADY_GENERATED.
    * A duplicate enqueue (crash/replay/run-now) that resets nextRunAt to a past date
    * therefore cannot produce a second invoice for that occurrence.
+   */
+  /**
+   * "Generate now" — create the profile's NEXT occurrence immediately. The real
+   * document (number, payment term, auto-send, SdI) is produced by the worker's
+   * generator, the same code path as the schedule; this enqueues it and waits
+   * briefly for the profile to advance so the UI can refresh.
+   *
+   * Returns `null` when the profile was already exhausted (it is completed, as
+   * before), `{ generated: true }` once the worker produced the document, or
+   * `{ generated: false, pending: true }` if it is still queued after the wait.
+   */
+  async requestGenerateNow(
+    ctx: AuthContext,
+    profileId: string,
+    opts: { timeoutMs?: number; pollMs?: number } = {},
+  ): Promise<{ generated: boolean; pending?: boolean } | null> {
+    const profile = await this.get(ctx, profileId);
+    if (profile.status !== "active") {
+      throw new AppError("RECURRING_PROFILE_INACTIVE", `Profile is ${profile.status}, not active`);
+    }
+    if (this.isExhausted(profile, profile.nextRunAt)) {
+      const done = await this.repo.replaceState(ctx, profileId, profile.version, { status: "completed" });
+      await this.emit(this.event("recurring.profile_completed", ctx, done.id, { reason: "exhausted" }));
+      return null;
+    }
+    if (!this.#enqueueGenerateNow) {
+      throw new AppError("QUEUE_UNAVAILABLE", "Background jobs are unavailable; try again shortly");
+    }
+    await this.#enqueueGenerateNow({ id: profile.id, nextRunAt: profile.nextRunAt, accountId: ctx.accountId });
+
+    const timeoutMs = opts.timeoutMs ?? 10_000;
+    const pollMs = opts.pollMs ?? 300;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, pollMs));
+      const now = await this.get(ctx, profileId);
+      if (now.occurrencesGenerated > profile.occurrencesGenerated) {
+        // The worker writes straight to Mongo (no api event), so announce the
+        // occurrence here — notifications listen for it.
+        await this.emit(
+          this.event("recurring.occurrence_generated", ctx, profileId, {
+            scheduledDate: profile.nextRunAt,
+            occurrencesGenerated: now.occurrencesGenerated,
+          }),
+        );
+        if (now.status === "completed") {
+          await this.emit(this.event("recurring.profile_completed", ctx, profileId, { reason: "exhausted" }));
+        }
+        return { generated: true };
+      }
+    }
+    return { generated: false, pending: true };
+  }
+
+  /**
+   * Schedule-only advance (idempotency/exhaustion rules) WITHOUT creating a
+   * document. Not routed: "Generate now" uses `requestGenerateNow`, which goes
+   * through the worker generator so a real document is always produced.
    */
   async generateOccurrence(ctx: AuthContext, profileId: string): Promise<InvoiceDraftPayload | null> {
     const profile = await this.get(ctx, profileId);

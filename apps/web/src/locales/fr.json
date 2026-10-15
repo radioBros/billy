@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Autres méthodes"
     },
     "schedule": {
-      "action": "Programmer l'envoi",
+      "action": "Programmer la finalisation",
       "unscheduleAction": "Annuler la programmation",
-      "dialogTitle": "Programmer l'envoi",
-      "dialogHint": "La facture reste un brouillon et est finalisée automatiquement à la date choisie.",
-      "dateLabel": "Date d'envoi",
+      "dialogTitle": "Programmer la finalisation",
+      "dialogHint": "La facture reste un brouillon jusqu'à la date choisie. À cette date, elle est finalisée automatiquement : elle reçoit son numéro et cette date comme date d'émission (et est envoyée au SdI si vous cochez l'option ci-dessous). Elle n'est pas envoyée par e-mail au client : envoyez-la vous-même ensuite.",
+      "dateLabel": "Date de finalisation",
       "dateError": "Choisissez aujourd'hui ou une date ultérieure.",
       "confirm": "Programmer",
       "cancel": "Annuler",
-      "banner": "Programmée pour finalisation le {date}."
+      "banner": "Sera finalisée automatiquement le {date}. Elle ne sera pas envoyée par e-mail au client.",
+      "bannerSdi": "Sera finalisée et envoyée au SdI automatiquement le {date}. Elle ne sera pas envoyée par e-mail au client."
     },
     "bankAccountHint": "Détails de paiement affichés sur ce document.",
     "completion": {
       "title": "Facture créée",
       "hint": "Votre brouillon de facture est enregistré. Que souhaitez-vous faire ensuite ?",
       "finalizeAndSend": "Finaliser et envoyer",
-      "schedule": "Planifier",
+      "schedule": "Programmer la finalisation",
       "keepDraft": "Conserver comme brouillon"
     },
     "confirm": {
       "finalizeTitle": "Finaliser la facture ?",
-      "finalizeMessage": "La finalisation attribue un numéro et verrouille la facture. Cette action est irréversible.",
+      "finalizeMessage": "La finalisation attribue un numéro et verrouille la facture. Si sa date d'émission est passée, elle est remplacée par la date du jour (le délai de paiement est conservé). Cette action est irréversible.",
       "voidTitle": "Annuler la facture ?",
       "voidMessage": "L'annulation supprime définitivement cette facture. Cette action est irréversible.",
-      "unscheduleTitle": "Annuler la programmation ?",
-      "unscheduleMessage": "Cette facture ne sera plus envoyée automatiquement."
+      "unscheduleTitle": "Annuler la finalisation programmée ?",
+      "unscheduleMessage": "La facture redevient un brouillon et ne sera plus finalisée automatiquement."
     },
     "saved": "Facture enregistree",
     "viewInvoice": "Voir la facture"
@@ -573,7 +574,9 @@
       "dayOfMonthHint": "Les mois plus courts utilisent leur dernier jour.",
       "startDate": "Date de début",
       "endDate": "Date de fin",
-      "notes": "Notes"
+      "notes": "Notes",
+      "paymentTermDays": "Délai de paiement (jours)",
+      "paymentTermDaysHint": "Échéance = date d'émission + ce nombre de jours (0 = à l'émission)."
     },
     "lineCols": {
       "description": "Description",
@@ -622,7 +625,9 @@
       "message": "Le brouillon devient un profil récurrent et c'est désormais le profil qui génère les documents — le brouillon lui-même est supprimé. Si la date de début est déjà atteinte, le premier document est généré (et envoyé automatiquement, si configuré) immédiatement.",
       "confirm": "Convertir",
       "draftKept": "Profil récurrent créé — le brouillon n'a pas pu être supprimé et reste un document ponctuel."
-    }
+    },
+    "paymentTermValue": "À l'émission | {n} jour | {n} jours",
+    "generateQueued": "Génération lancée — le document apparaîtra dans un instant."
   },
   "creditNotes": {
     "title": "Avoirs",
@@ -843,7 +848,7 @@
         },
         "scheduled": {
           "title": "Facture programmée",
-          "body": "L'envoi de la facture {entity} a été programmé"
+          "body": "La finalisation de la facture {entity} a été programmée"
         },
         "paid": {
           "title": "Facture payée",

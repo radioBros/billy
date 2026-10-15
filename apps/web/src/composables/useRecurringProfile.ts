@@ -15,7 +15,14 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
-import type { LineItemInput, RecurrenceConfig, RecurringAutoSend, RecurringDocumentType, RecurringProfile } from "@/types/domain";
+import type {
+  LineItemInput,
+  RecurrenceConfig,
+  RecurringAutoSend,
+  RecurringDocumentType,
+  RecurringExpenseTemplate,
+  RecurringProfile,
+} from "@/types/domain";
 
 export interface CreateProfileArgs {
   documentType: RecurringDocumentType;
@@ -25,6 +32,16 @@ export interface CreateProfileArgs {
   recurrence: RecurrenceConfig;
   subject?: string | null;
   notes?: string | null;
+  /** Days from issue to due on each generated document (the source form's
+   *  issue→due gap). Omit ⇒ server default (7). */
+  paymentTermDays?: number | null;
+  /** Bank account (business-settings id) snapshotted onto each generated
+   *  invoice/proforma. Omit ⇒ the single account when exactly one exists. */
+  bankAccountId?: string | null;
+  /** Project copied onto every generated document. */
+  projectId?: string | null;
+  /** Expense profiles: category/vendor/description/billable of each expense. */
+  expense?: RecurringExpenseTemplate | null;
   /** Optional auto-send config set at creation; usually configured later on the
    *  profile's detail page. Omit ⇒ no auto-send. */
   autoSend?: RecurringAutoSend | null;
@@ -59,6 +76,10 @@ export const useRecurringProfile = () => {
       lineItems: args.lineItems,
       subject: args.subject ?? null,
       notes: args.notes ?? null,
+      ...(args.paymentTermDays != null ? { paymentTermDays: args.paymentTermDays } : {}),
+      ...(args.bankAccountId ? { bankAccountId: args.bankAccountId } : {}),
+      ...(args.projectId ? { projectId: args.projectId } : {}),
+      ...(args.expense ? { expense: args.expense } : {}),
       // Auto-send set on the toggle wins; explicit arg kept for callers that
       // configure it separately.
       ...(args.autoSend ?? recurrence.autoSend
