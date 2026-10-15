@@ -2136,5 +2136,14 @@
     "content": "Contenu",
     "attachments": "Pièces jointes",
     "period": "Dates et valeur"
+  },
+  "lineItems": {
+    "unitPrice": "Prix unitaire ({currency})",
+    "discountPct": "Remise %",
+    "taxPct": "TVA %",
+    "addLine": "Ajouter une ligne",
+    "removeLine": "Supprimer la ligne",
+    "discount": "Remise",
+    "indicative": "Les totaux sont indicatifs — le serveur les recalcule à l'enregistrement."
   }
 }

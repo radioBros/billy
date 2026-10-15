@@ -2136,5 +2136,14 @@
     "content": "Conteúdo",
     "attachments": "Anexos",
     "period": "Datas e valor"
+  },
+  "lineItems": {
+    "unitPrice": "Preço unitário ({currency})",
+    "discountPct": "Desc. %",
+    "taxPct": "IVA %",
+    "addLine": "Adicionar linha",
+    "removeLine": "Remover linha",
+    "discount": "Desconto",
+    "indicative": "Os totais são indicativos — o servidor recalcula-os ao guardar."
   }
 }

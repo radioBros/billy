@@ -2136,5 +2136,14 @@
     "content": "Content",
     "attachments": "Attachments",
     "period": "Dates & value"
+  },
+  "lineItems": {
+    "unitPrice": "Unit price ({currency})",
+    "discountPct": "Disc %",
+    "taxPct": "Tax %",
+    "addLine": "Add line",
+    "removeLine": "Remove line",
+    "discount": "Discount",
+    "indicative": "Totals are indicative — the server recalculates on save."
   }
 }

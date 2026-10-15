@@ -2136,5 +2136,14 @@
     "content": "Inhalt",
     "attachments": "Anhänge",
     "period": "Laufzeit & Wert"
+  },
+  "lineItems": {
+    "unitPrice": "Einzelpreis ({currency})",
+    "discountPct": "Rabatt %",
+    "taxPct": "Steuer %",
+    "addLine": "Position hinzufügen",
+    "removeLine": "Position entfernen",
+    "discount": "Rabatt",
+    "indicative": "Die Summen sind vorläufig — der Server berechnet sie beim Speichern neu."
   }
 }

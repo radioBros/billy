@@ -230,14 +230,14 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
             size="small"
             class="px-0"
             :disabled="disabled"
-            aria-label="Remove line"
+            :aria-label="t('lineItems.removeLine')"
             @click="removeRow(i)"
           />
         </div>
         <v-textarea
           :model-value="row.description"
           :disabled="disabled"
-          label="Description"
+          :label="t('invoices.lineCols.description')"
           density="comfortable"
           hide-details="auto"
           rows="1"
@@ -257,7 +257,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
           <v-text-field
             :model-value="row.quantity"
             :disabled="disabled"
-            label="Qty"
+            :label="t('invoices.lineCols.qty')"
             type="number"
             inputmode="decimal"
             density="comfortable"
@@ -270,7 +270,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
           <v-text-field
             :model-value="formatMajorDisplay(row.unitPriceMajor)"
             :disabled="disabled"
-            :label="`Unit price (${currency})`"
+            :label="t('lineItems.unitPrice', { currency })"
             type="text"
             inputmode="decimal"
             density="comfortable"
@@ -283,7 +283,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
           <v-text-field
             :model-value="row.discountRate"
             :disabled="disabled"
-            label="Disc %"
+            :label="t('lineItems.discountPct')"
             type="number"
             inputmode="decimal"
             density="comfortable"
@@ -294,7 +294,7 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
           <v-text-field
             :model-value="row.taxRate"
             :disabled="disabled"
-            label="Tax %"
+            :label="t('lineItems.taxPct')"
             type="number"
             inputmode="decimal"
             density="comfortable"
@@ -453,24 +453,24 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
         :disabled="disabled"
         @click="addRow"
       >
-        Add line
+        {{ t("lineItems.addLine") }}
       </v-btn>
       <v-spacer v-if="!isMobile" />
       <div class="text-right" :class="{ 'li-totals--mobile': isMobile }" :style="isMobile ? undefined : 'min-width: 220px'">
         <div class="d-flex justify-space-between text-body-2">
-          <span>Subtotal</span><span>{{ minorToDisplay(totals.subtotalMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.subtotal") }}</span><span>{{ minorToDisplay(totals.subtotalMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-body-2">
-          <span>Discount</span><span>{{ minorToDisplay(totals.discountMinor, currency) }}</span>
+          <span>{{ t("lineItems.discount") }}</span><span>{{ minorToDisplay(totals.discountMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-body-2">
-          <span>Tax</span><span>{{ minorToDisplay(totals.taxMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.tax") }}</span><span>{{ minorToDisplay(totals.taxMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-subtitle-1 font-weight-medium">
-          <span>Total</span><span>{{ minorToDisplay(totals.grandTotalMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.total") }}</span><span>{{ minorToDisplay(totals.grandTotalMinor, currency) }}</span>
         </div>
         <div class="text-caption" style="color: var(--v-billy-text-3)">
-          Totals are indicative — the server recalculates on save.
+          {{ t("lineItems.indicative") }}
         </div>
       </div>
     </div>

@@ -2136,5 +2136,14 @@
     "content": "Contenuto",
     "attachments": "Allegati",
     "period": "Date e valore"
+  },
+  "lineItems": {
+    "unitPrice": "Prezzo unitario ({currency})",
+    "discountPct": "Sconto %",
+    "taxPct": "IVA %",
+    "addLine": "Aggiungi riga",
+    "removeLine": "Rimuovi riga",
+    "discount": "Sconto",
+    "indicative": "I totali sono indicativi — il server li ricalcola al salvataggio."
   }
 }
