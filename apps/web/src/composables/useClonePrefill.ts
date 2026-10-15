@@ -1,7 +1,7 @@
 /**
  * useClonePrefill — turns a list row into a fresh DRAFT seed and navigates to
  * the matching create route. The one real bug to avoid: NEVER copy the document
- * number, id, status, payments, or issue-stamped fields. A clone is always a new
+ * number, id, status, payments, issue-stamped fields, or the document dates. A clone is always a new
  * draft the user re-issues.
  *
  * Mechanism: strip → stash in the Pinia scratch store (survives the single
@@ -39,6 +39,12 @@ const STRIP_KEYS = new Set<string>([
   "invoicedAt",
   "invoiceId",
   "fileId",
+  // Document dates: a clone is a NEW document dated now — never the source's old
+  // issue/due/expiry dates. Dropping them lets each form apply its own defaults
+  // (issue = today, due/expiry = today + the standard term).
+  "issueDate",
+  "dueDate",
+  "expiryDate",
 ]);
 
 export const toLineItemInputs = (items: LineItemComputed[] | undefined): LineItemInput[] => {

@@ -1,6 +1,7 @@
 import Router from "@koa/router";
 import type { Db } from "mongodb";
 import { AppError, errors, resolveDocumentLocale, type Logger } from "@billy/shared";
+import { todayInZone } from "@billy/einvoice";
 import type { AuthContext } from "@billy/types";
 import type { AppState } from "@/app.js";
 import type { DomainEventEmitter } from "@/platform/service.js";
@@ -79,6 +80,15 @@ export const createInvoicesRouter = (deps: {
         { projection: { _id: 0, "data.bankAccounts": 1 } },
       )) as { data?: { bankAccounts?: BankAccountRecord[] } } | null;
       return doc?.data?.bankAccounts ?? [];
+    },
+    // "Today" in THIS account's business timezone (default Europe/Rome) — drives
+    // finalize re-dating and the schedule not-in-the-past rule, matching the worker.
+    todayFor: async (ctx): Promise<string> => {
+      const doc = (await settings.findOne(
+        { key: "business", accountId: ctx.accountId },
+        { projection: { _id: 0, "data.timezone": 1 } },
+      )) as { data?: { timezone?: string | null } } | null;
+      return todayInZone(doc?.data?.timezone || "Europe/Rome");
     },
   });
 

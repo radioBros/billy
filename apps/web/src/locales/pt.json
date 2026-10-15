@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Outros métodos"
     },
     "schedule": {
-      "action": "Agendar envio",
+      "action": "Agendar finalização",
       "unscheduleAction": "Cancelar agendamento",
-      "dialogTitle": "Agendar envio",
-      "dialogHint": "A fatura permanece como rascunho e é finalizada automaticamente na data escolhida.",
-      "dateLabel": "Data de envio",
+      "dialogTitle": "Agendar finalização",
+      "dialogHint": "A fatura permanece como rascunho até à data escolhida. Nessa data é finalizada automaticamente: recebe o número e essa data como data de emissão (e é enviada ao SdI se marcar a opção abaixo). Não é enviada por e-mail ao cliente: envie-a você depois.",
+      "dateLabel": "Data de finalização",
       "dateError": "Escolha hoje ou uma data posterior.",
       "confirm": "Agendar",
       "cancel": "Cancelar",
-      "banner": "Agendada para finalizar a {date}."
+      "banner": "Será finalizada automaticamente a {date}. Não será enviada por e-mail ao cliente.",
+      "bannerSdi": "Será finalizada e enviada ao SdI automaticamente a {date}. Não será enviada por e-mail ao cliente."
     },
     "bankAccountHint": "Detalhes de pagamento apresentados neste documento.",
     "completion": {
       "title": "Fatura criada",
       "hint": "O rascunho da fatura foi guardado. O que deseja fazer a seguir?",
       "finalizeAndSend": "Finalizar e enviar",
-      "schedule": "Agendar",
+      "schedule": "Agendar finalização",
       "keepDraft": "Manter como rascunho"
     },
     "confirm": {
       "finalizeTitle": "Finalizar fatura?",
-      "finalizeMessage": "Finalizar atribui um número e bloqueia a fatura. Não pode ser desfeito.",
+      "finalizeMessage": "A finalização atribui um número e bloqueia a fatura. Se a data de emissão estiver no passado, passa a ser a de hoje (o prazo de pagamento mantém-se). Esta ação não pode ser anulada.",
       "voidTitle": "Anular fatura?",
       "voidMessage": "Anular cancela permanentemente esta fatura. Não pode ser desfeito.",
-      "unscheduleTitle": "Cancelar agendamento?",
-      "unscheduleMessage": "Esta fatura não será mais enviada automaticamente."
+      "unscheduleTitle": "Cancelar a finalização agendada?",
+      "unscheduleMessage": "A fatura volta a ser um rascunho e já não será finalizada automaticamente."
     },
     "saved": "Fatura guardada",
     "viewInvoice": "Ver fatura"
@@ -847,7 +848,7 @@
         },
         "scheduled": {
           "title": "Fatura agendada",
-          "body": "O envio da fatura {entity} foi agendado"
+          "body": "A finalização da fatura {entity} foi agendada"
         },
         "paid": {
           "title": "Fatura paga",

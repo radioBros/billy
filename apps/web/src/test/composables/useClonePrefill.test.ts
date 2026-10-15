@@ -39,8 +39,11 @@ describe("buildCloneSeed", () => {
     // Editable content survives.
     expect(seed.clientId).toBe("cli_1");
     expect(seed.currency).toBe("EUR");
-    expect(seed.issueDate).toBe("2026-01-01");
     expect(seed.notes).toBe("hi");
+
+    // Old document dates never survive — the form defaults to today / today + term.
+    expect(seed.issueDate).toBeUndefined();
+    expect(seed.dueDate).toBeUndefined();
 
     // Line items reduced to raw inputs (computed money fields dropped).
     expect(seed.lineItems).toEqual([
@@ -59,6 +62,27 @@ describe("buildCloneSeed", () => {
     expect(seed.proformaNumber).toBeUndefined();
     expect(seed.creditNoteNumber).toBeUndefined();
     expect(seed.title).toBe("keep me");
+  });
+});
+
+describe("buildCloneSeed — document dates", () => {
+  it("drops issue + expiry dates from quote/proforma clones", () => {
+    const seed = buildCloneSeed({
+      clientId: "cli_1",
+      issueDate: "2025-11-03",
+      expiryDate: "2025-11-10",
+      subject: "keep me",
+    });
+    expect(seed.issueDate).toBeUndefined();
+    expect(seed.expiryDate).toBeUndefined();
+    expect(seed.clientId).toBe("cli_1");
+    expect(seed.subject).toBe("keep me");
+  });
+
+  it("drops the issue date from credit-note clones", () => {
+    const seed = buildCloneSeed({ creditedInvoiceId: "inv_1", issueDate: "2025-11-03", reason: "refund" });
+    expect(seed.issueDate).toBeUndefined();
+    expect(seed.reason).toBe("refund");
   });
 });
 

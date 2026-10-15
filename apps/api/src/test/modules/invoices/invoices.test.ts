@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Collection, Db } from "mongodb";
-import { createLogger, AppError } from "@billy/shared";
+import { createLogger, AppError, DEFAULT_PAYMENT_TERM_DAYS } from "@billy/shared";
+import { addDaysIso } from "@billy/einvoice";
 import type { AuthContext, BaseDoc } from "@billy/types";
 import type { DomainEvent, DomainEventEmitter } from "@/platform/service.js";
 import { InvoiceRepository } from "@/modules/invoices/repository.js";
@@ -184,7 +185,10 @@ const fakeShareTokenDb = (): { db: Db; rows: ShareToken[] } => {
   return { db, rows };
 };
 
-const newService = (opts: { tolerance?: number } = {}) => {
+/** Pinned "today" (account timezone) so finalize/schedule never depend on the real clock. */
+const TODAY = "2026-01-10";
+
+const newService = (opts: { tolerance?: number; today?: string } = {}) => {
   const repo = new FakeInvoiceRepository();
   const { emitter, events } = newEmitter();
   let counter = 0;
@@ -198,6 +202,7 @@ const newService = (opts: { tolerance?: number } = {}) => {
     nextInvoiceNumber: async (_accountId, year) => `INV-${year}-${String(++counter).padStart(4, "0")}`,
     overpaymentToleranceMinor: opts.tolerance ?? 0,
     shareTokens,
+    todayFor: async () => opts.today ?? TODAY,
   });
   return { repo, svc, events, shareTokens, tokenRows };
 };
@@ -213,6 +218,7 @@ const newServiceWithBanks = (accounts: BankAccountRecord[]) => {
     loadClient: async (_ctx, clientId) => (clientId === CLIENT.id ? CLIENT : null),
     nextInvoiceNumber: async (_accountId, year) => `INV-${year}-${String(++counter).padStart(4, "0")}`,
     loadBankAccounts: async () => accounts,
+    todayFor: async () => TODAY,
   });
   return { repo, svc, events };
 };
@@ -380,6 +386,72 @@ describe("invoice finalize", () => {
     await expect(svc.finalize(ADMIN, finalized.id, finalized.version)).rejects.toMatchObject({
       code: "INVOICE_ALREADY_FINALIZED",
     });
+  });
+
+  it("keeps the issue date when finalized on (or before) the drafted date", async () => {
+    const { svc, repo } = newService({ today: "2026-01-10" });
+    const draft = await makeDraft(svc, repo); // issue 2026-01-10, due 2026-02-10
+    const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+    expect(finalized.issueDate).toBe("2026-01-10");
+    expect(finalized.dueDate).toBe("2026-02-10");
+  });
+
+  it("re-dates a stale draft to today and keeps the payment term (chronological numbering)", async () => {
+    const { svc, repo } = newService({ today: "2026-03-05" });
+    const draft = await makeDraft(svc, repo); // issue 2026-01-10, due 2026-02-10 (31 days)
+    const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+    expect(finalized.issueDate).toBe("2026-03-05");
+    expect(finalized.dueDate).toBe("2026-04-05");
+  });
+
+  it("numbers a re-dated draft from the NEW issue date's year", async () => {
+    const { svc, repo } = newService({ today: "2027-01-02" });
+    const draft = await makeDraft(svc, repo); // drafted 2026-01-10
+    const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+    expect(finalized.issueDate).toBe("2027-01-02");
+    expect(finalized.invoiceNumber).toBe("INV-2027-0001");
+  });
+
+  it("keeps a future-dated draft's issue + due dates", async () => {
+    const { svc, repo } = newService({ today: "2026-01-01" });
+    const draft = await makeDraft(svc, repo); // issue 2026-01-10 (future)
+    const finalized = await svc.finalize(ADMIN, draft.id, draft.version);
+    expect(finalized.issueDate).toBe("2026-01-10");
+    expect(finalized.dueDate).toBe("2026-02-10");
+  });
+
+  it("finalizes a scheduled invoice now (overrides the schedule, clears the send date)", async () => {
+    const { svc, repo } = newService();
+    const draft = await makeDraft(svc, repo);
+    const scheduled = await svc.schedule(ADMIN, draft.id, draft.version, "2026-02-01");
+    const finalized = await svc.finalize(ADMIN, scheduled.id, scheduled.version);
+    expect(finalized.status).toBe("finalized");
+    expect(finalized.invoiceNumber).toBe("INV-2026-0001");
+    expect(finalized.scheduledSendDate).toBeNull();
+  });
+});
+
+// ── Schedule (draft → scheduled; the worker FINALIZES on the date) ─────────────
+
+describe("invoice schedule", () => {
+  it("schedules a draft for today or a later date", async () => {
+    const { svc, repo, events } = newService();
+    const draft = await makeDraft(svc, repo);
+    const scheduled = await svc.schedule(ADMIN, draft.id, draft.version, TODAY);
+    expect(scheduled.status).toBe("scheduled");
+    expect(scheduled.scheduledSendDate).toBe(TODAY);
+    expect(scheduled.invoiceNumber).toBeNull();
+    expect(events.map((e) => e.name)).toContain("invoice.scheduled");
+  });
+
+  it("rejects a date before today (account timezone) → VALIDATION_FAILED date.not_past", async () => {
+    const { svc, repo } = newService({ today: "2026-01-10" });
+    const draft = await makeDraft(svc, repo);
+    await expect(svc.schedule(ADMIN, draft.id, draft.version, "2026-01-09")).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+      details: { scheduledSendDate: "date.not_past" },
+    });
+    expect(repo.byId.get(draft.id)?.status).toBe("draft");
   });
 });
 
@@ -600,9 +672,89 @@ describe("stripInvoiceFinancial", () => {
   });
 });
 
+describe("invoice create — default due date (API-only clients)", () => {
+  it("defaults an omitted dueDate to issueDate + DEFAULT_PAYMENT_TERM_DAYS", async () => {
+    const { svc } = newService();
+    const { dueDate: _omit, ...noDue } = CREATE_INPUT;
+    void _omit;
+    const inv = await svc.create(ADMIN, InvoiceCreateSchema.parse(noDue));
+    expect(inv.issueDate).toBe("2026-01-10");
+    expect(inv.dueDate).toBe(addDaysIso("2026-01-10", DEFAULT_PAYMENT_TERM_DAYS));
+    expect(inv.dueDate).toBe("2026-01-17");
+  });
+
+  it("keeps an explicit dueDate", async () => {
+    const { svc } = newService();
+    const inv = await svc.create(ADMIN, InvoiceCreateSchema.parse(CREATE_INPUT));
+    expect(inv.dueDate).toBe("2026-02-10");
+  });
+});
+
 // ── createFromQuote ────────────────────────────────────────────────────────────
 
+const QUOTE_PAYLOAD = {
+  quoteId: "a".repeat(24),
+  clientId: "b".repeat(24),
+  clientSnapshot: { clientId: "b".repeat(24), displayName: "Beta LLC", currency: "USD" },
+  currency: "USD",
+  lineItems: [{ description: "Project", quantity: 1, unitPriceMinor: 100000 }],
+};
+
 describe("invoice createFromQuote", () => {
+  it("defaults issue to today and due to today + the standard payment term (not due-on-issue)", async () => {
+    const { svc } = newService({ today: "2026-03-01" });
+    const inv = await svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse(QUOTE_PAYLOAD));
+    expect(inv.issueDate).toBe("2026-03-01");
+    expect(inv.dueDate).toBe("2026-03-08");
+  });
+
+  it("defaults due from a provided issueDate", async () => {
+    const { svc } = newService();
+    const inv = await svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse({ ...QUOTE_PAYLOAD, issueDate: "2026-04-28" }));
+    expect(inv.dueDate).toBe("2026-05-05");
+  });
+
+  it("carries subject, projectId, notes and line nature", async () => {
+    const { svc } = newService();
+    const inv = await svc.createFromQuote(
+      ADMIN,
+      CreateFromQuoteSchema.parse({
+        ...QUOTE_PAYLOAD,
+        subject: "Website redesign",
+        projectId: "d".repeat(24),
+        notes: "from quote",
+        lineItems: [{ description: "Exempt", quantity: 1, unitPriceMinor: 5000, taxRate: 0, nature: "N2.2" }],
+      }),
+    );
+    expect(inv.subject).toBe("Website redesign");
+    expect(inv.projectId).toBe("d".repeat(24));
+    expect(inv.notes).toBe("from quote");
+    expect(inv.lineItems[0]?.nature).toBe("N2.2");
+  });
+
+  it("still accepts the current quotes payload shape (no subject/projectId/bank)", async () => {
+    const { svc } = newService();
+    const inv = await svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse({ ...QUOTE_PAYLOAD, notes: null }));
+    expect(inv.subject).toBeNull();
+    expect(inv.projectId).toBeNull();
+    expect(inv.bankSnapshot).toBeNull();
+  });
+
+  it("defaults the bank snapshot like create: the single account, or the chosen one", async () => {
+    const single = newServiceWithBanks([{ id: "b1", label: "Main", details: "IBAN IT00", iban: "IT00" }]);
+    const a = await single.svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse(QUOTE_PAYLOAD));
+    expect(a.bankSnapshot).toEqual({ label: "Main", details: "IBAN IT00", iban: "IT00" });
+
+    const multi = newServiceWithBanks([
+      { id: "b1", label: "Main", details: "d1" },
+      { id: "b2", label: "Second", details: "d2" },
+    ]);
+    const ambiguous = await multi.svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse(QUOTE_PAYLOAD));
+    expect(ambiguous.bankSnapshot).toBeNull();
+    const chosen = await multi.svc.createFromQuote(ADMIN, CreateFromQuoteSchema.parse({ ...QUOTE_PAYLOAD, bankAccountId: "b2" }));
+    expect(chosen.bankSnapshot).toEqual({ label: "Second", details: "d2" });
+  });
+
   it("builds a draft with convertedFromQuoteId and the payload snapshot", async () => {
     const { svc } = newService();
     const payload = CreateFromQuoteSchema.parse({

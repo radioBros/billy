@@ -265,31 +265,32 @@
       "otherMethodsGroup": "Otros métodos"
     },
     "schedule": {
-      "action": "Programar envío",
+      "action": "Programar finalización",
       "unscheduleAction": "Cancelar programación",
-      "dialogTitle": "Programar envío",
-      "dialogHint": "La factura permanece como borrador y se finaliza automáticamente en la fecha elegida.",
-      "dateLabel": "Fecha de envío",
+      "dialogTitle": "Programar finalización",
+      "dialogHint": "La factura sigue siendo un borrador hasta la fecha elegida. En esa fecha se finaliza automáticamente: recibe su número y esa fecha como fecha de emisión (y se envía al SdI si marcas la opción de abajo). No se envía por correo al cliente: envíala tú después.",
+      "dateLabel": "Fecha de finalización",
       "dateError": "Elige hoy o una fecha posterior.",
       "confirm": "Programar",
       "cancel": "Cancelar",
-      "banner": "Programada para finalizar el {date}."
+      "banner": "Se finalizará automáticamente el {date}. No se enviará por correo al cliente.",
+      "bannerSdi": "Se finalizará y enviará al SdI automáticamente el {date}. No se enviará por correo al cliente."
     },
     "bankAccountHint": "Detalles de pago mostrados en este documento.",
     "completion": {
       "title": "Factura creada",
       "hint": "Tu factura en borrador está guardada. ¿Qué quieres hacer ahora?",
       "finalizeAndSend": "Finalizar y enviar",
-      "schedule": "Programar",
+      "schedule": "Programar finalización",
       "keepDraft": "Mantener como borrador"
     },
     "confirm": {
       "finalizeTitle": "¿Finalizar factura?",
-      "finalizeMessage": "Al finalizar se asigna un número y se bloquea la factura. No se puede deshacer.",
+      "finalizeMessage": "Al finalizar se asigna un número y la factura queda bloqueada. Si su fecha de emisión ya pasó, se cambia a hoy (se mantiene el plazo de pago). No se puede deshacer.",
       "voidTitle": "¿Anular factura?",
       "voidMessage": "Anular cancela permanentemente esta factura. No se puede deshacer.",
-      "unscheduleTitle": "¿Cancelar programación?",
-      "unscheduleMessage": "Esta factura ya no se enviará automáticamente."
+      "unscheduleTitle": "¿Cancelar la finalización programada?",
+      "unscheduleMessage": "La factura vuelve a ser un borrador y ya no se finalizará automáticamente."
     },
     "saved": "Factura guardada",
     "viewInvoice": "Ver factura"
@@ -847,7 +848,7 @@
         },
         "scheduled": {
           "title": "Factura programada",
-          "body": "Se programó el envío de la factura {entity}"
+          "body": "Se programó la finalización de la factura {entity}"
         },
         "paid": {
           "title": "Factura pagada",
