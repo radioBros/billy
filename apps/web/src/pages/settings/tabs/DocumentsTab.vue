@@ -10,6 +10,7 @@ import { apiErrorReason } from "@/utils/validationMessages";
 import type { DocumentSettings } from "@/types/domain";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
 import LocalizedTextEditor from "@/components/LocalizedTextEditor.vue";
 import { toLocalizedMap } from "@billy/shared/localized-text";
 
@@ -128,10 +129,9 @@ onMounted(() => {
         </v-col>
       </v-row>
 
-      <div class="d-flex mt-2" style="gap: 12px">
-        <v-spacer />
+      <FormActions class="mt-2">
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.documentsTab.save") }}</v-btn>
-      </div>
+      </FormActions>
     </v-form>
     </v-card-text>
   </v-card>

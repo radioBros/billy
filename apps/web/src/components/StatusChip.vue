@@ -23,6 +23,8 @@ const COLORS: Record<string, string> = {
   partially_paid: "warning",
   paid: "success",
   void: "error",
+  // proformas / credit notes: issued = finalized (numbered, no longer editable)
+  issued: "info",
   // quotes
   accepted: "success",
   declined: "error",

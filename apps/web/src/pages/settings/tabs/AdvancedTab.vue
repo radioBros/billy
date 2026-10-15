@@ -7,6 +7,7 @@ import { apiErrorReason } from "@/utils/validationMessages";
 import type { ToggleSettings } from "@/types/domain";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
@@ -185,10 +186,9 @@ onMounted(() => {
         </v-col>
       </v-row>
 
-      <div class="d-flex mt-2" style="gap: 12px">
-        <v-spacer />
+      <FormActions class="mt-2">
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.advanced.save") }}</v-btn>
-      </div>
+      </FormActions>
     </v-form>
     </v-card-text>
   </v-card>

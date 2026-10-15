@@ -17,6 +17,8 @@ import AppCard from "@/components/AppCard.vue";
 import ColorInput from "@/components/ColorInput.vue";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
 import { useToast } from "@/composables/useToast";
+import { useIsMobile } from "@/composables/useIsMobile";
+import PageHeader from "@/components/PageHeader.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -24,6 +26,9 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+// Short form (≤4 fields): no wizard on phones — just the header back arrow
+// instead of a Cancel button, and a full-width Save.
+const isMobile = useIsMobile();
 
 type ProjectStatus = "active" | "archived";
 
@@ -116,15 +121,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn
-        icon="mdi-arrow-left"
-        variant="text"
-        :aria-label="t('common.back')"
-        @click="router.back()"
-      />
-      <h1 class="text-h5">{{ isEdit ? t("projects.editTitle") : t("projects.newTitle") }}</h1>
-    </div>
+    <PageHeader back :title="isEdit ? t('projects.editTitle') : t('projects.newTitle')" />
 
     <v-alert
       v-if="errorMessage"
@@ -177,9 +174,9 @@ onMounted(() => {
           </v-col>
         </v-row>
         <template #actions>
-          <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
+          <v-btn v-if="!isMobile" variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
           <v-spacer />
-          <v-btn color="primary" type="submit" :loading="submitting">
+          <v-btn color="primary" type="submit" :loading="submitting" v-bind="isMobile ? { variant: 'flat', block: true, size: 'large' } : {}">
             {{ isEdit ? t("common.saveChanges") : t("projects.create") }}
           </v-btn>
         </template>

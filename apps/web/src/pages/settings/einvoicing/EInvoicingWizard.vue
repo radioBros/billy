@@ -9,7 +9,7 @@
  * SECURITY: the manual API key is WRITE-ONLY — a blank ref, sent once, cleared at
  * once, never rendered (only `apiKeyLast4` ever shows).
  */
-import { computed, inject, ref } from "vue";
+import { computed, inject, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { apiErrorReason } from "@/utils/validationMessages";
@@ -20,6 +20,8 @@ import { codeItems } from "@/utils/einvoicingCodes";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
 import EInvoicingChannelForm from "@/pages/settings/einvoicing/EInvoicingChannelForm.vue";
 import EInvoicingTestResultBox from "@/pages/settings/einvoicing/EInvoicingTestResult.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { useHideBottomNav } from "@/composables/useMobileChrome";
 
 const props = defineProps<{ view: EInvoicingSettings; vatNumber?: string | null }>();
 const emit = defineEmits<{ updated: [EInvoicingSettings]; recheck: []; finished: [] }>();
@@ -210,13 +212,28 @@ const finish = async (): Promise<void> => {
 const STEP_KEYS = ["company", "connect", "channel", "test", "finish"] as const;
 const stepKey = (s: Step): string => STEP_KEYS[s - 1]!;
 
+// ── Phone: compact segmented header + sticky Back/Next bar (owns the bottom edge) ──
+const isMobile = useIsMobile();
+useHideBottomNav(isMobile);
+const ALL_STEPS: Step[] = [1, 2, 3, 4, 5];
+/** Manual mode skips the channel step: it reads as done once passed. */
+const segmentState = (s: Step): "done" | "active" | "todo" => (s === step.value ? "active" : s < step.value ? "done" : "todo");
+const rootEl = ref<HTMLElement | null>(null);
+watch(step, () => {
+  if (!isMobile.value) return;
+  void nextTick(() => {
+    const top = rootEl.value?.getBoundingClientRect().top ?? 0;
+    if (top < 0) window.scrollTo({ top: Math.max(0, window.scrollY + top - 72), behavior: "smooth" });
+  });
+});
+
 const readinessName = (k: string): string => (te(`einvoicing.readiness.${k}`) ? t(`einvoicing.readiness.${k}`) : k);
 
 defineExpose({ step, businessIncomplete, mode });
 </script>
 
 <template>
-  <div data-test="einvoicing-wizard">
+  <div ref="rootEl" data-test="einvoicing-wizard" :class="{ 'wiz-m': isMobile }">
     <div class="text-h6">{{ t("einvoicing.wizard.title") }}</div>
     <div class="text-body-2 text-medium-emphasis mb-3">{{ t("einvoicing.wizard.hint") }}</div>
 
@@ -238,8 +255,45 @@ defineExpose({ step, businessIncomplete, mode });
       </v-virtual-scroll>
     </v-alert>
 
-    <v-stepper :model-value="step" flat hide-actions alt-labels class="wizard-stepper border rounded-lg" data-test="wizard-stepper">
-      <v-stepper-header class="wizard-stepper__header">
+    <!-- Phone: segmented progress + the active step's title/hint (sticky). -->
+    <div v-if="isMobile" class="wiz-m__head">
+      <div class="wiz-m__segments" role="tablist" :aria-label="t('einvoicing.wizard.title')">
+        <button
+          v-for="s in ALL_STEPS"
+          :key="s"
+          type="button"
+          role="tab"
+          class="wiz-m__segment"
+          :class="`is-${segmentState(s)}`"
+          :aria-selected="s === step"
+          :aria-label="t(`einvoicing.wizard.steps.${stepKey(s)}`)"
+          :disabled="s > step && !reachable(s)"
+          :data-test="`wizard-segment-${s}`"
+          :data-state="s < step ? 'complete' : s === step ? 'active' : 'pending'"
+          @click="goto(s)"
+        />
+      </div>
+      <div class="wiz-m__label">
+        <span class="wiz-m__num">{{ step }}</span>
+        <div class="wiz-m__titles">
+          <div class="wiz-m__title">{{ t(`einvoicing.wizard.steps.${stepKey(step)}`) }}</div>
+          <div class="wiz-m__hint">{{ t(`einvoicing.wizard.stepHints.${stepKey(step)}`) }}</div>
+        </div>
+        <span class="wiz-m__counter">{{ t("formSteps.counter", { n: step, total: 5 }) }}</span>
+      </div>
+    </div>
+
+    <v-stepper
+      :model-value="step"
+      flat
+      hide-actions
+      alt-labels
+      class="wizard-stepper"
+      :class="isMobile ? 'wizard-stepper--m' : 'border rounded-lg'"
+      data-test="wizard-stepper"
+    >
+      <!-- Phone: hidden (not removed) — its items register the steps the window follows. -->
+      <v-stepper-header class="wizard-stepper__header" :class="{ 'd-none': isMobile }">
         <template v-for="s in ([1, 2, 3, 4, 5] as Step[])" :key="s">
           <v-divider
             v-if="s > 1"
@@ -397,19 +451,56 @@ defineExpose({ step, businessIncomplete, mode });
             </v-row>
             <v-switch v-model="offerStep" color="primary" hide-details density="compact" :label="t('einvoicing.defaults.offerStep')" data-test="einvoicing-offer-step" />
             <v-switch v-model="enableNow" color="primary" hide-details density="compact" :label="t('einvoicing.enable.label')" data-test="wizard-enable" />
-            <v-btn class="mt-4" color="primary" size="large" :loading="finishing" prepend-icon="mdi-check" data-test="wizard-finish" @click="submitFinish(finish)">
+            <v-btn v-if="!isMobile" class="mt-4" color="primary" size="large" :loading="finishing" prepend-icon="mdi-check" data-test="wizard-finish" @click="submitFinish(finish)">
               {{ enableNow ? t("einvoicing.wizard.finish.finishEnable") : t("einvoicing.wizard.finish.finishOnly") }}
             </v-btn>
           </v-form>
         </v-stepper-window-item>
       </v-stepper-window>
 
-      <div class="d-flex pa-3" style="gap: 8px">
+      <div v-if="!isMobile" class="d-flex pa-3" style="gap: 8px">
         <v-btn variant="text" :disabled="step === 1" data-test="wizard-back" @click="back">{{ t("einvoicing.wizard.back") }}</v-btn>
         <v-spacer />
         <v-btn v-if="step < 5" color="primary" variant="tonal" :disabled="!canNext" data-test="wizard-next" @click="next">{{ t("einvoicing.wizard.next") }}</v-btn>
       </div>
     </v-stepper>
+
+    <!-- Phone: sticky Back / Next (the last step finishes from here). -->
+    <div v-if="isMobile" class="wiz-m__bar">
+      <v-btn
+        v-if="step > 1"
+        icon="mdi-chevron-left"
+        variant="tonal"
+        class="wiz-m__back"
+        :aria-label="t('einvoicing.wizard.back')"
+        data-test="wizard-back"
+        @click="back"
+      />
+      <v-btn
+        v-if="step < 5"
+        color="primary"
+        variant="flat"
+        class="wiz-m__next"
+        append-icon="mdi-chevron-right"
+        :disabled="!canNext"
+        data-test="wizard-next"
+        @click="next"
+      >
+        {{ t("einvoicing.wizard.next") }}
+      </v-btn>
+      <v-btn
+        v-else
+        color="primary"
+        variant="flat"
+        class="wiz-m__next"
+        prepend-icon="mdi-check"
+        :loading="finishing"
+        data-test="wizard-finish"
+        @click="submitFinish(finish)"
+      >
+        {{ enableNow ? t("einvoicing.wizard.finish.finishEnable") : t("einvoicing.wizard.finish.finishOnly") }}
+      </v-btn>
+    </div>
   </div>
 </template>
 
@@ -449,6 +540,110 @@ defineExpose({ step, businessIncomplete, mode });
 }
 .wizard-stepper :deep(.wizard-stepper__divider--done) {
   opacity: 1;
+}
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+.wiz-m__head {
+  position: sticky;
+  top: var(--v-layout-top, 56px);
+  z-index: 3;
+  margin: 0 -12px 12px;
+  padding: 10px 16px 12px;
+  background: rgb(var(--v-theme-background));
+  border-bottom: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+}
+.wiz-m__segments {
+  display: flex;
+  gap: 6px;
+}
+.wiz-m__segment {
+  flex: 1 1 0;
+  height: 6px;
+  border: 0;
+  padding: 0;
+  border-radius: 3px;
+  background: rgba(var(--v-theme-on-surface), 0.12);
+  cursor: pointer;
+  transition: background-color var(--billy-dur, 200ms) ease;
+}
+.wiz-m__segment:disabled {
+  cursor: default;
+}
+.wiz-m__segment.is-done {
+  background: rgba(var(--v-theme-primary), 0.5);
+}
+.wiz-m__segment.is-active {
+  background: rgb(var(--v-theme-primary));
+}
+.wiz-m__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.wiz-m__num {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+}
+.wiz-m__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.wiz-m__title {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.wiz-m__hint {
+  font-size: 0.8125rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+}
+.wiz-m__counter {
+  flex: 0 0 auto;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+}
+.wizard-stepper--m {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid var(--v-billy-border, #e2e4e9) !important;
+  border-radius: 16px !important;
+  min-height: 40vh;
+}
+.wizard-stepper--m :deep(.v-stepper-window) {
+  margin: 0;
+}
+.wiz-m__bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px -12px -24px;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: rgb(var(--v-theme-surface));
+  border-top: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+}
+.wiz-m__back {
+  flex: 0 0 auto;
+  width: 48px !important;
+  height: 48px !important;
+}
+.wiz-m__next {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px !important;
 }
 @media (max-width: 959px) {
   /* Narrow screens: only the active step keeps its text; the others collapse to the circle. */

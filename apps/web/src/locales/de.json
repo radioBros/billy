@@ -8,7 +8,12 @@
     "configure_columns": "Spalten konfigurieren",
     "show": "Anzeigen",
     "entries": "Einträge",
-    "showing_items": "{from}–{to} von {total} werden angezeigt"
+    "showing_items": "{from}–{to} von {total} werden angezeigt",
+    "filters": "Filter & Sortierung",
+    "sortBy": "Sortieren nach",
+    "resultsCount": "Keine Ergebnisse | {n} Ergebnis | {n} Ergebnisse",
+    "showResults": "Ergebnisse anzeigen | {n} Ergebnis anzeigen | {n} Ergebnisse anzeigen",
+    "endOfList": "Alles geladen"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -33,7 +38,14 @@
     "primaryNav": "Hauptnavigation",
     "mainContent": "Hauptinhalt",
     "signOut": "Abmelden",
-    "theme": "Design: {mode}. Zum Ändern aktivieren."
+    "theme": "Design: {mode}. Zum Ändern aktivieren.",
+    "more": "Mehr",
+    "appearance": "Darstellung",
+    "themeModes": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    }
   },
   "account": {
     "label": "Konto",
@@ -279,7 +291,8 @@
       "unscheduleTitle": "Planung abbrechen?",
       "unscheduleMessage": "Diese Rechnung wird nicht mehr automatisch versendet."
     },
-    "saved": "Rechnung gespeichert"
+    "saved": "Rechnung gespeichert",
+    "viewInvoice": "Rechnung anzeigen"
   },
   "quotes": {
     "title": "Angebote",
@@ -347,7 +360,9 @@
       "convertTitle": "In Rechnung umwandeln?",
       "convertMessage": "Aus diesem Angebot wird ein neuer Rechnungsentwurf erstellt."
     },
-    "saved": "Angebot gespeichert"
+    "saved": "Angebot gespeichert",
+    "convertedShort": "In eine Rechnung umgewandelt.",
+    "viewInvoice": "Rechnung anzeigen"
   },
   "contracts": {
     "title": "Verträge",
@@ -722,7 +737,9 @@
       "convertTitle": "In Rechnung umwandeln?",
       "convertMessage": "Aus dieser Proforma wird ein neuer Rechnungsentwurf erstellt."
     },
-    "saved": "Proforma gespeichert"
+    "saved": "Proforma gespeichert",
+    "convertedShort": "In eine Rechnung umgewandelt.",
+    "openInvoice": "Rechnung öffnen"
   },
   "dashboard": {
     "welcome": "Willkommen",
@@ -866,7 +883,25 @@
       "generic": {
         "title": "Benachrichtigung",
         "body": "Aktualisierung zu {entity}"
+      },
+      "recurring": {
+        "occurrence_generated": {
+          "title": "Wiederkehrendes Dokument erstellt",
+          "body": "Aus dem wiederkehrenden Profil {entity} wurde ein neues Dokument erstellt"
+        }
+      },
+      "payment": {
+        "received": {
+          "title": "Zahlung eingegangen",
+          "body": "Für {entity} ist eine Zahlung eingegangen"
+        }
       }
+    },
+    "entityType": {
+      "project": "Projekt",
+      "subscription": "Abonnement",
+      "timeEntry": "Zeiteintrag",
+      "payment": "Zahlung"
     }
   },
   "enums": {
@@ -891,7 +926,8 @@
       "renewed": "Verlängert",
       "terminated": "Gekündigt",
       "archived": "Archiviert",
-      "invoiced": "Abgerechnet"
+      "invoiced": "Abgerechnet",
+      "suspended": "Gesperrt"
     },
     "contractType": {
       "development": "Entwicklung",
@@ -1110,7 +1146,15 @@
       "language": "Sprache",
       "languagesWithContent": "Sprachen mit Inhalt: {locales}"
     },
-    "einvoicingTab": "E-Rechnung (SdI)"
+    "einvoicingTab": "E-Rechnung (SdI)",
+    "tabs": {
+      "branding": "Branding",
+      "email": "E-Mail",
+      "localization": "Lokalisierung",
+      "documents": "Dokumente",
+      "company": "Unternehmen",
+      "advanced": "Erweitert"
+    }
   },
   "documentActions": {
     "preview": "Vorschau",
@@ -1320,7 +1364,8 @@
     "maxLength": "Maximal {max} Zeichen",
     "dates": {
       "invalid": "Gultiges Datum eingeben",
-      "maxToday": "Datum darf nicht in der Zukunft liegen"
+      "maxToday": "Datum darf nicht in der Zukunft liegen",
+      "notPast": "Das Datum darf nicht in der Vergangenheit liegen"
     },
     "formHasErrors": "Bitte behebe die markierten Fehler",
     "quantityPositive": "Die Menge muss größer als 0 sein",
@@ -1333,7 +1378,10 @@
     "portInvalid": "Geben Sie einen Port zwischen 1 und 65535 ein",
     "ibanInvalid": "Geben Sie eine gültige IBAN ein (z. B. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Geben Sie einen Betrag mit höchstens 2 Nachkommastellen ein (z. B. 77.47)",
-    "intBetween": "Geben Sie eine ganze Zahl zwischen {min} und {max} ein"
+    "intBetween": "Geben Sie eine ganze Zahl zwischen {min} und {max} ein",
+    "amountPositive": "Geben Sie einen Betrag größer als 0 ein",
+    "slugInvalid": "2–48 Kleinbuchstaben, Ziffern oder Bindestriche (kein Bindestrich am Anfang oder Ende)",
+    "passwordMinLength": "Das Passwort muss mindestens {min} Zeichen lang sein"
   },
   "accounts": {
     "title": "Konten",
@@ -1444,7 +1492,8 @@
     "tooLarge": "{name} ist zu groß — die Gesamtgröße der Anhänge muss unter {max} bleiben",
     "remove": "Entfernen",
     "previewPdf": "PDF-Vorschau",
-    "uploadError": "{name} konnte nicht hochgeladen werden"
+    "uploadError": "{name} konnte nicht hochgeladen werden",
+    "tapHint": "Tippen, um Dateien anzuhängen"
   },
   "placeholders": {
     "legendButton": "Platzhalter",
@@ -2102,5 +2151,29 @@
       "tipExpand": "Details zur E-Rechnung (SdI) anzeigen",
       "tipCollapse": "Details zur E-Rechnung (SdI) ausblenden"
     }
+  },
+  "formSteps": {
+    "next": "Weiter",
+    "counter": "Schritt {n} von {total}",
+    "details": "Details",
+    "items": "Positionen",
+    "notes": "Notizen & Optionen",
+    "review": "Überprüfen",
+    "contact": "Kontakt",
+    "address": "Adresse",
+    "billing": "Abrechnung",
+    "schedule": "Zeitplan",
+    "content": "Inhalt",
+    "attachments": "Anhänge",
+    "period": "Laufzeit & Wert"
+  },
+  "lineItems": {
+    "unitPrice": "Einzelpreis ({currency})",
+    "discountPct": "Rabatt %",
+    "taxPct": "Steuer %",
+    "addLine": "Position hinzufügen",
+    "removeLine": "Position entfernen",
+    "discount": "Rabatt",
+    "indicative": "Die Summen sind vorläufig — der Server berechnet sie beim Speichern neu."
   }
 }

@@ -5,7 +5,7 @@
  * a11y. Modules mount their pages into <router-view>.
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useTheme } from "vuetify";
 import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
@@ -14,6 +14,7 @@ import { useBrandingStore } from "@/stores/branding";
 import { useRealtimeStore } from "@/stores/realtime";
 import { useSettingsStore } from "@/stores/settings";
 import { useEInvoicing } from "@/stores/einvoicing";
+import { useTimerStore } from "@/stores/timer";
 import { logoUrlFor } from "@/api/files";
 import NotificationBell from "@/components/NotificationBell.vue";
 import GlobalYearSelect from "@/components/GlobalYearSelect.vue";
@@ -25,19 +26,37 @@ import TimerOverlay from "@/components/TimerOverlay.vue";
 import PwaPrompts from "@/components/PwaPrompts.vue";
 import { usePwaInstall } from "@/composables/usePwaInstall";
 import { navIconColor } from "@/constants/iconColors";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { bottomNavHidden } from "@/composables/useMobileChrome";
+import { useLocaleStore } from "@/stores/locale";
+import { SUPPORTED_LOCALES, type SupportedLocale } from "@/plugins/i18n";
 
 const router = useRouter();
+const route = useRoute();
+const isMobile = useIsMobile();
+const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
 const auth = useAuthStore();
 const branding = useBrandingStore();
 const realtime = useRealtimeStore();
 const settings = useSettingsStore();
 const einvoicing = useEInvoicing();
+const timer = useTimerStore();
 const vuetifyTheme = useTheme();
 const pwaInstall = usePwaInstall();
 const { t } = useI18n();
 
-const drawer = ref(true);
+// Phones start with the drawer closed (it is a temporary overlay there and the
+// bottom navigation is the primary nav); desktop keeps it open.
+const drawer = ref(!isMobile.value);
+
+// On phones the drawer is an overlay: close it after every navigation.
+watch(
+  () => route.fullPath,
+  () => {
+    if (isMobile.value) drawer.value = false;
+  },
+);
 
 interface NavItem {
   /** i18n key under `nav.*`. */
@@ -130,6 +149,26 @@ const toggleTheme = (): void => {
   vuetifyTheme.change(themeStore.vuetifyTheme);
 };
 
+// ── Mobile chrome ─────────────────────────────────────────────────────────
+/** Bottom-navigation destinations (phones). "More" opens the full drawer. */
+const bottomNav = [
+  { titleKey: "nav.dashboard", icon: "mdi-view-dashboard-outline", to: "/" },
+  { titleKey: "nav.invoices", icon: "mdi-file-document-outline", to: "/invoices" },
+  { titleKey: "nav.clients", icon: "mdi-account-group-outline", to: "/clients" },
+  { titleKey: "nav.expenses", icon: "mdi-cash-multiple", to: "/expenses" },
+];
+
+/** Active bottom tab: the destination whose path prefixes the current route
+ *  (dashboard only on an exact "/"). Anything else highlights "More". */
+const activeBottomTab = computed<string>(() => {
+  const path = route.path;
+  const hit = bottomNav.find((n) => (n.to === "/" ? path === "/" : path === n.to || path.startsWith(`${n.to}/`)));
+  return hit?.to ?? "more";
+});
+
+const currentLocale = computed<SupportedLocale>(() => localeStore.current);
+const selectLocale = (loc: SupportedLocale): void => localeStore.setLocale(loc);
+
 const onLogout = async (): Promise<void> => {
   await auth.logout();
   await router.push({ name: "login" });
@@ -137,8 +176,8 @@ const onLogout = async (): Promise<void> => {
 </script>
 
 <template>
-  <v-app>
-    <v-navigation-drawer v-model="drawer" :width="200" :aria-label="t('shell.primaryNav')" tag="nav">
+  <v-app :class="{ 'billy-timer-active': timer.active, 'billy-mobile': isMobile, 'billy-stepped': isMobile && bottomNavHidden }">
+    <v-navigation-drawer v-model="drawer" :width="isMobile ? 288 : 200" :aria-label="t('shell.primaryNav')" tag="nav">
       <!-- Brand: the horizontal billy logo (icon + wordmark). No separate app-name
            text — the wordmark is part of the image. Falls back to a custom
            uploaded logo (branding.logoFileId) if the operator set one. -->
@@ -213,7 +252,75 @@ const onLogout = async (): Promise<void> => {
       </v-list>
     </v-navigation-drawer>
 
-    <v-app-bar flat density="comfortable" tag="header">
+    <v-app-bar flat density="comfortable" tag="header" :class="{ 'billy-appbar--mobile': isMobile }">
+      <!-- ── Phone app bar: brand + year + bell + account + overflow menu. ── -->
+      <template v-if="isMobile">
+        <router-link to="/" class="billy-appbar__brand" :aria-label="appName">
+          <img :src="brandLogoSrc" :alt="`${appName} logo`" class="billy-appbar__logo">
+        </router-link>
+        <v-spacer />
+        <GlobalYearSelect v-if="auth.isAuthenticated" class="billy-appbar__year" />
+        <NotificationBell v-if="auth.isAuthenticated" />
+        <AccountSwitcher />
+        <v-menu location="bottom end">
+          <template #activator="{ props: moreProps }">
+            <v-btn
+              v-bind="moreProps"
+              icon
+              variant="text"
+              class="px-0"
+              :aria-label="t('shell.more')"
+              :title="t('shell.more')"
+            >
+              <v-icon icon="mdi-dots-vertical" />
+            </v-btn>
+          </template>
+          <v-list density="comfortable" min-width="240" class="billy-more-menu">
+            <v-list-item
+              v-if="pwaInstall.canInstall.value"
+              :title="t('pwa.install.action')"
+              @click="pwaInstall.promptInstall"
+            >
+              <template #prepend>
+                <v-icon icon="mdi-download-circle-outline" color="teal" />
+              </template>
+            </v-list-item>
+            <v-list-item
+              :title="t('shell.appearance')"
+              :subtitle="t(`shell.themeModes.${themeStore.mode}`)"
+              @click="toggleTheme"
+            >
+              <template #prepend>
+                <v-icon :icon="themeIcon" color="amber" />
+              </template>
+            </v-list-item>
+            <v-divider class="my-1" />
+            <v-list-subheader>{{ t("locale.label") }}</v-list-subheader>
+            <v-list-item
+              v-for="loc in SUPPORTED_LOCALES"
+              :key="loc"
+              :active="loc === currentLocale"
+              :title="t(`locale.${loc}`)"
+              density="compact"
+              @click="selectLocale(loc)"
+            >
+              <template #prepend>
+                <v-icon :icon="loc === currentLocale ? 'mdi-check' : 'mdi-blank'" size="18" />
+              </template>
+            </v-list-item>
+            <template v-if="auth.isAuthenticated">
+              <v-divider class="my-1" />
+              <v-list-item :title="t('shell.signOut')" base-color="error" @click="onLogout">
+                <template #prepend>
+                  <v-icon icon="mdi-logout" color="error" />
+                </template>
+              </v-list-item>
+            </template>
+          </v-list>
+        </v-menu>
+      </template>
+
+      <template v-else>
       <v-app-bar-nav-icon
         color="primary"
         :aria-label="drawer ? t('shell.collapseNav') : t('shell.expandNav')"
@@ -273,11 +380,41 @@ const onLogout = async (): Promise<void> => {
       >
         <v-icon icon="mdi-logout" />
       </v-btn>
+      </template>
     </v-app-bar>
+
+    <!-- ── Phone bottom navigation: 4 key destinations + "More" (drawer). ── -->
+    <v-bottom-navigation
+      v-if="isMobile && auth.isAuthenticated && !bottomNavHidden"
+      :model-value="activeBottomTab"
+      grow
+      color="primary"
+      height="64"
+      class="billy-bottom-nav"
+      tag="nav"
+      :aria-label="t('shell.primaryNav')"
+    >
+      <v-btn
+        v-for="item in bottomNav"
+        :key="item.to"
+        :value="item.to"
+        :to="item.to"
+        exact
+        variant="text"
+        class="billy-bottom-nav__btn"
+      >
+        <v-icon :icon="item.icon" />
+        <span>{{ t(item.titleKey) }}</span>
+      </v-btn>
+      <v-btn value="more" variant="text" class="billy-bottom-nav__btn" @click="drawer = !drawer">
+        <v-icon icon="mdi-menu" />
+        <span>{{ t("shell.more") }}</span>
+      </v-btn>
+    </v-bottom-navigation>
 
     <v-main>
       <main aria-label="Main content">
-        <v-container fluid class="pa-6">
+        <v-container fluid :class="isMobile ? 'billy-container--mobile' : 'pa-6'">
           <!-- Light fade/slide between pages. `billy-fade` is defined in
                styles/app.css and neutralised under prefers-reduced-motion. The
                route path keys the transition so navigations re-trigger it. -->
@@ -308,3 +445,71 @@ const onLogout = async (): Promise<void> => {
     <TimerOverlay />
   </v-app>
 </template>
+
+<style scoped>
+.billy-appbar__brand {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  min-width: 0;
+}
+.billy-appbar__logo {
+  height: 28px;
+  max-width: 108px;
+  object-fit: contain;
+  object-position: left center;
+}
+.billy-appbar--mobile :deep(.v-toolbar__content) {
+  padding-right: 4px;
+}
+.billy-appbar--mobile :deep(.v-toolbar__content > .v-btn--icon) {
+  margin-inline: 0;
+}
+.billy-appbar__year {
+  margin-right: 2px;
+}
+/* Phone overflow menu: a lifted rounded panel so it separates from the page. */
+.billy-more-menu {
+  border-radius: 16px !important;
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14) !important;
+}
+.billy-container--mobile {
+  padding: 12px 12px 24px;
+}
+.billy-bottom-nav {
+  border-top: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
+}
+.billy-bottom-nav__btn {
+  min-width: 0 !important;
+  padding: 0 4px !important;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.billy-bottom-nav__btn :deep(.v-btn__content) {
+  flex-direction: column;
+  gap: 2px;
+}
+/* Material-3 style: no full-cell tint, a pill behind the active icon instead. */
+.billy-bottom-nav__btn :deep(.v-btn__overlay) {
+  opacity: 0 !important;
+}
+.billy-bottom-nav__btn :deep(.v-icon) {
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+  transition: background-color var(--billy-dur-fast, 150ms) ease;
+}
+.billy-bottom-nav__btn.v-btn--active :deep(.v-icon) {
+  background: rgba(var(--v-theme-primary), 0.14);
+}
+.billy-bottom-nav__btn :deep(.v-btn__content > span) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

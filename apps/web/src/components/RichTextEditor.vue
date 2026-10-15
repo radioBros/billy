@@ -35,6 +35,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle, FontSize } from "@tiptap/extension-text-style";
 import Image from "@tiptap/extension-image";
 import { useI18n } from "vue-i18n";
+import { useIsMobile } from "@/composables/useIsMobile";
 import { placeholdersForDocType, type PlaceholderDocType, type PlaceholderGroup, type PlaceholderInfo } from "@billy/shared/template";
 
 const model = defineModel<string>({ default: "" });
@@ -51,6 +52,15 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
+// Phone: the toolbar becomes one horizontally-scrollable row of larger touch
+// targets, and the editor only resizes vertically (never wider than the screen).
+const isMobile = useIsMobile();
+/** Phone toolbar scrolled to its end → drop the right-edge "more" fade. */
+const toolbarAtEnd = ref(false);
+const onToolbarScroll = (ev: Event): void => {
+  const el = ev.target as HTMLElement;
+  toolbarAtEnd.value = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+};
 
 // Placeholder toolbar button label (a literal "{{ }}" shown on the button).
 const placeholderBtnLabel = "{{ }}";
@@ -280,10 +290,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rte">
+  <div class="rte" :class="{ 'rte--mobile': isMobile }">
     <label v-if="label" class="rte__label text-caption text-medium-emphasis">{{ label }}</label>
     <div class="rte__frame" :class="{ 'rte__frame--disabled': disabled }">
-      <div v-if="editor" class="rte__toolbar" role="toolbar" :aria-label="label || 'Formatting'">
+      <div
+        v-if="editor"
+        class="rte__toolbar"
+        :class="{ 'rte__toolbar--end': toolbarAtEnd }"
+        role="toolbar"
+        :aria-label="label || 'Formatting'"
+        @scroll.passive="onToolbarScroll"
+      >
         <!-- Block type (paragraph / headings) -->
         <select
           class="rte__select"
@@ -640,6 +657,53 @@ onBeforeUnmount(() => {
 .rte__content :deep(.ProseMirror img.ProseMirror-selectednode) {
   outline: 2px solid rgb(var(--v-theme-primary));
   outline-offset: 2px;
+}
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+.rte--mobile .rte__toolbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 4px 6px;
+  gap: 4px;
+  /* The divider moves to the content's top edge (the fade below would mask it). */
+  border-bottom: 0;
+}
+/* Fade the right edge so the row reads as scrollable. */
+.rte--mobile .rte__toolbar:not(.rte__toolbar--end) {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+}
+.rte--mobile .rte__toolbar::-webkit-scrollbar {
+  display: none;
+}
+.rte--mobile .rte__toolbar > * {
+  flex: 0 0 auto;
+}
+.rte--mobile .rte__toolbar > .v-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px !important;
+}
+.rte--mobile .rte__toolbar > .rte__placeholder-btn {
+  width: auto;
+  padding: 0 10px;
+}
+.rte--mobile .rte__select {
+  height: 36px;
+  font-size: 0.875rem;
+}
+.rte--mobile .rte__content,
+.rte--mobile .rte__source {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity, 0.24));
+  resize: vertical;
+  min-height: 180px;
+}
+/* ≥16px so iOS doesn't zoom the page when the field gets focus. */
+.rte--mobile .rte__source,
+.rte--mobile .rte__content :deep(.ProseMirror) {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 .rte__imgsize {
   display: inline-flex;

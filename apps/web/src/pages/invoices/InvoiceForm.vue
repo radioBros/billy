@@ -24,6 +24,9 @@ import SendDocumentModal from "@/components/SendDocumentModal.vue";
 import EInvoiceSubmitStep from "@/components/einvoicing/EInvoiceSubmitStep.vue";
 import EInvoiceScheduleOption from "@/components/einvoicing/EInvoiceScheduleOption.vue";
 import FormActions from "@/components/FormActions.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import PlaceholderInsertMenu from "@/components/PlaceholderInsertMenu.vue";
@@ -31,8 +34,10 @@ import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
 import { useRecurringProfile } from "@/composables/useRecurringProfile";
 import { consumeClone } from "@/composables/useClonePrefill";
 import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
+import validations from "@/constants/validations";
 import { useToast } from "@/composables/useToast";
 import { useEInvoicing } from "@/stores/einvoicing";
+import { useIsMobile } from "@/composables/useIsMobile";
 import { confirm } from "@/composables/useConfirm";
 import { translateValidationDetails, summarizeValidationDetails, apiErrorReason } from "@/utils/validationMessages";
 
@@ -43,6 +48,14 @@ const einvoicing = useEInvoicing();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-account-outline" },
+  { key: "items", title: t("formSteps.items"), icon: "mdi-format-list-bulleted" },
+  { key: "notes", title: t("formSteps.notes"), icon: "mdi-note-text-outline" },
+]);
 
 // Recurring is a property of a NEW invoice, set via RecurringToggle (create only).
 const recurrence = ref<RecurrenceConfig | null>(null);
@@ -351,8 +364,11 @@ const openScheduleDialog = (): void => {
   scheduleDialog.value = true;
 };
 
+const scheduleFormRef = ref<VuetifyFormRef | null>(null);
+
 const submitSchedule = async (): Promise<void> => {
   if (!createdInvoice.value) return;
+  if (scheduleFormRef.value && !(await scheduleFormRef.value.validate()).valid) return;
   if (!scheduleDate.value || scheduleDate.value < today) {
     completionError.value = t("invoices.schedule.dateError");
     return;
@@ -418,10 +434,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("invoices.editTitle") : t("invoices.newTitle") }}</h1>
-    </div>
+    <PageHeader back :title="isEdit ? t('invoices.editTitle') : t('invoices.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -436,6 +449,8 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
+      <FormSteps :steps="formSteps">
+      <template #details>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <v-row>
@@ -502,7 +517,9 @@ onMounted(() => {
         </v-row>
         </v-card-text>
       </v-card>
+      </template>
 
+      <template #items>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <ClientLanguageHint :locale="clientLocale" />
@@ -537,7 +554,9 @@ onMounted(() => {
         </v-alert>
         </v-card-text>
       </v-card>
+      </template>
 
+      <template #notes>
       <v-card variant="outlined" rounded="lg" class="mb-4">
         <v-card-text>
         <ClientLanguageHint :locale="clientLocale" />
@@ -546,6 +565,7 @@ onMounted(() => {
           :label="t('invoices.fields.notes')"
           rows="2"
           auto-grow
+          :hide-details="isMobile ? 'auto' : undefined"
           :disabled="nonDraft"
           density="comfortable"
           class="placeholder-field"
@@ -568,7 +588,9 @@ onMounted(() => {
         doc-type="invoice"
         :default-to="clientEmail"
       />
+      </template>
 
+      <template #actions>
       <FormActions>
         <template #cancel>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
@@ -584,6 +606,7 @@ onMounted(() => {
         </v-btn>
         <v-btn
           color="primary"
+          :variant="isMobile ? 'flat' : undefined"
           type="submit"
           :loading="submitting"
           :disabled="nonDraft"
@@ -591,6 +614,8 @@ onMounted(() => {
           {{ isEdit ? t("common.saveChanges") : t("invoices.create") }}
         </v-btn>
       </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
 
     <DocumentPreviewDialog v-model="previewOpen" :html="previewHtml" :loading="previewLoading" />
@@ -620,11 +645,14 @@ onMounted(() => {
           >
             {{ completionError }}
           </v-alert>
-          <div class="d-flex flex-column" style="gap: 12px">
+          <div class="d-flex flex-column" :style="{ gap: isMobile ? '10px' : '12px' }">
             <v-btn
-              color="success"
-              variant="tonal"
+              :color="isMobile ? undefined : 'success'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-email-outline"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-success)' } : undefined"
               block
               :loading="completionBusy"
               data-test="completion-finalize-send"
@@ -633,9 +661,12 @@ onMounted(() => {
               {{ t("invoices.completion.finalizeAndSend") }}
             </v-btn>
             <v-btn
-              color="info"
-              variant="tonal"
+              :color="isMobile ? undefined : 'info'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-calendar-clock"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-info)' } : undefined"
               block
               :disabled="completionBusy"
               data-test="completion-schedule"
@@ -644,9 +675,12 @@ onMounted(() => {
               {{ t("invoices.completion.schedule") }}
             </v-btn>
             <v-btn
-              color="secondary"
-              variant="tonal"
+              :color="isMobile ? undefined : 'secondary'"
+              :variant="isMobile ? 'text' : 'tonal'"
               prepend-icon="mdi-file-document-edit-outline"
+              :append-icon="isMobile ? 'mdi-chevron-right' : undefined"
+              :class="{ 'completion-choice': isMobile }"
+              :style="isMobile ? { '--choice-rgb': 'var(--v-theme-secondary)' } : undefined"
               block
               :disabled="completionBusy"
               data-test="completion-keep-draft"
@@ -667,13 +701,17 @@ onMounted(() => {
           <p class="text-body-2 mb-4" style="color: var(--v-billy-text-2)">
             {{ t("invoices.schedule.dialogHint") }}
           </p>
+          <v-form ref="scheduleFormRef" @submit.prevent="submitSchedule">
           <v-text-field
             v-model="scheduleDate"
             :label="t('invoices.schedule.dateLabel')"
             type="date"
+            :rules="validations.required.dateNotPast"
             :min="today"
             density="comfortable"
+            :hide-details="isMobile ? 'auto' : undefined"
           />
+          </v-form>
           <EInvoiceScheduleOption
             v-if="createdInvoice"
             v-model="submitOnFinalize"
@@ -684,7 +722,12 @@ onMounted(() => {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="scheduleDialog = false">{{ t("invoices.schedule.cancel") }}</v-btn>
-          <v-btn color="primary" :loading="completionBusy" @click="submitSchedule">
+          <v-btn
+            color="primary"
+            :variant="isMobile ? 'flat' : undefined"
+            :loading="completionBusy"
+            @click="submitSchedule"
+          >
             {{ t("invoices.schedule.confirm") }}
           </v-btn>
         </v-card-actions>
@@ -711,3 +754,42 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped>
+/* Phone: the completion choices read as a list of tappable option rows —
+ * tinted icon badge, left-aligned label, chevron. */
+.completion-choice {
+  height: 64px !important;
+  justify-content: flex-start;
+  padding: 0 12px !important;
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.completion-choice :deep(.v-btn__prepend) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-inline: 0 12px;
+  border-radius: 12px;
+  background: rgba(var(--choice-rgb), 0.12);
+  color: rgb(var(--choice-rgb));
+}
+.completion-choice :deep(.v-btn__content) {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+  white-space: normal;
+  text-align: start;
+}
+.completion-choice :deep(.v-btn__append) {
+  margin-inline: 8px 0;
+  opacity: 0.45;
+}
+</style>

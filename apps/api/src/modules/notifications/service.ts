@@ -6,6 +6,7 @@ import type {
   NotificationRepository,
 } from "@/modules/notifications/repository.js";
 import { NOTIFICATION_LIST_WHITELIST, type PreferencesUpdateInput } from "@/modules/notifications/schema.js";
+import type { EntityLabel, EntityLabelResolver } from "@/modules/notifications/entity-labels.js";
 import {
   NOTIFICATION_CATEGORIES,
   type Notification,
@@ -53,6 +54,12 @@ export interface NotificationServiceDeps {
   logger: Logger;
   /** When present, each created notification also enqueues a web-push job. */
   pushQueue?: NotificationPushQueue;
+  /**
+   * Resolves a human label for the event's entity (document number, client
+   * name, …) within the account. Optional: without it (tests, minimal
+   * contexts) the label is empty — the raw entity id is NEVER shown instead.
+   */
+  entityLabels?: EntityLabelResolver;
 }
 
 /** A system principal holds no interactive capabilities. */
@@ -92,12 +99,50 @@ const severityForEvent = (eventType: string): NotificationSeverity => {
   return "info";
 };
 
+/**
+ * English fallback text per curated event (mirrors the web `notification.event.*`
+ * catalog). `body` carries `{entity}`; `bare` is used when the label is unknown so
+ * the sentence still reads naturally ("Invoice was paid in full").
+ */
+const EN_TEXT: Readonly<Record<string, { title: string; body: string; bare: string }>> = {
+  "invoice.finalized": { title: "Invoice finalized", body: "Invoice {entity} was finalized", bare: "An invoice was finalized" },
+  "invoice.paid": { title: "Invoice paid", body: "Invoice {entity} was paid in full", bare: "An invoice was paid in full" },
+  "invoice.void": { title: "Invoice voided", body: "Invoice {entity} was voided", bare: "An invoice was voided" },
+  "invoice.scheduled": { title: "Invoice scheduled", body: "Invoice {entity} was scheduled to send", bare: "An invoice was scheduled to send" },
+  "quote.sent": { title: "Quote sent", body: "Quote {entity} was sent", bare: "A quote was sent" },
+  "quote.accepted": { title: "Quote accepted", body: "Quote {entity} was accepted", bare: "A quote was accepted" },
+  "quote.declined": { title: "Quote declined", body: "Quote {entity} was declined", bare: "A quote was declined" },
+  "quote.converted": { title: "Quote converted", body: "Quote {entity} was converted to an invoice", bare: "A quote was converted to an invoice" },
+  "payment.received": { title: "Payment received", body: "A payment was received for {entity}", bare: "A payment was received" },
+  "contract.renewed": { title: "Contract renewed", body: "Contract {entity} was renewed", bare: "A contract was renewed" },
+  "recurring.occurrence_generated": {
+    title: "Recurring document generated",
+    body: "A new document was generated from the recurring profile {entity}",
+    bare: "A new document was generated from a recurring profile",
+  },
+};
+
+/** "time.entry_created" → "Time entry created" (sentence case, for unmapped events). */
+const humanizeEventName = (name: string): string => {
+  const words = name.replace(/[._]+/gu, " ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** English title/body for the stored fallback — human text only, never an id. */
+export const englishText = (event: DomainEvent, label: string): { title: string; body: string } => {
+  const known = EN_TEXT[event.name];
+  if (known) return { title: known.title, body: label ? known.body.replace("{entity}", label) : known.bare };
+  const title = humanizeEventName(event.name);
+  return { title, body: label ? `${title}: ${label}` : title };
+};
+
 export class NotificationService {
   private readonly repo: NotificationRepository;
   private readonly prefsRepo: NotificationPreferencesRepository;
   private readonly emitter: DomainEventEmitter;
   private readonly logger: Logger;
   private readonly pushQueue?: NotificationPushQueue;
+  private readonly entityLabels?: EntityLabelResolver;
 
   constructor(deps: NotificationServiceDeps) {
     this.repo = deps.repo;
@@ -105,6 +150,7 @@ export class NotificationService {
     this.emitter = deps.emitter;
     this.logger = deps.logger;
     this.pushQueue = deps.pushQueue;
+    this.entityLabels = deps.entityLabels;
   }
 
   // ── Engine entry point ─────────────────────────────────────────────────────
@@ -121,6 +167,10 @@ export class NotificationService {
     const category = categoryForEvent(event.name);
     const severity = severityForEvent(event.name);
     const created: Notification[] = [];
+    // One label lookup per event (not per recipient) — all share the account.
+    const entity = await this.resolveEntityLabel(event, accountId);
+    const keys = this.renderKeys(event, entity);
+    const text = englishText(event, entity.label);
 
     for (const recipient of recipients) {
       const ctx = this.systemCtxFor(recipient, accountId);
@@ -132,13 +182,12 @@ export class NotificationService {
         );
         continue;
       }
-      const keys = this.renderKeys(event);
       const doc = await this.repo.insert(ctx, {
         category,
         type: event.name,
         severity,
-        title: this.titleFor(event), // English fallback (always stored)
-        body: this.bodyFor(event),
+        title: text.title, // English fallback (always stored; also the web-push text)
+        body: text.body,
         titleKey: keys.titleKey, // client renders t(titleKey, params) in the user's locale
         bodyKey: keys.bodyKey,
         params: keys.params,
@@ -293,16 +342,38 @@ export class NotificationService {
     return toggle?.inApp ?? true;
   }
 
+  /** Human label for the event's entity; empty (never the raw id) when unknown. */
+  private async resolveEntityLabel(event: DomainEvent, accountId: string): Promise<EntityLabel> {
+    if (!this.entityLabels || !event.entityType || !event.entityId) return { label: "" };
+    try {
+      return await this.entityLabels.labelFor(accountId, event.entityType, event.entityId);
+    } catch (err) {
+      // A label is cosmetic — a lookup failure must never drop the notification.
+      this.logger.warn({ err, event: event.name }, "notification.entity_label_failed");
+      return { label: "" };
+    }
+  }
+
   /**
    * i18n render keys for a notification. The client renders
    * `t(titleKey, params)` / `t(bodyKey, params)` in the user's locale, falling
    * back to the stored English `title`/`body` only if a key is missing. Keys
    * follow `notification.event.<event.name>.title|body`; a per-event catalog on
    * the frontend translates them (with a `notification.event.generic.*` fallback).
+   * `params.entity` is the HUMAN label (number / name, "" when unknown);
+   * `entityType`/`entityId` stay for deep-linking. `entityDraft: "1"` flags an
+   * unnumbered document so the client can translate "Draft".
    */
-  private renderKeys(event: DomainEvent): { titleKey: string; bodyKey: string; params: Record<string, string> } {
-    const entity = `${event.entityType ?? ""} ${event.entityId ?? ""}`.trim();
-    const params = { entity, entityType: event.entityType ?? "", entityId: event.entityId ?? "" };
+  private renderKeys(
+    event: DomainEvent,
+    entity: EntityLabel,
+  ): { titleKey: string; bodyKey: string; params: Record<string, string> } {
+    const params: Record<string, string> = {
+      entity: entity.label,
+      entityType: event.entityType ?? "",
+      entityId: event.entityId ?? "",
+    };
+    if (entity.draft) params.entityDraft = "1";
     // Prefer an event-specific key; the FE resolves a missing one to the generic
     // fallback (t() miss → returns the key → FE guard shows generic/English).
     return {
@@ -310,15 +381,6 @@ export class NotificationService {
       bodyKey: `notification.event.${event.name}.body`,
       params,
     };
-  }
-
-  /** English fallback title (always stored; used when a titleKey is missing on the client). */
-  private titleFor(event: DomainEvent): string {
-    return event.name.replace(/\./g, " ").replace(/_/g, " ").replace(/\b\w/gu, (c) => c.toUpperCase());
-  }
-
-  private bodyFor(event: DomainEvent): string {
-    return `${event.entityType ?? ""} ${event.entityId ?? ""}`.trim();
   }
 
   /** Kept for symmetry with the emitter dependency (WS emission is deferred). */

@@ -29,12 +29,32 @@ import { useToast } from "@/composables/useToast";
 import { useAuthStore } from "@/stores/auth";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { confirm } from "@/composables/useConfirm";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { createReusableTemplate } from "@/composables/useReusableTemplate";
+import PageHeader from "@/components/PageHeader.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const einvoicing = useEInvoicing();
+const isMobile = useIsMobile();
+
+/** Phone wizard steps. Desktop keeps the two stacked cards (details incl.
+ *  billing fields, then the address) — both layouts render the same field
+ *  groups via the reusable templates below. */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-account-outline" },
+  { key: "address", title: t("formSteps.address"), icon: "mdi-map-marker-outline" },
+  { key: "billing", title: t("formSteps.billing"), icon: "mdi-receipt-text-outline" },
+]);
+const { Define: DefineIdentity, Reuse: ReuseIdentity } = createReusableTemplate();
+const { Define: DefineBilling, Reuse: ReuseBilling } = createReusableTemplate();
+const { Define: DefineExtra, Reuse: ReuseExtra } = createReusableTemplate();
+const { Define: DefineAddress, Reuse: ReuseAddress } = createReusableTemplate();
 
 const canDelete = computed<boolean>(
   () => auth.principal?.capabilities.canPermanentlyDelete === true,
@@ -323,10 +343,265 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("clients.editTitle") : t("clients.newTitle") }}</h1>
-    </div>
+    <!-- Field groups, defined once: the desktop cards and the phone steps below
+         both render them (see composables/useReusableTemplate). -->
+    <DefineIdentity>
+      <v-col cols="12" md="6">
+        <v-select
+          v-model="type"
+          :items="TYPE_OPTIONS"
+          :label="t('clients.fields.type')"
+          :rules="[required]"
+          :error-messages="fieldErrors.type"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="displayName"
+          :label="t('clients.fields.displayName')"
+          :rules="[required]"
+          :error-messages="fieldErrors.displayName"
+          density="comfortable"
+        />
+      </v-col>
+
+      <v-col v-if="isCompany" cols="12" md="6">
+        <v-text-field
+          v-model="legalName"
+          :label="t('clients.fields.legalName')"
+          :rules="[required]"
+          :error-messages="fieldErrors.legalName"
+          density="comfortable"
+        />
+      </v-col>
+
+      <template v-if="isIndividual">
+        <v-col cols="12" md="6">
+          <v-text-field
+            v-model="firstName"
+            :label="t('clients.fields.firstName')"
+            :rules="[required]"
+            :error-messages="fieldErrors.firstName"
+            density="comfortable"
+          />
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-text-field
+            v-model="lastName"
+            :label="t('clients.fields.lastName')"
+            :rules="[required]"
+            :error-messages="fieldErrors.lastName"
+            density="comfortable"
+          />
+        </v-col>
+      </template>
+
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="email"
+          :label="t('clients.fields.email')"
+          type="email"
+          :rules="validations.email"
+          :error-messages="fieldErrors.email"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="phone"
+          :label="t('clients.fields.phone')"
+          :error-messages="fieldErrors.phone"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineIdentity>
+    <DefineBilling>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="vatNumber"
+          :label="t('clients.fields.vatNumber')"
+          :error-messages="fieldErrors.vatNumber"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="taxCode"
+          :label="t('clients.fields.taxCode')"
+          :error-messages="fieldErrors.taxCode"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col v-if="showRoutingHint" cols="12">
+        <v-alert type="info" variant="tonal" density="compact" data-test="client-routing-hint">
+          {{ t("einvoicing.clientHint") }}
+        </v-alert>
+      </v-col>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-text-field
+          v-model="recipientCode"
+          :label="t('clients.fields.recipientCode')"
+          :hint="t('clients.form.recipientCodeHint')"
+          persistent-hint
+          :rules="validations.recipientCode"
+          :error-messages="fieldErrors.recipientCode"
+          maxlength="7"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="pecEmail"
+          :label="t('clients.fields.pecEmail')"
+          type="email"
+          :rules="validations.email"
+          :error-messages="fieldErrors.pecEmail"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="preferredCurrency"
+          :label="t('clients.fields.preferredCurrency')"
+          :rules="[currencyRule]"
+          :error-messages="fieldErrors.preferredCurrency"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-select
+          v-model="preferredLanguage"
+          :items="localeItems"
+          :label="t('clients.fields.preferredLanguage')"
+          :hint="t('clients.form.languageHint')"
+          persistent-hint
+          clearable
+          density="comfortable"
+        />
+      </v-col>
+    </DefineBilling>
+    <DefineExtra>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="referral"
+          :label="t('clients.fields.referral')"
+          :error-messages="fieldErrors.referral"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" :class="{ 'pb-3': isMobile }">
+        <v-combobox
+          v-model="tags"
+          :label="t('clients.fields.tags')"
+          :error-messages="fieldErrors.tags"
+          density="comfortable"
+          multiple
+          chips
+          closable-chips
+          clearable
+          :hint="t('clients.form.tagsHint')"
+          persistent-hint
+        />
+      </v-col>
+    </DefineExtra>
+    <DefineAddress>
+      <v-col cols="12" md="8">
+        <AddressAutocomplete
+          v-model="addrLine1"
+          :label="t('clients.fields.addrLine1')"
+          :rules="[addrRequired]"
+          :error-messages="fieldErrors['billingAddress.line1']"
+          @resolved="fillAddress"
+        />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="addrLine2"
+          :label="t('clients.fields.addrLine2')"
+          :error-messages="fieldErrors['billingAddress.line2']"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="addrCity"
+          :label="t('clients.fields.addrCity')"
+          :rules="[addrRequired]"
+          :error-messages="fieldErrors['billingAddress.city']"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-text-field
+          v-model="addrRegion"
+          :label="t('clients.fields.addrRegion')"
+          :error-messages="fieldErrors['billingAddress.region']"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-text-field
+          v-model="addrPostalCode"
+          :label="t('clients.fields.addrPostalCode')"
+          :rules="[addrRequired]"
+          :error-messages="fieldErrors['billingAddress.postalCode']"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="4">
+        <CountrySelect
+          v-model="addrCountry"
+          :label="t('clients.fields.addrCountry')"
+          :rules="[addrRequired]"
+          :error-messages="fieldErrors['billingAddress.country']"
+          clearable
+        />
+      </v-col>
+    </DefineAddress>
+
+    <PageHeader back :title="isEdit ? t('clients.editTitle') : t('clients.newTitle')">
+      <!-- Phone: the danger-zone actions live in an overflow menu on the title row. -->
+      <template v-if="isEdit && !loading" #mobile-actions>
+        <v-menu location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              v-bind="menuProps"
+              icon="mdi-dots-vertical"
+              variant="text"
+              :loading="actionBusy"
+              :aria-label="t('rowActions.menu')"
+              data-test="client-actions-menu"
+            />
+          </template>
+          <v-list density="comfortable" min-width="220">
+            <v-list-item
+              prepend-icon="mdi-archive-arrow-down-outline"
+              base-color="warning"
+              :disabled="actionBusy"
+              :title="t('clients.archive')"
+              @click="archiveClient"
+            />
+            <v-list-item
+              v-if="canDelete"
+              prepend-icon="mdi-delete-outline"
+              base-color="error"
+              :disabled="actionBusy"
+              :title="t('common.delete')"
+              @click="deleteClient"
+            />
+            <v-list-item
+              v-if="canDelete"
+              prepend-icon="mdi-incognito"
+              base-color="error"
+              :disabled="actionBusy"
+              :title="t('clients.anonymize')"
+              @click="anonymizeClient"
+            />
+          </v-list>
+        </v-menu>
+      </template>
+    </PageHeader>
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -337,231 +612,64 @@ onMounted(() => {
     </v-card>
 
     <v-form v-else ref="formRef" @submit.prevent="submit(save)">
-      <AppCard :title="t('clients.form.details')">
-        <v-row>
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="type"
-              :items="TYPE_OPTIONS"
-              :label="t('clients.fields.type')"
-              :rules="[required]"
-              :error-messages="fieldErrors.type"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="displayName"
-              :label="t('clients.fields.displayName')"
-              :rules="[required]"
-              :error-messages="fieldErrors.displayName"
-              density="comfortable"
-            />
-          </v-col>
-
-          <v-col v-if="isCompany" cols="12" md="6">
-            <v-text-field
-              v-model="legalName"
-              :label="t('clients.fields.legalName')"
-              :rules="[required]"
-              :error-messages="fieldErrors.legalName"
-              density="comfortable"
-            />
-          </v-col>
-
-          <template v-if="isIndividual">
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="firstName"
-                :label="t('clients.fields.firstName')"
-                :rules="[required]"
-                :error-messages="fieldErrors.firstName"
-                density="comfortable"
-              />
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="lastName"
-                :label="t('clients.fields.lastName')"
-                :rules="[required]"
-                :error-messages="fieldErrors.lastName"
-                density="comfortable"
-              />
-            </v-col>
-          </template>
-
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="email"
-              :label="t('clients.fields.email')"
-              type="email"
-              :rules="validations.email"
-              :error-messages="fieldErrors.email"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="phone"
-              :label="t('clients.fields.phone')"
-              :error-messages="fieldErrors.phone"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="vatNumber"
-              :label="t('clients.fields.vatNumber')"
-              :error-messages="fieldErrors.vatNumber"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="taxCode"
-              :label="t('clients.fields.taxCode')"
-              :error-messages="fieldErrors.taxCode"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col v-if="showRoutingHint" cols="12">
-            <v-alert type="info" variant="tonal" density="compact" data-test="client-routing-hint">
-              {{ t("einvoicing.clientHint") }}
-            </v-alert>
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="recipientCode"
-              :label="t('clients.fields.recipientCode')"
-              :hint="t('clients.form.recipientCodeHint')"
-              persistent-hint
-              :rules="validations.recipientCode"
-              :error-messages="fieldErrors.recipientCode"
-              maxlength="7"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="pecEmail"
-              :label="t('clients.fields.pecEmail')"
-              type="email"
-              :rules="validations.email"
-              :error-messages="fieldErrors.pecEmail"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="preferredCurrency"
-              :label="t('clients.fields.preferredCurrency')"
-              :rules="[currencyRule]"
-              :error-messages="fieldErrors.preferredCurrency"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="preferredLanguage"
-              :items="localeItems"
-              :label="t('clients.fields.preferredLanguage')"
-              :hint="t('clients.form.languageHint')"
-              persistent-hint
-              clearable
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="referral"
-              :label="t('clients.fields.referral')"
-              :error-messages="fieldErrors.referral"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12">
-            <v-combobox
-              v-model="tags"
-              :label="t('clients.fields.tags')"
-              :error-messages="fieldErrors.tags"
-              density="comfortable"
-              multiple
-              chips
-              closable-chips
-              clearable
-              :hint="t('clients.form.tagsHint')"
-              persistent-hint
-            />
-          </v-col>
-        </v-row>
-      </AppCard>
-
-      <AppCard :title="t('clients.form.billingAddress')">
-        <v-row>
-          <v-col cols="12" md="8">
-            <AddressAutocomplete
-              v-model="addrLine1"
-              :label="t('clients.fields.addrLine1')"
-              :rules="[addrRequired]"
-              :error-messages="fieldErrors['billingAddress.line1']"
-              @resolved="fillAddress"
-            />
-          </v-col>
-          <v-col cols="12" md="4">
-            <v-text-field
-              v-model="addrLine2"
-              :label="t('clients.fields.addrLine2')"
-              :error-messages="fieldErrors['billingAddress.line2']"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="4">
-            <v-text-field
-              v-model="addrCity"
-              :label="t('clients.fields.addrCity')"
-              :rules="[addrRequired]"
-              :error-messages="fieldErrors['billingAddress.city']"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-text-field
-              v-model="addrRegion"
-              :label="t('clients.fields.addrRegion')"
-              :error-messages="fieldErrors['billingAddress.region']"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-text-field
-              v-model="addrPostalCode"
-              :label="t('clients.fields.addrPostalCode')"
-              :rules="[addrRequired]"
-              :error-messages="fieldErrors['billingAddress.postalCode']"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="4">
-            <CountrySelect
-              v-model="addrCountry"
-              :label="t('clients.fields.addrCountry')"
-              :rules="[addrRequired]"
-              :error-messages="fieldErrors['billingAddress.country']"
-              clearable
-            />
-          </v-col>
-        </v-row>
-        <template #actions>
-          <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
-          <v-spacer />
-          <v-btn color="primary" type="submit" :loading="submitting">
-            {{ isEdit ? t("common.saveChanges") : t("clients.create") }}
-          </v-btn>
+      <!-- Phone: details → address → billing / e-invoicing wizard. -->
+      <FormSteps v-if="isMobile" :steps="formSteps">
+        <template #details>
+          <AppCard>
+            <v-row>
+              <ReuseIdentity />
+              <ReuseExtra />
+            </v-row>
+          </AppCard>
         </template>
-      </AppCard>
+        <template #address>
+          <AppCard>
+            <v-row>
+              <ReuseAddress />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #billing>
+          <AppCard>
+            <v-row>
+              <ReuseBilling />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #actions>
+          <FormActions>
+            <v-btn color="primary" variant="flat" type="submit" :loading="submitting">
+              {{ isEdit ? t("common.saveChanges") : t("clients.create") }}
+            </v-btn>
+          </FormActions>
+        </template>
+      </FormSteps>
+
+      <template v-else>
+        <AppCard :title="t('clients.form.details')">
+          <v-row>
+            <ReuseIdentity />
+            <ReuseBilling />
+            <ReuseExtra />
+          </v-row>
+        </AppCard>
+
+        <AppCard :title="t('clients.form.billingAddress')">
+          <v-row>
+            <ReuseAddress />
+          </v-row>
+          <template #actions>
+            <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
+            <v-spacer />
+            <v-btn color="primary" type="submit" :loading="submitting">
+              {{ isEdit ? t("common.saveChanges") : t("clients.create") }}
+            </v-btn>
+          </template>
+        </AppCard>
+      </template>
     </v-form>
 
-    <AppCard v-if="isEdit && !loading" :title="t('clients.dangerZone.title')">
+    <AppCard v-if="isEdit && !loading && !isMobile" :title="t('clients.dangerZone.title')">
       <div class="text-body-2 mb-4" style="color: var(--v-billy-text-3)">
         {{ t("clients.dangerZone.hint") }}
       </div>

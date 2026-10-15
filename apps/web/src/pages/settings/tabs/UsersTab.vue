@@ -14,10 +14,14 @@ import type { SafeUser } from "@/types/domain";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
 import { confirm } from "@/composables/useConfirm";
+import { useIsMobile } from "@/composables/useIsMobile";
+import validations from "@/constants/validations";
+import type { VuetifyFormRef } from "@/composables/useFormSubmit";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
 const { fieldErrors, applyError, clear } = useFieldErrors();
+const isMobile = useIsMobile();
 
 const users = ref<SafeUser[]>([]);
 const loading = ref(false);
@@ -45,6 +49,7 @@ const dialog = ref(false);
 const editing = ref<SafeUser | null>(null);
 const saving = ref(false);
 const formError = ref<string | null>(null);
+const formRef = ref<VuetifyFormRef | null>(null);
 const showFormPassword = ref(false);
 const form = ref({
   email: "",
@@ -89,6 +94,7 @@ const openCreate = (): void => {
       canExportData: false,
     },
   };
+  formRef.value?.resetValidation?.();
   dialog.value = true;
 };
 
@@ -104,6 +110,7 @@ const openEdit = (u: SafeUser): void => {
     status: u.status,
     capabilities: { ...u.capabilities },
   };
+  formRef.value?.resetValidation?.();
   dialog.value = true;
 };
 
@@ -126,6 +133,7 @@ const messageForWrite = (err: unknown): string => {
 const save = async (): Promise<void> => {
   clear();
   formError.value = null;
+  if (formRef.value && !(await formRef.value.validate()).valid) return;
   saving.value = true;
   try {
     if (isEdit.value && editing.value) {
@@ -165,17 +173,20 @@ const resetPassword = ref("");
 const showResetPassword = ref(false);
 const resetting = ref(false);
 const resetError = ref<string | null>(null);
+const resetFormRef = ref<VuetifyFormRef | null>(null);
 
 const openReset = (u: SafeUser): void => {
   resetTarget.value = u;
   resetPassword.value = "";
   resetError.value = null;
+  resetFormRef.value?.resetValidation?.();
   resetDialog.value = true;
 };
 
 const doReset = async (): Promise<void> => {
   if (!resetTarget.value) return;
   resetError.value = null;
+  if (resetFormRef.value && !(await resetFormRef.value.validate()).valid) return;
   if (resetPassword.value.length < 8) {
     resetError.value = t("users.reset.tooShort");
     return;
@@ -232,9 +243,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }">
     <v-card-text>
-    <div class="d-flex align-center mb-4">
+    <!-- Phone: the section title is the page title; "Add user" is the FAB. -->
+    <template v-if="isMobile">
+      <div class="users-m__hint">{{ t("users.hint") }}</div>
+      <v-btn
+        class="billy-fab"
+        color="primary"
+        variant="flat"
+        size="large"
+        rounded="xl"
+        prepend-icon="mdi-account-plus-outline"
+        :aria-label="t('users.add')"
+        @click="openCreate"
+      >
+        {{ t("users.add") }}
+      </v-btn>
+    </template>
+    <div v-else class="d-flex align-center mb-4">
       <div>
         <div class="text-subtitle-1 font-weight-medium">{{ t("users.title") }}</div>
         <div class="text-caption text-medium-emphasis">{{ t("users.hint") }}</div>
@@ -251,6 +278,48 @@ onMounted(() => {
 
     <div v-if="loading" class="pa-8 text-center">
       <v-progress-circular indeterminate />
+    </div>
+
+    <!-- Phone: one card per user; actions in the overflow menu. -->
+    <div v-else-if="isMobile" class="users-m" role="list">
+      <div v-for="u in users" :key="u.id" class="users-m__card" role="listitem">
+        <div class="users-m__head">
+          <v-avatar color="primary" variant="tonal" size="40" class="users-m__avatar">
+            {{ (u.displayName || u.email).trim().charAt(0).toUpperCase() }}
+          </v-avatar>
+          <div class="users-m__titles">
+            <div class="users-m__name">{{ u.displayName || u.email }}</div>
+            <div class="users-m__email">{{ u.email }}</div>
+          </div>
+          <v-menu location="bottom end">
+            <template #activator="{ props }">
+              <v-btn icon="mdi-dots-vertical" variant="text" class="users-m__menu" v-bind="props" :aria-label="t('users.columns.actions')" />
+            </template>
+            <v-list density="comfortable">
+              <v-list-item prepend-icon="mdi-pencil-outline" :title="t('common.edit')" @click="openEdit(u)" />
+              <v-list-item prepend-icon="mdi-lock-reset" :title="t('users.reset.action')" @click="openReset(u)" />
+              <v-list-item
+                :prepend-icon="u.status === 'active' ? 'mdi-account-off-outline' : 'mdi-account-check-outline'"
+                :title="u.status === 'active' ? t('users.disable') : t('users.enable')"
+                @click="toggleStatus(u)"
+              />
+              <v-list-item prepend-icon="mdi-delete-outline" :title="t('users.delete.action')" base-color="error" @click="remove(u)" />
+            </v-list>
+          </v-menu>
+        </div>
+        <div class="users-m__chips">
+          <v-chip size="small" variant="tonal" :color="u.role === 'administrator' ? 'primary' : undefined">
+            {{ t(`users.roles.${u.role}`) }}
+          </v-chip>
+          <v-chip size="small" variant="tonal" :color="u.status === 'active' ? 'success' : 'error'">
+            {{ t(`users.status.${u.status}`) }}
+          </v-chip>
+          <v-chip v-if="u.totpEnabled" size="small" variant="tonal" color="success" prepend-icon="mdi-shield-check">
+            {{ t("users.columns.twoFactor") }}
+          </v-chip>
+        </div>
+      </div>
+      <div v-if="users.length === 0" class="users-m__empty">{{ t("users.empty") }}</div>
     </div>
 
     <v-table v-else density="comfortable">
@@ -308,16 +377,22 @@ onMounted(() => {
     </v-card-text>
 
     <!-- Create / edit dialog -->
-    <v-dialog v-model="dialog" max-width="560">
+    <v-dialog v-model="dialog" max-width="560" :fullscreen="isMobile" :scrollable="isMobile">
       <v-card>
-        <v-card-title>{{ isEdit ? t("users.editTitle") : t("users.addTitle") }}</v-card-title>
+        <v-card-title v-if="isMobile" class="d-flex align-center users-m__dialog-title">
+          <v-btn icon="mdi-close" variant="text" class="mr-1" :aria-label="t('common.close')" :disabled="saving" @click="dialog = false" />
+          <span>{{ isEdit ? t("users.editTitle") : t("users.addTitle") }}</span>
+        </v-card-title>
+        <v-card-title v-else>{{ isEdit ? t("users.editTitle") : t("users.addTitle") }}</v-card-title>
         <v-card-text>
           <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
             {{ formError }}
           </v-alert>
+          <v-form ref="formRef" @submit.prevent="save">
           <v-text-field
             v-model="form.email"
             :label="t('users.fields.email')"
+            :rules="isEdit ? [] : validations.required.email"
             :error-messages="fieldErrors.email"
             :disabled="isEdit"
             type="email"
@@ -326,6 +401,7 @@ onMounted(() => {
           <v-text-field
             v-model="form.displayName"
             :label="t('users.fields.displayName')"
+            :rules="validations.required.any"
             :error-messages="fieldErrors.displayName"
             density="comfortable"
           />
@@ -333,6 +409,7 @@ onMounted(() => {
             v-model="form.role"
             :items="roleOptions"
             :label="t('users.fields.role')"
+            :rules="validations.required.any"
             :error-messages="fieldErrors.role"
             density="comfortable"
           />
@@ -340,6 +417,7 @@ onMounted(() => {
             v-if="!isEdit"
             v-model="form.password"
             :label="t('users.fields.password')"
+            :rules="validations.required.passwordPolicy"
             :error-messages="fieldErrors.password"
             :hint="t('users.fields.passwordHint')"
             persistent-hint
@@ -370,11 +448,12 @@ onMounted(() => {
             color="primary"
             hide-details
           />
+          </v-form>
         </v-card-text>
         <v-card-actions>
-          <v-btn variant="text" :disabled="saving" @click="dialog = false">{{ t("common.cancel") }}</v-btn>
+          <v-btn v-if="!isMobile" variant="text" :disabled="saving" @click="dialog = false">{{ t("common.cancel") }}</v-btn>
           <v-spacer />
-          <v-btn color="primary" :loading="saving" @click="save">{{ t("common.saveChanges") }}</v-btn>
+          <v-btn color="primary" :variant="isMobile ? 'flat' : undefined" :size="isMobile ? 'large' : undefined" :loading="saving" @click="save">{{ t("common.saveChanges") }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -390,9 +469,11 @@ onMounted(() => {
           <v-alert v-if="resetError" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
             {{ resetError }}
           </v-alert>
+          <v-form ref="resetFormRef" @submit.prevent="doReset">
           <v-text-field
             v-model="resetPassword"
             :label="t('users.reset.newPassword')"
+            :rules="validations.required.passwordPolicy"
             :hint="t('users.fields.passwordHint')"
             persistent-hint
             :type="showResetPassword ? 'text' : 'password'"
@@ -402,6 +483,7 @@ onMounted(() => {
             autofocus
             @click:append-inner="showResetPassword = !showResetPassword"
           />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-btn variant="text" :disabled="resetting" @click="resetDialog = false">{{ t("common.cancel") }}</v-btn>
@@ -412,3 +494,72 @@ onMounted(() => {
     </v-dialog>
   </v-card>
 </template>
+
+<style scoped>
+/* ── Phone: user cards ─────────────────────────────────────────────────── */
+.users-m__hint {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.7));
+  margin: -4px 0 12px;
+}
+.users-m {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.users-m__card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 16px;
+  padding: 12px 8px 12px 14px;
+}
+.users-m__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.users-m__avatar {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+.users-m__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.users-m__name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.users-m__email {
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.7));
+  overflow-wrap: anywhere;
+}
+.users-m__menu {
+  flex: 0 0 auto;
+}
+.users-m__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0 52px;
+}
+.users-m__empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 16px;
+}
+.users-m__dialog-title {
+  padding-left: 8px !important;
+  gap: 4px;
+}
+</style>

@@ -115,3 +115,21 @@ describe("serviceUrl (internal service addresses)", () => {
     }
   });
 });
+
+describe("passwordPolicy (mirrors the API PasswordPolicy: 8–200 chars)", () => {
+  it.each(["password1", "12345678", "        ", "x".repeat(200)])("accepts %s", (v) =>
+    expect(ok(validations.required.passwordPolicy, v)).toBe(true),
+  );
+  it.each(["", "1234567", "x".repeat(201), null, undefined])("rejects %s", (v) =>
+    expect(ok(validations.required.passwordPolicy, v)).toBe(false),
+  );
+});
+
+describe("slug (mirrors the API account slug: trim + lowercase, 2–48, inner hyphens)", () => {
+  it.each(["", "  ", "acme", "Acme", " acme-srl ", "a1", "x".repeat(48)])("accepts %s", (v) =>
+    expect(ok(validations.slug, v)).toBe(true),
+  );
+  it.each(["a", "-acme", "acme-", "acme srl", "acme_srl", "àcme", "x".repeat(49)])("rejects %s", (v) =>
+    expect(ok(validations.slug, v)).toBe(false),
+  );
+});

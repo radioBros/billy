@@ -26,6 +26,7 @@ import {
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsCoreOption } from "echarts/core";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 echarts.use([
   LineChart,
@@ -54,6 +55,7 @@ const props = defineProps<{
 }>();
 
 const theme = useTheme();
+const isMobile = useIsMobile();
 const el = ref<HTMLElement | null>(null);
 let chart: echarts.ECharts | null = null;
 let ro: ResizeObserver | null = null;
@@ -75,6 +77,7 @@ const themeTokens = () => {
     success: cur.colors.success,
     error: cur.colors.error,
     info: cur.colors.info,
+    warning: cur.colors.warning,
     surface: cur.colors.surface,
     onSurface: cur.colors["on-surface"],
     text1: String(v["billy-text-1"] ?? cur.colors["on-surface"]),
@@ -84,11 +87,21 @@ const themeTokens = () => {
   };
 };
 
+/**
+ * Extra series colours after the theme's semantic ones — Tailwind 600 shades on
+ * light surfaces, 400 shades on dark (readable on both, distinct from the theme
+ * primary/success/info/error/warning hues): teal, pink, slate, lime.
+ */
+const EXTRA_LIGHT = ["#0d9488", "#db2777", "#64748b", "#65a30d"];
+const EXTRA_DARK = ["#2dd4bf", "#f472b6", "#94a3b8", "#a3e635"];
+
 const baseOption = (): EChartsCoreOption => {
   const tk = themeTokens();
   const base: EChartsCoreOption = {
     animation: !prefersReducedMotion(),
-    color: [tk.primary, tk.success, tk.info, tk.error],
+    // ≥ 8 distinct colours so multi-series charts (e.g. 6 doc types) never repeat.
+    // The first four stay put so existing 2–4 series charts keep their colours.
+    color: [tk.primary, tk.success, tk.info, tk.error, tk.warning, ...(tk.dark ? EXTRA_DARK : EXTRA_LIGHT)],
     textStyle: { color: tk.text2 },
     legend: { textStyle: { color: tk.text2 }, inactiveColor: tk.text3 },
     tooltip: {
@@ -97,16 +110,37 @@ const baseOption = (): EChartsCoreOption => {
       textStyle: { color: tk.text1 },
     },
   };
+  // Phone defaults: smaller type, compact legend swatches, tooltips confined to
+  // the chart box (a free tooltip runs off a 360px screen). Callers override.
+  if (isMobile.value) {
+    Object.assign(base as Record<string, unknown>, {
+      textStyle: { color: tk.text2, fontSize: 11 },
+      legend: {
+        textStyle: { color: tk.text2, fontSize: 11 },
+        inactiveColor: tk.text3,
+        itemWidth: 12,
+        itemHeight: 8,
+        itemGap: 10,
+      },
+      tooltip: {
+        backgroundColor: tk.surface,
+        borderColor: tk.border,
+        textStyle: { color: tk.text1, fontSize: 12 },
+        confine: true,
+      },
+    });
+  }
+  const axisFont = isMobile.value ? { fontSize: 10, hideOverlap: true } : {};
   const isCartesian = "xAxis" in props.option || "yAxis" in props.option;
   if (isCartesian) {
     (base as Record<string, unknown>).xAxis = {
       axisLine: { lineStyle: { color: tk.border } },
-      axisLabel: { color: tk.text2 },
+      axisLabel: { color: tk.text2, ...axisFont },
       splitLine: { show: false },
     };
     (base as Record<string, unknown>).yAxis = {
       axisLine: { show: false },
-      axisLabel: { color: tk.text2 },
+      axisLabel: { color: tk.text2, ...axisFont },
       splitLine: { lineStyle: { color: tk.border } },
     };
   }
@@ -145,9 +179,9 @@ watch(
   () => bindEvents(),
 );
 
-// Recolor + re-option on theme toggle or new data.
+// Recolor + re-option on theme toggle, new data, or crossing the phone breakpoint.
 watch(
-  () => [theme.current.value, props.option],
+  () => [theme.current.value, props.option, isMobile.value],
   () => render(),
   { deep: true },
 );

@@ -1,6 +1,6 @@
 {
   "name": "billy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Self-hostable, open-source invoicing & business-management app.",
   "license": "AGPL-3.0-or-later",

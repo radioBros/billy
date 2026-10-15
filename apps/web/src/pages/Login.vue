@@ -14,11 +14,13 @@ import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import { ApiError } from "@/api/client";
 import type { Principal } from "@/types/domain";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+const isMobile = useIsMobile();
 
 const email = ref("");
 const password = ref("");
@@ -130,14 +132,17 @@ const onSubmitTwoFactor = async (): Promise<void> => {
   <v-app>
     <v-main>
       <main :aria-label="t('login.title')">
-        <v-container class="fill-height" fluid>
+        <v-container class="fill-height" :class="{ 'login--mobile': isMobile }" fluid>
           <v-row justify="center" align="center">
             <v-col cols="12" sm="8" md="5" lg="4">
-              <v-card elevation="4" rounded="lg">
+              <!-- Phone: no floating box — a flat, full-bleed sign-in screen with
+                   larger touch targets (see .login--mobile below). -->
+              <v-card :elevation="isMobile ? 0 : 4" rounded="lg">
                 <!-- Horizontal billy logo (icon + wordmark); no app-name text beside it. -->
-                <div class="d-flex justify-center pt-8 pb-2 px-6">
+                <div class="d-flex justify-center pt-8 pb-2 px-6 login-logo">
                   <v-img src="/billy.png" alt="billy" :max-width="200" :max-height="64" contain />
                 </div>
+                <h1 v-if="isMobile" class="login-title">{{ t("login.title") }}</h1>
                 <v-card-text class="px-6">
                   <v-alert
                     v-if="errorMessage"
@@ -174,6 +179,8 @@ const onSubmitTwoFactor = async (): Promise<void> => {
                       color="primary"
                       block
                       class="mt-4"
+                      :variant="isMobile ? 'flat' : undefined"
+                      :size="isMobile ? 'x-large' : undefined"
                       :loading="loading"
                       :disabled="loading"
                     >
@@ -227,6 +234,8 @@ const onSubmitTwoFactor = async (): Promise<void> => {
                       color="primary"
                       block
                       class="mt-4"
+                      :variant="isMobile ? 'flat' : undefined"
+                      :size="isMobile ? 'x-large' : undefined"
                       :loading="loading"
                       :disabled="loading || expired"
                     >
@@ -245,3 +254,31 @@ const onSubmitTwoFactor = async (): Promise<void> => {
     </v-main>
   </v-app>
 </template>
+
+<style scoped>
+/* ── Phone (< 600px): flat full-bleed sign-in, content vertically centred. ── */
+.login--mobile {
+  min-height: 100dvh;
+  padding: 24px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+.login--mobile :deep(.v-card) {
+  background: transparent;
+  border: 0 !important;
+}
+.login--mobile .login-logo {
+  padding-top: 0 !important;
+  padding-bottom: 16px !important;
+}
+.login-title {
+  margin: 0 24px 20px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.login--mobile :deep(.v-btn--size-x-large) {
+  height: 52px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+</style>

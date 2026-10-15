@@ -23,6 +23,14 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({ push: routerPush }),
 }));
 
+// Phone layout switch: tests flip this ref to exercise the < 600px branch
+// (jsdom itself is desktop-width).
+const mobile = vi.hoisted(() => ({ value: false }));
+vi.mock("@/composables/useIsMobile", async () => {
+  const { computed } = await import("vue");
+  return { useIsMobile: () => computed(() => mobile.value) };
+});
+
 const vuetify = createVuetify({ components, directives });
 
 const COUNTS = { clients: 7, activeSubscriptions: 3, unbilledTimeEntries: 12, expenses: 5 };
@@ -86,6 +94,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  mobile.value = false;
 });
 
 const mountDashboard = () => {
@@ -175,5 +184,37 @@ describe("Dashboard — SEC5 (financials absent) renders gracefully", () => {
     expect(text).not.toContain("Collected");
     // With financials gated AND empty monthly-counts, no EChart renders at all.
     expect(wrapper.find(".echart-stub").exists()).toBe(false);
+  });
+});
+
+describe("Dashboard — phone layout", () => {
+  it("renders the KPI cards as a 2-column tile grid (money first) instead of the desktop rows", async () => {
+    mobile.value = true;
+    mockGet(SUMMARY_WITH_FINANCIALS, REVENUE);
+
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    const money = wrapper.find('[data-test="kpi-grid-money"]');
+    const counts = wrapper.find('[data-test="kpi-grid-counts"]');
+    expect(money.exists()).toBe(true);
+    expect(counts.exists()).toBe(true);
+    expect(money.findAll(".kpi-tile")).toHaveLength(4);
+    expect(money.text()).toContain("$2,500.00");
+    // Overdue > 0 → the alert tile; the desktop card rows are not rendered.
+    expect(money.find(".kpi-tile--alert").text()).toContain("Overdue");
+    expect(wrapper.find(".kpi-card").exists()).toBe(false);
+    expect(wrapper.find('[data-test="activity-mobile"]').text()).toContain("Recent activity");
+  });
+
+  it("omits the money tiles when financials are gated", async () => {
+    mobile.value = true;
+    mockGet(SUMMARY_NO_FINANCIALS, []);
+
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="kpi-grid-money"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="kpi-grid-counts"]').text()).toContain("Clients");
   });
 });

@@ -19,12 +19,14 @@ import {
   type PlaceholderInfo,
 } from "@billy/shared/template";
 import { DATE_EXAMPLE_PARAMS } from "@/composables/usePlaceholderInsert";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const props = defineProps<{
   docType: PlaceholderDocType;
 }>();
 
 const { t } = useI18n();
+const isMobile = useIsMobile();
 
 const open = ref(false);
 const copied = ref<string | null>(null);
@@ -124,7 +126,12 @@ const copy = async (text: string): Promise<void> => {
           @mousedown="captureTarget"
         />
       </template>
-      <v-card class="placeholder-legend__panel" rounded="lg" elevation="6">
+      <v-card
+        class="placeholder-legend__panel"
+        :class="{ 'placeholder-legend__panel--mobile': isMobile }"
+        rounded="lg"
+        elevation="6"
+      >
         <v-card-text>
             <!-- How-to note + dates explainer + format key. -->
             <p class="text-body-2 mb-2">{{ t("placeholders.help") }}</p>
@@ -205,5 +212,39 @@ const copy = async (text: string): Promise<void> => {
 }
 .placeholder-legend__desc {
   flex: 1 1 auto;
+}
+
+/* ── Phone: compact copy; each row = token + actions, description below. ── */
+.placeholder-legend__panel--mobile {
+  max-height: 60vh;
+  max-width: calc(100vw - 24px);
+}
+.placeholder-legend__panel--mobile > .v-card-text {
+  padding: 12px 14px;
+}
+.placeholder-legend__panel--mobile :deep(.text-body-2),
+.placeholder-legend__panel--mobile :deep(.v-alert) {
+  font-size: 0.8125rem !important;
+  line-height: 1.4;
+}
+.placeholder-legend__panel--mobile .placeholder-legend__row {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: 6px !important;
+}
+.placeholder-legend__panel--mobile .placeholder-legend__token {
+  order: 0;
+  margin-inline-end: auto;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.placeholder-legend__panel--mobile .placeholder-legend__row > :deep(.v-btn) {
+  order: 1;
+  width: 40px;
+  height: 40px;
+}
+.placeholder-legend__panel--mobile .placeholder-legend__desc {
+  order: 2;
+  flex: 1 1 100%;
 }
 </style>

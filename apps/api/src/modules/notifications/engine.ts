@@ -10,6 +10,7 @@ import {
   PREFERENCES_COLLECTION,
 } from "@/modules/notifications/repository.js";
 import { NotificationService, type NotificationPushQueue } from "@/modules/notifications/service.js";
+import { createEntityLabelResolver } from "@/modules/notifications/entity-labels.js";
 import type { Notification, NotificationPreferences } from "@/modules/notifications/types.js";
 
 /**
@@ -60,6 +61,8 @@ export const startNotificationEngine = (deps: NotificationEngineDeps): () => voi
     emitter: deps.emitter,
     logger: deps.logger,
     pushQueue: deps.pushQueue,
+    // Human entity labels (document number / client name …) for params.entity.
+    entityLabels: createEntityLabelResolver(deps.db, deps.logger),
   });
 
   const handle = async (event: DomainEvent): Promise<void> => {

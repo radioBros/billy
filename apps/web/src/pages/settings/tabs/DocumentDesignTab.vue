@@ -21,7 +21,7 @@
  * other, recipient opposite the logo, line items, totals (grand total large),
  * an optional bank block, then the footer HTML.
  */
-import { ref, computed, onMounted, inject } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, inject, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTheme } from "vuetify";
 import { api, ApiError } from "@/api/client";
@@ -34,6 +34,9 @@ import type {
 } from "@/types/domain";
 import { useBrandingStore, toApplied } from "@/stores/branding";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import FormSteps, { type FormStep } from "@/components/FormSteps.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import { sanitizeHtml } from "@/pages/settings/sanitizeHtml";
 import SettingsSection from "@/pages/settings/SettingsSection.vue";
 import LocalizedTextEditor from "@/components/LocalizedTextEditor.vue";
@@ -44,6 +47,30 @@ const { t } = useI18n();
 const theme = useTheme();
 const branding = useBrandingStore();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps (desktop renders the same sections stacked). */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "content", title: t("formSteps.content"), icon: "mdi-text-box-edit-outline" },
+  { key: "layout", title: t("settings.documents.layout"), icon: "mdi-page-layout-header-footer" },
+]);
+
+// Phone: the preview renders at a fixed page-like width and is zoomed down to
+// fit, so it reads as a miniature of the real PDF instead of a squeezed reflow.
+const PREVIEW_W = 640;
+const previewFitEl = ref<HTMLElement | null>(null);
+const previewScale = ref(1);
+let previewRo: ResizeObserver | null = null;
+watch(previewFitEl, (el) => {
+  previewRo?.disconnect();
+  previewRo = null;
+  if (!el || typeof ResizeObserver === "undefined") return;
+  previewRo = new ResizeObserver(() => {
+    previewScale.value = Math.min(1, el.clientWidth / PREVIEW_W);
+  });
+  previewRo.observe(el);
+});
+onBeforeUnmount(() => previewRo?.disconnect());
 
 const loading = ref(false);
 const saving = ref(false);
@@ -185,7 +212,7 @@ onMounted(() => {
 
 <template>
   <!-- Full-width: no md split. Controls stack above a full-width PDF preview. -->
-  <v-card variant="outlined" rounded="lg">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }">
     <v-card-text>
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -196,6 +223,8 @@ onMounted(() => {
     </div>
 
     <v-form v-else @submit.prevent="save">
+      <FormSteps :steps="formSteps">
+      <template #content>
       <!-- Controls -->
       <SettingsSection first :title="t('settings.documents.controls')">
         <LocalizedTextEditor
@@ -214,7 +243,9 @@ onMounted(() => {
         />
         <div class="text-caption text-medium-emphasis">{{ t("settings.documents.footerHint") }}</div>
       </SettingsSection>
+      </template>
 
+      <template #layout>
       <SettingsSection :title="t('settings.documents.layout')">
         <v-row dense>
           <v-col cols="12" md="6">
@@ -252,7 +283,15 @@ onMounted(() => {
 
       <!-- Full-width live preview -->
       <SettingsSection :title="t('settings.documents.preview')" :hint="t('settings.documents.previewHint')">
-        <v-sheet border rounded="lg" color="white" class="doc-preview pa-8" theme="light">
+        <div ref="previewFitEl">
+        <v-sheet
+          border
+          rounded="lg"
+          color="white"
+          class="doc-preview pa-8"
+          theme="light"
+          :style="isMobile ? { width: `${PREVIEW_W}px`, zoom: previewScale } : undefined"
+        >
           <!-- Header band: logo one side, company identity + heading the other. -->
           <div class="doc-preview__header" :class="{ 'doc-preview__header--rev': !logoOnLeft }">
             <!-- Logo side. No logo → the slot stays EMPTY (the company name already
@@ -283,10 +322,10 @@ onMounted(() => {
           <div class="doc-preview__header" :class="{ 'doc-preview__header--rev': !logoOnLeft }">
             <div :style="{ textAlign: logoOnLeft ? 'left' : 'right' }">
               <div v-if="companyVat" class="text-caption">
-                <span class="font-weight-bold">VAT ID</span> {{ companyVat }}
+                <span class="font-weight-bold text-uppercase">{{ t("settings.company.vatNumber") }}</span> {{ companyVat }}
               </div>
               <div v-if="brandingRest?.supportEmail" class="text-caption">
-                <span class="font-weight-bold">EMAIL</span> {{ brandingRest.supportEmail }}
+                <span class="font-weight-bold text-uppercase">{{ t("settings.company.email") }}</span> {{ brandingRest.supportEmail }}
               </div>
             </div>
             <div class="doc-preview__recipient" :style="{ textAlign: logoOnLeft ? 'right' : 'left' }">
@@ -355,12 +394,16 @@ onMounted(() => {
             v-html="safeFooter"
           />
         </v-sheet>
+        </div>
       </SettingsSection>
+      </template>
 
-      <div class="d-flex mt-4" style="gap: 12px">
-        <v-spacer />
+      <template #actions>
+      <FormActions :class="{ 'mt-4': !isMobile }">
         <v-btn color="primary" type="submit" :loading="saving">{{ t("settings.documents.save") }}</v-btn>
-      </div>
+      </FormActions>
+      </template>
+      </FormSteps>
     </v-form>
     </v-card-text>
   </v-card>

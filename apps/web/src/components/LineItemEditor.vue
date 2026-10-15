@@ -9,7 +9,7 @@
  * Price is edited in MAJOR units (e.g. 10.50) and converted to minor units on
  * emit via majorToMinor.
  */
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, inject } from "vue";
 import { useI18n } from "vue-i18n";
 import type { LineItemInput } from "@/types/domain";
 import type { PlaceholderDocType } from "@billy/shared/template";
@@ -19,6 +19,8 @@ import PlaceholderLegend from "@/components/PlaceholderLegend.vue";
 import { usePlaceholderInsert } from "@/composables/usePlaceholderInsert";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { codeItems } from "@/utils/einvoicingCodes";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { FORM_STEPS_KEY } from "@/components/FormSteps.vue";
 
 /**
  * Editor-local row. The price is held as a raw string so intermediate decimal
@@ -60,6 +62,9 @@ const { t } = useI18n();
 // select exist only while e-invoicing is enabled.
 const einvoicing = useEInvoicing();
 void einvoicing.load();
+const isMobile = useIsMobile();
+// Inside a phone wizard the step header already says "Line items".
+const inStepper = inject(FORM_STEPS_KEY, ref(false));
 const natureOn = computed<boolean>(() => props.showNature === true && einvoicing.enabled);
 const natureItems = computed(() => codeItems(t, "natura"));
 const isZeroRate = (r: EditorRow): boolean => r.taxRate !== null && Number(r.taxRate) === 0;
@@ -207,8 +212,117 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
 
 <template>
   <div>
-    <div class="text-subtitle-2 mb-2">Line items</div>
-    <v-table density="compact">
+    <div v-if="!inStepper" class="text-subtitle-2 mb-2">Line items</div>
+
+    <!-- Phone: one card per line — description on top, the four figures in a
+         2×2 grid, line total + remove in the footer. Same bindings/rules as
+         the desktop table below. -->
+    <div v-if="isMobile" class="li-cards">
+      <div v-for="(row, i) in rows" :key="i" class="li-card">
+        <div class="li-card__head">
+          <span class="li-card__index">{{ i + 1 }}</span>
+          <v-spacer />
+          <span class="li-card__total">{{ minorToDisplay(lineTotalMinor(row), currency) }}</span>
+          <v-btn
+            icon="mdi-delete-outline"
+            variant="text"
+            color="error"
+            size="small"
+            class="px-0"
+            :disabled="disabled"
+            :aria-label="t('lineItems.removeLine')"
+            @click="removeRow(i)"
+          />
+        </div>
+        <v-textarea
+          :model-value="row.description"
+          :disabled="disabled"
+          :label="t('invoices.lineCols.description')"
+          density="comfortable"
+          hide-details="auto"
+          rows="1"
+          auto-grow
+          aria-label="Line description"
+          :rules="[descriptionRule]"
+          :error-messages="cellError(i, 'description')"
+          :class="['mb-3', { 'placeholder-field': docType }]"
+          @update:model-value="(v) => updateRow(i, { description: v })"
+          @contextmenu="docType ? onContextMenu($event) : undefined"
+        >
+          <template v-if="docType" #append-inner>
+            <PlaceholderLegend :doc-type="docType" />
+          </template>
+        </v-textarea>
+        <div class="li-card__grid">
+          <v-text-field
+            :model-value="row.quantity"
+            :disabled="disabled"
+            :label="t('invoices.lineCols.qty')"
+            type="number"
+            inputmode="decimal"
+            density="comfortable"
+            hide-details="auto"
+            aria-label="Quantity"
+            :rules="[quantityRule]"
+            :error-messages="cellError(i, 'quantity')"
+            @update:model-value="(v) => updateRow(i, { quantity: v === '' ? null : Number(v) })"
+          />
+          <v-text-field
+            :model-value="formatMajorDisplay(row.unitPriceMajor)"
+            :disabled="disabled"
+            :label="t('lineItems.unitPrice', { currency })"
+            type="text"
+            inputmode="decimal"
+            density="comfortable"
+            hide-details="auto"
+            aria-label="Unit price"
+            :rules="[unitPriceRule]"
+            :error-messages="cellError(i, 'unitPriceMinor')"
+            @update:model-value="(v) => onUnitPriceInput(i, v)"
+          />
+          <v-text-field
+            :model-value="row.discountRate"
+            :disabled="disabled"
+            :label="t('lineItems.discountPct')"
+            type="number"
+            inputmode="decimal"
+            density="comfortable"
+            hide-details
+            aria-label="Discount rate"
+            @update:model-value="(v) => updateRow(i, { discountRate: v === '' ? null : Number(v) })"
+          />
+          <v-text-field
+            :model-value="row.taxRate"
+            :disabled="disabled"
+            :label="t('lineItems.taxPct')"
+            type="number"
+            inputmode="decimal"
+            density="comfortable"
+            hide-details
+            aria-label="Tax rate"
+            @update:model-value="(v) => updateRow(i, { taxRate: v === '' ? null : Number(v) })"
+          />
+        </div>
+        <v-select
+          v-if="natureOn && isZeroRate(row)"
+          :model-value="row.nature"
+          :items="natureItems"
+          :disabled="disabled"
+          :label="t('einvoicing.nature.column')"
+          density="comfortable"
+          hide-details="auto"
+          clearable
+          class="mt-3"
+          :placeholder="t('einvoicing.nature.placeholder')"
+          :aria-label="t('einvoicing.nature.column')"
+          :error-messages="cellError(i, 'nature')"
+          data-test="line-nature"
+          @update:model-value="(v) => updateRow(i, { nature: v ?? null })"
+        />
+      </div>
+    </div>
+
+    <v-table v-else density="compact">
       <thead>
         <tr>
           <th style="min-width: 200px">Description</th>
@@ -330,35 +444,89 @@ const totals = computed(() => computeDisplayTotals(rows.value.map(rowToTotalsInp
       </tbody>
     </v-table>
 
-    <div class="d-flex align-center mt-2">
+    <div class="mt-2" :class="isMobile ? 'li-footer--mobile' : 'd-flex align-center'">
       <v-btn
         color="primary"
-        size="small"
+        :size="isMobile ? 'large' : 'small'"
+        :block="isMobile"
         prepend-icon="mdi-plus"
         :disabled="disabled"
         @click="addRow"
       >
-        Add line
+        {{ t("lineItems.addLine") }}
       </v-btn>
-      <v-spacer />
-      <div class="text-right" style="min-width: 220px">
+      <v-spacer v-if="!isMobile" />
+      <div class="text-right" :class="{ 'li-totals--mobile': isMobile }" :style="isMobile ? undefined : 'min-width: 220px'">
         <div class="d-flex justify-space-between text-body-2">
-          <span>Subtotal</span><span>{{ minorToDisplay(totals.subtotalMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.subtotal") }}</span><span>{{ minorToDisplay(totals.subtotalMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-body-2">
-          <span>Discount</span><span>{{ minorToDisplay(totals.discountMinor, currency) }}</span>
+          <span>{{ t("lineItems.discount") }}</span><span>{{ minorToDisplay(totals.discountMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-body-2">
-          <span>Tax</span><span>{{ minorToDisplay(totals.taxMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.tax") }}</span><span>{{ minorToDisplay(totals.taxMinor, currency) }}</span>
         </div>
         <div class="d-flex justify-space-between text-subtitle-1 font-weight-medium">
-          <span>Total</span><span>{{ minorToDisplay(totals.grandTotalMinor, currency) }}</span>
+          <span>{{ t("invoices.totals.total") }}</span><span>{{ minorToDisplay(totals.grandTotalMinor, currency) }}</span>
         </div>
         <div class="text-caption" style="color: var(--v-billy-text-3)">
-          Totals are indicative — the server recalculates on save.
+          {{ t("lineItems.indicative") }}
         </div>
       </div>
     </div>
     <PlaceholderInsertMenu v-if="docType" :state="menuState" :doc-type="docType" @insert="insertToken" />
   </div>
 </template>
+
+<style scoped>
+/* ── Phone line-item cards ─────────────────────────────────────────────── */
+.li-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.li-card {
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 14px;
+  padding: 8px 12px 14px;
+  background: rgb(var(--v-theme-surface));
+}
+.li-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.li-card__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+.li-card__total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.li-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.li-footer--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px !important;
+}
+.li-totals--mobile {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.05);
+}
+</style>

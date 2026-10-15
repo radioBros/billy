@@ -16,6 +16,7 @@ import { useAuthStore } from "@/stores/auth";
 import type { TotpSetup } from "@/types/domain";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
@@ -225,10 +226,9 @@ const confirmDisable = async (): Promise<void> => {
           required
           @click:append-inner="showConfirm = !showConfirm"
         />
-        <div class="d-flex mt-4">
-          <v-spacer />
+        <FormActions class="mt-4">
           <v-btn color="primary" type="submit" :loading="pwSaving">{{ t("userSettings.password.save") }}</v-btn>
-        </div>
+        </FormActions>
       </v-form>
       </v-card-text>
     </v-card>
@@ -260,19 +260,17 @@ const confirmDisable = async (): Promise<void> => {
             <code v-for="c in backupCodes" :key="c" class="text-body-1" role="listitem">{{ c }}</code>
           </div>
         </v-sheet>
-        <div class="d-flex">
-          <v-spacer />
+        <FormActions>
           <v-btn color="primary" @click="dismissBackupCodes">
             {{ t("userSettings.totp.backupSaved") }}
           </v-btn>
-        </div>
+        </FormActions>
       </div>
 
       <!-- Enabled state -->
-      <div v-else-if="totpEnabled" class="d-flex">
-        <v-spacer />
+      <FormActions v-else-if="totpEnabled">
         <v-btn color="error" variant="tonal" @click="openDisable">{{ t("userSettings.totp.disable") }}</v-btn>
-      </div>
+      </FormActions>
 
       <!-- Setup in progress -->
       <div v-else-if="setup">
@@ -312,10 +310,9 @@ const confirmDisable = async (): Promise<void> => {
       </div>
 
       <!-- Disabled state -->
-      <div v-else class="d-flex">
-        <v-spacer />
+      <FormActions v-else>
         <v-btn color="primary" :loading="totpBusy" @click="startEnable">{{ t("userSettings.totp.enable") }}</v-btn>
-      </div>
+      </FormActions>
       </v-card-text>
     </v-card>
 

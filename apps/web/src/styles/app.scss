@@ -300,3 +300,162 @@ html .v-row {
   opacity: 1;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * PHONE LAYOUT (< 600px — Vuetify `xs`, see composables/useIsMobile.ts)
+ *
+ * Global, structure-level adaptations shared by every page. Component-specific
+ * phone layouts (card lists, stepped forms, line-item cards…) live in their
+ * components behind `useIsMobile()`; this block only covers what is common.
+ * ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Height of the phone bottom navigation (+ iOS home-indicator inset). FABs and
+   * floating widgets sit above it. */
+  --billy-bottom-nav-h: calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Fullscreen dialogs (phone layouts) are the whole screen — no hairline frame. */
+.v-dialog--fullscreen > .v-overlay__content > .v-card {
+  border: 0 !important;
+}
+
+/* Floating primary action (PageHeader `primary` on phones). Extended FAB. */
+.billy-fab {
+  position: fixed !important;
+  right: 16px;
+  bottom: calc(var(--billy-bottom-nav-h) + 16px);
+  z-index: 1004;
+  height: 52px !important;
+  padding: 0 20px 0 18px !important;
+  font-size: 0.9375rem;
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.35) !important;
+}
+/* Lift the FAB above the live-timer pill while a timer runs. */
+.billy-timer-active .billy-fab {
+  bottom: calc(var(--billy-bottom-nav-h) + 80px);
+}
+
+@media (max-width: 599.98px) {
+  :root {
+    --billy-card-pad: 1rem;
+  }
+
+  /* Compact form grids: tighter vertical rhythm between stacked fields (the
+   * field's own message line already separates them). */
+  .v-card > .v-card-text .v-row > [class*="v-col"] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  /* A column holding a persistent hint/message needs room below it. */
+  .v-card > .v-card-text .v-row > [class*="v-col"]:has(.v-messages__message) {
+    padding-bottom: 12px;
+  }
+  /* …and an error line must never touch the next field's floating label. */
+  .v-input--error > .v-input__details {
+    margin-bottom: 6px;
+  }
+
+  /* Page titles: a touch smaller, bolder, tighter. */
+  .v-main .text-h5 {
+    font-size: 1.375rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Leave room under the last element for the floating action button. */
+  .v-main > main {
+    padding-bottom: 72px;
+  }
+  /* A stepped form owns the bottom edge with its sticky Back/Next bar. */
+  .billy-stepped .v-main > main {
+    padding-bottom: 0;
+  }
+  .billy-stepped .timer-overlay {
+    bottom: 84px !important;
+  }
+
+  /* ServerTable on phones renders free-standing cards — the outlined wrapper
+   * card the list pages put around it must disappear (and must not be a
+   * positioned/clipping ancestor, the virtual list measures against the page). */
+  .v-card:has(> .server-table--mobile) {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Cards: slightly rounder, never wider than the viewport. */
+  .v-main .v-card {
+    max-width: 100%;
+  }
+  .v-card > .v-card-title {
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .v-card .v-card-title:not(.auto-h) {
+    min-height: 48px;
+  }
+
+  /* Card action rows wrap instead of overflowing; buttons fill the row. */
+  .v-card-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px !important;
+  }
+  .v-card-actions > .v-btn {
+    margin-inline-start: 0 !important;
+    flex: 1 1 auto;
+  }
+  .v-card-actions > .v-spacer {
+    display: none;
+  }
+
+  /* Dialogs become bottom sheets: full width, anchored to the bottom, rounded
+   * top corners, tall enough to scroll their content. Fullscreen dialogs are
+   * left alone. */
+  .v-dialog:not(.v-dialog--fullscreen) {
+    align-items: flex-end !important;
+  }
+  .v-dialog:not(.v-dialog--fullscreen) > .v-overlay__content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    max-height: 92dvh !important;
+  }
+  .v-dialog:not(.v-dialog--fullscreen) > .v-overlay__content > .v-card,
+  .v-dialog:not(.v-dialog--fullscreen) > .v-overlay__content > form > .v-card {
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+
+  /* Tabs: scrollable row, never squeezed. */
+  .v-main .v-tabs:not(.v-tabs--vertical) {
+    max-width: 100%;
+  }
+
+  /* Alerts: let long text and action buttons wrap. */
+  .v-alert .v-alert__append {
+    align-self: center;
+  }
+
+  /* Generic tables that remain (small read-only tables inside cards) scroll
+   * horizontally inside their card instead of stretching the page. */
+  .v-main .v-table > .v-table__wrapper {
+    overflow-x: auto;
+  }
+
+  /* Wide inline field widths set for desktop toolbars collapse to full width. */
+  .v-main .v-input[style*="max-width"] {
+    max-width: 100% !important;
+  }
+
+  /* Comfortable touch targets for list items in menus. */
+  .v-menu .v-list-item {
+    min-height: 44px;
+  }
+}

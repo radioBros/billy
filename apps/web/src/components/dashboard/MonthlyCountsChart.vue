@@ -22,15 +22,17 @@ import {
   buildDrilldownQuery,
   DOC_TYPES,
   DRILLDOWN,
-  MONTH_ABBR,
+  monthAbbr,
   type DocType,
   type MonthlyCount,
 } from "@/components/dashboard/types";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue"));
 
 const { t } = useI18n();
 const router = useRouter();
+const isMobile = useIsMobile();
 
 const props = defineProps<{
   rows: MonthlyCount[];
@@ -63,7 +65,7 @@ const hasData = computed<boolean>(() => props.rows.some((r) => r.total > 0));
 
 const chartOption = computed(() => {
   const rows = props.rows;
-  const labels = rows.map((r) => MONTH_ABBR[r.monthNumber - 1] ?? "");
+  const labels = rows.map((r) => monthAbbr(r.monthNumber));
   const sel = new Set(selectedMonths.value);
   const anySelected = sel.size > 0;
   const series = DOC_TYPES.map((type) => ({
@@ -77,6 +79,19 @@ const chartOption = computed(() => {
       itemStyle: anySelected && !sel.has(r.monthNumber) ? { opacity: 0.35 } : undefined,
     })),
   }));
+  if (isMobile.value) {
+    // Phones: a plain legend that wraps onto two lines (the scroll pager's tiny
+    // arrows are fiddly to tap), slimmer bars, compact grid. Colours come from
+    // EChart's shared ≥8-colour palette (one distinct colour per doc type).
+    return {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { data: DOC_TYPES.map((type) => t(`dashboard.docType.${type}`)), top: 0, left: 0, right: 0, type: "plain" },
+      grid: { left: 0, right: 4, bottom: 0, top: 52, containLabel: true },
+      xAxis: { type: "category", data: labels, axisTick: { show: false }, axisLabel: { interval: 1 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: series.map((s) => ({ ...s, barMaxWidth: 14 })),
+    };
+  }
   return {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: { data: DOC_TYPES.map((type) => t(`dashboard.docType.${type}`)), top: 0, type: "scroll" },
@@ -106,7 +121,7 @@ const monthsLabel = computed<string>(() => {
   if (selectedMonths.value.length === 0) return t("dashboard.drilldown.allMonths");
   return [...selectedMonths.value]
     .sort((a, b) => a - b)
-    .map((m) => MONTH_ABBR[m - 1] ?? "")
+    .map((m) => monthAbbr(m))
     .join(", ");
 });
 
@@ -179,9 +194,9 @@ const openRow = (row: DrilldownRow): void => {
       <EChart
         v-if="hasData"
         :option="chartOption"
-        height="320px"
+        :height="isMobile ? '260px' : '320px'"
       />
-      <div v-else class="chart-empty">
+      <div v-else class="chart-empty" :class="{ 'chart-empty--mobile': isMobile }">
         <v-icon icon="mdi-chart-bar-stacked" size="36" class="mb-2" />
         <div class="text-body-2">{{ t("dashboard.counts.empty") }}</div>
       </div>
@@ -232,6 +247,7 @@ const openRow = (row: DrilldownRow): void => {
           <v-list-item
             :key="row.id"
             class="drill-row"
+            :class="{ 'drill-row--m': isMobile }"
             lines="two"
             :title="row.label"
             @click="openRow(row)"
@@ -267,10 +283,17 @@ const openRow = (row: DrilldownRow): void => {
   text-align: center;
   color: var(--v-billy-text-3);
 }
+.chart-empty--mobile {
+  height: 200px;
+}
 .kpi-label {
   color: var(--v-billy-text-2);
 }
 .drill-row {
   cursor: pointer;
+}
+/* Phone: rows align with the chart/select edges instead of the 16px list inset. */
+.drill-row--m {
+  padding-inline: 4px 0 !important;
 }
 </style>

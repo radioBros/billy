@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
@@ -143,5 +144,39 @@ describe("PeriodBar", () => {
     expect(
       getSpy.mock.calls.filter((c: unknown[]) => String(c[0]).includes("monthly-totals")).length,
     ).toBeGreaterThan(before);
+  });
+
+  it("hides the money line when no month carries totals (count-only kinds like contracts)", async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(apiClient.api, "get").mockResolvedValue(TOTALS.map((r) => ({ ...r, totals: {} })));
+    const wrapper = mountBar({ kind: "contracts" });
+    await flushPromises();
+    expect(wrapper.findAll(".period-cell__money")).toHaveLength(0);
+    expect(wrapper.text()).toContain("3 docs");
+  });
+
+  it("shows the money line when any month carries totals", async () => {
+    const wrapper = mountBar();
+    await flushPromises();
+    // 12 months + the All-year aggregate.
+    expect(wrapper.findAll(".period-cell__money")).toHaveLength(13);
+  });
+
+  it("labels months in the active locale", async () => {
+    i18n.global.locale.value = "it";
+    const wrapper = mountBar();
+    await flushPromises();
+    expect(wrapper.findAll(".period-cell__head").map((h) => h.text())).toContain("Gen");
+    i18n.global.locale.value = "en";
+  });
+
+  it("re-labels months live when the locale switches", async () => {
+    const wrapper = mountBar();
+    await flushPromises();
+    expect(wrapper.findAll(".period-cell__head").map((h) => h.text())).toContain("Jan");
+    i18n.global.locale.value = "it";
+    await nextTick();
+    expect(wrapper.findAll(".period-cell__head").map((h) => h.text())).toContain("Gen");
+    i18n.global.locale.value = "en";
   });
 });

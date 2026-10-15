@@ -21,8 +21,11 @@ import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { LOCALES, DEFAULT_LOCALE } from "@billy/shared/locales";
 import RichTextEditor from "@/components/RichTextEditor.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
+// Phone: the label + language picker row may wrap (long labels at 360px).
+const isMobile = useIsMobile();
 
 const model = defineModel<Record<string, string>>({ default: () => ({}) });
 
@@ -82,9 +85,9 @@ const filledLocales = computed<string[]>(() =>
 </script>
 
 <template>
-  <div class="localized-text-editor">
+  <div class="localized-text-editor" :class="{ 'localized-text-editor--mobile': isMobile }">
     <div class="d-flex align-center justify-space-between mb-1" style="gap: 12px">
-      <label class="text-caption text-medium-emphasis">{{ label }}</label>
+      <label class="text-caption text-medium-emphasis localized-text-editor__label">{{ label }}</label>
       <v-select
         v-model="selectedLocale"
         :items="localeItems"
@@ -106,6 +109,18 @@ const filledLocales = computed<string[]>(() =>
 </template>
 
 <style scoped>
+.localized-text-editor--mobile > .d-flex {
+  flex-wrap: wrap;
+  row-gap: 6px !important;
+}
+.localized-text-editor--mobile .localized-text-editor__label {
+  flex: 1 1 120px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.localized-text-editor--mobile .localized-text-editor__lang {
+  max-width: 160px;
+}
 .localized-text-editor__lang {
   max-width: 180px;
   flex: 0 0 auto;

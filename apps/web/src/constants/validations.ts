@@ -72,6 +72,17 @@ const intBetweenRule =
   (v: any): boolean | string =>
     isEmpty(v) || isIntBetween(v, min, max) || t("validations.intBetween", { min, max });
 
+/** Account slug — mirrors the API (`trim().toLowerCase()`, then [a-z0-9] with inner hyphens, 2–48 chars). */
+const SLUG_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+export const isSlug = (v: any): boolean => {
+  const s = strOf(v).toLowerCase();
+  return s.length >= 2 && s.length <= 48 && SLUG_RE.test(s);
+};
+const slugRule = (v: any): boolean | string => isEmpty(v) || isSlug(v) || t("validations.slugInvalid");
+/** Login password — mirrors the API PasswordPolicy (8–200 chars, untrimmed, no complexity rules). */
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 200;
+
 export default {
   names: ["email", "int", "password", "cf", "phone", "url"],
   fileMaxSize: [(v: any) => !v || v.size < 1024 * 1024 * 3 || "Max 3MB"],
@@ -249,6 +260,8 @@ export default {
   recipientCode: [recipientCodeRule],
   intBetween: (min: number, max: number) => [intBetweenRule(min, max)],
   serviceUrl: [(v: any) => isEmpty(v) || isServiceUrl(v) || t("validations.insertValidUrl")],
+  /** Optional account slug (blank = derived server-side from the name). */
+  slug: [slugRule],
   maxLength: (max: number) => (v: any) => {
     if (!v || !v.length) return true;
     return v.length <= max || t("validations.maxLength", { max: max });
@@ -288,6 +301,16 @@ export default {
         t("validations.requiredField"),
     ],
     date: [(v: any) => (v && dateValid(v)) || t("validations.dates.invalid")],
+    /** A YYYY-MM-DD date that is today or later (e.g. a scheduled send date). */
+    dateNotPast: [
+      (v: any) => (v && dateValid(v)) || t("validations.dates.invalid"),
+      (v: any) => strOf(v) >= new Date().toISOString().slice(0, 10) || t("validations.dates.notPast"),
+    ],
+    /** A money amount strictly greater than zero. */
+    amountPositive: [
+      requiredMsg,
+      (v: any) => (Number.isFinite(Number(v)) && Number(v) > 0) || t("validations.amountPositive"),
+    ],
     textOrBool: [
       (v: any) =>
         typeof v == "boolean" ||
@@ -320,6 +343,12 @@ export default {
             v,
           )) ||
         t("validations.insertValidPhone"),
+    ],
+    /** A user/admin login password as the API accepts it (8–200 chars). */
+    passwordPolicy: [
+      (v: any) => (typeof v === "string" && v.length > 0) || t("validations.requiredField"),
+      (v: any) => String(v ?? "").length >= PASSWORD_MIN || t("validations.passwordMinLength", { min: PASSWORD_MIN }),
+      (v: any) => String(v ?? "").length <= PASSWORD_MAX || t("validations.maxLength", { max: PASSWORD_MAX }),
     ],
     basicPassword: [
       (v: any) => !!v || t("validations.requiredField"),

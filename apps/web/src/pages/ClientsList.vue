@@ -28,7 +28,9 @@ import { useAuthStore } from "@/stores/auth";
 import { confirm } from "@/composables/useConfirm";
 import { useToast } from "@/composables/useToast";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 
@@ -37,6 +39,7 @@ const router = useRouter();
 const settings = useSettingsStore();
 const auth = useAuthStore();
 const { toast } = useToast();
+const isMobile = useIsMobile();
 
 const canDelete = computed<boolean>(
   () => auth.principal?.capabilities.canPermanentlyDelete === true,
@@ -58,6 +61,14 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("clients.columns.currency"), key: "preferredCurrency", sortable: false },
   { title: "", key: "actions", sortable: false, align: "end" },
 ]);
+
+/** Phone card: name + email, a company/individual chip, VAT number + country. */
+const cardLayout: ServerTableCardLayout = {
+  title: "displayName",
+  subtitle: "email",
+  status: ["type"],
+  meta: ["vatNumber", "billingAddress.country"],
+};
 
 const goToNew = (): void => {
   void router.push({ name: "client-new" });
@@ -84,6 +95,8 @@ const itemsPerPage = ref(50);
 const sortBy = ref<SortItem[]>([{ key: "displayName", order: "asc" }]);
 const search = ref("");
 const showArchived = ref(false);
+/** Filters differing from their default — badges the phone filter button. */
+const activeFilterCount = computed<number>(() => (showArchived.value ? 1 : 0));
 
 // ── Row lifecycle actions ─────────────────────────────────────────────────────
 
@@ -232,21 +245,23 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("clients.title") }}</h1>
-      <v-spacer />
-      <v-switch
-        v-model="showArchived"
-        :label="t('clients.showArchived')"
-        color="primary"
-        density="compact"
-        hide-details
-        class="flex-grow-0"
-      />
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="goToNew">
-        {{ t("clients.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('clients.title')"
+      :primary="{ label: t('clients.new'), icon: 'mdi-plus', onClick: goToNew }"
+    >
+      <!-- Desktop: the archived switch sits in the header row; on phones it is a
+           filter, so it lives in the filter sheet (#toolbar below). -->
+      <template v-if="!isMobile" #actions>
+        <v-switch
+          v-model="showArchived"
+          :label="t('clients.showArchived')"
+          color="primary"
+          density="compact"
+          hide-details
+          class="flex-grow-0 mr-1"
+        />
+      </template>
+    </PageHeader>
 
     <v-alert
       v-if="errorMessage"
@@ -273,8 +288,32 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
+        :active-filters="activeFilterCount"
         @click:row="openRow"
       >
+        <template v-if="isMobile" #toolbar>
+          <v-switch
+            v-model="showArchived"
+            :label="t('clients.showArchived')"
+            color="primary"
+            density="compact"
+            hide-details
+            inset
+          />
+        </template>
+        <template #[`item.type`]="{ item, card }">
+          <v-chip
+            v-if="card"
+            size="small"
+            variant="tonal"
+            label
+            :prepend-icon="(item as Client).type === 'individual' ? 'mdi-account-outline' : 'mdi-domain'"
+          >
+            {{ (item as Client).type === "individual" ? t("clients.form.typeIndividual") : t("clients.form.typeCompany") }}
+          </v-chip>
+          <template v-else>{{ (item as Client).type }}</template>
+        </template>
         <template #[`item.displayName`]="{ item }">
           <span class="d-inline-flex align-center" style="gap: 8px">
             {{ (item as Client).displayName }}
@@ -283,6 +322,7 @@ onMounted(() => {
             </v-chip>
           </span>
         </template>
+        <template #[`item.email`]="{ item }">{{ (item as Client).email ?? "" }}</template>
         <template #[`item.billingAddress.country`]="{ item }">
           {{ localizedCountryName(item.billingAddress?.country, locale) }}
         </template>

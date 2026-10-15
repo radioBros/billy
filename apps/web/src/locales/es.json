@@ -8,7 +8,12 @@
     "configure_columns": "Configurar columnas",
     "show": "Mostrar",
     "entries": "registros",
-    "showing_items": "Mostrando {from}–{to} de {total}"
+    "showing_items": "Mostrando {from}–{to} de {total}",
+    "filters": "Filtros y orden",
+    "sortBy": "Ordenar por",
+    "resultsCount": "Sin resultados | {n} resultado | {n} resultados",
+    "showResults": "Ver resultados | Ver {n} resultado | Ver {n} resultados",
+    "endOfList": "No hay más elementos"
   },
   "nav": {
     "dashboard": "Panel",
@@ -33,7 +38,14 @@
     "primaryNav": "Navegación principal",
     "mainContent": "Contenido principal",
     "signOut": "Cerrar sesión",
-    "theme": "Tema: {mode}. Actívalo para cambiar."
+    "theme": "Tema: {mode}. Actívalo para cambiar.",
+    "more": "Más",
+    "appearance": "Apariencia",
+    "themeModes": {
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema"
+    }
   },
   "account": {
     "label": "Cuenta",
@@ -279,7 +291,8 @@
       "unscheduleTitle": "¿Cancelar programación?",
       "unscheduleMessage": "Esta factura ya no se enviará automáticamente."
     },
-    "saved": "Factura guardada"
+    "saved": "Factura guardada",
+    "viewInvoice": "Ver factura"
   },
   "quotes": {
     "title": "Presupuestos",
@@ -347,7 +360,9 @@
       "convertTitle": "¿Convertir en factura?",
       "convertMessage": "Se creará una nueva factura en borrador a partir de este presupuesto."
     },
-    "saved": "Presupuesto guardado"
+    "saved": "Presupuesto guardado",
+    "convertedShort": "Convertido en factura.",
+    "viewInvoice": "Ver factura"
   },
   "contracts": {
     "title": "Contratos",
@@ -722,7 +737,9 @@
       "convertTitle": "¿Convertir en factura?",
       "convertMessage": "Se creará una nueva factura en borrador a partir de esta proforma."
     },
-    "saved": "Proforma guardada"
+    "saved": "Proforma guardada",
+    "convertedShort": "Convertida en factura.",
+    "openInvoice": "Abrir factura"
   },
   "dashboard": {
     "welcome": "Bienvenido",
@@ -866,7 +883,25 @@
       "generic": {
         "title": "Notificación",
         "body": "Actualización de {entity}"
+      },
+      "recurring": {
+        "occurrence_generated": {
+          "title": "Documento recurrente generado",
+          "body": "Se generó un nuevo documento a partir del perfil recurrente {entity}"
+        }
+      },
+      "payment": {
+        "received": {
+          "title": "Pago recibido",
+          "body": "Se recibió un pago de {entity}"
+        }
       }
+    },
+    "entityType": {
+      "project": "Proyecto",
+      "subscription": "Suscripción",
+      "timeEntry": "Registro de tiempo",
+      "payment": "Pago"
     }
   },
   "enums": {
@@ -891,7 +926,8 @@
       "renewed": "Renovado",
       "terminated": "Rescindido",
       "archived": "Archivado",
-      "invoiced": "Facturado"
+      "invoiced": "Facturado",
+      "suspended": "Suspendido"
     },
     "contractType": {
       "development": "Desarrollo",
@@ -1110,7 +1146,15 @@
       "language": "Idioma",
       "languagesWithContent": "Idiomas con contenido: {locales}"
     },
-    "einvoicingTab": "Facturación electrónica (SdI)"
+    "einvoicingTab": "Facturación electrónica (SdI)",
+    "tabs": {
+      "branding": "Marca",
+      "email": "Correo electrónico",
+      "localization": "Localización",
+      "documents": "Documentos",
+      "company": "Empresa",
+      "advanced": "Avanzado"
+    }
   },
   "documentActions": {
     "preview": "Vista previa",
@@ -1320,7 +1364,8 @@
     "maxLength": "Maximo {max} caracteres",
     "dates": {
       "invalid": "Introduce una fecha valida",
-      "maxToday": "La fecha no puede ser futura"
+      "maxToday": "La fecha no puede ser futura",
+      "notPast": "La fecha no puede estar en el pasado"
     },
     "formHasErrors": "Corrige los errores marcados",
     "quantityPositive": "La cantidad debe ser mayor que 0",
@@ -1333,7 +1378,10 @@
     "portInvalid": "Introduce un puerto entre 1 y 65535",
     "ibanInvalid": "Introduce un IBAN válido (p. ej. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Introduce un importe con un máximo de 2 decimales (p. ej. 77.47)",
-    "intBetween": "Introduce un número entero entre {min} y {max}"
+    "intBetween": "Introduce un número entero entre {min} y {max}",
+    "amountPositive": "Introduce un importe mayor que 0",
+    "slugInvalid": "2–48 letras minúsculas, dígitos o guiones (sin guion al principio ni al final)",
+    "passwordMinLength": "La contraseña debe tener al menos {min} caracteres"
   },
   "accounts": {
     "title": "Cuentas",
@@ -1444,7 +1492,8 @@
     "tooLarge": "{name} es demasiado grande — el total de adjuntos debe mantenerse por debajo de {max}",
     "remove": "Eliminar",
     "previewPdf": "Vista previa del PDF",
-    "uploadError": "No se pudo subir {name}"
+    "uploadError": "No se pudo subir {name}",
+    "tapHint": "Toca para adjuntar archivos"
   },
   "placeholders": {
     "legendButton": "Marcadores",
@@ -2102,5 +2151,29 @@
       "tipExpand": "Mostrar detalles de la factura electrónica (SdI)",
       "tipCollapse": "Ocultar detalles de la factura electrónica (SdI)"
     }
+  },
+  "formSteps": {
+    "next": "Siguiente",
+    "counter": "Paso {n} de {total}",
+    "details": "Detalles",
+    "items": "Líneas",
+    "notes": "Notas y opciones",
+    "review": "Revisión",
+    "contact": "Contacto",
+    "address": "Dirección",
+    "billing": "Facturación",
+    "schedule": "Programación",
+    "content": "Contenido",
+    "attachments": "Adjuntos",
+    "period": "Fechas y valor"
+  },
+  "lineItems": {
+    "unitPrice": "Precio unitario ({currency})",
+    "discountPct": "Dto. %",
+    "taxPct": "IVA %",
+    "addLine": "Añadir línea",
+    "removeLine": "Eliminar línea",
+    "discount": "Descuento",
+    "indicative": "Los totales son orientativos — el servidor los recalcula al guardar."
   }
 }

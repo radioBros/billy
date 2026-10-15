@@ -11,12 +11,15 @@ import { computed, defineAsyncComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTheme } from "vuetify";
 import { minorToDisplay } from "@/utils/money";
-import { MONTH_ABBR, type RevenueMonth } from "@/components/dashboard/types";
+import { monthAbbr, type RevenueMonth } from "@/components/dashboard/types";
+import { minorToCompact } from "@/components/dashboard/chartFormat";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const EChart = defineAsyncComponent(() => import("@/components/charts/EChart.vue"));
 
 const { t } = useI18n();
 const theme = useTheme();
+const isMobile = useIsMobile();
 
 const props = defineProps<{
   rows: RevenueMonth[];
@@ -43,12 +46,29 @@ const option = computed(() => {
   const invoiced = rows.map((r) => pick(r.invoiced));
   const collected = rows.map((r) => pick(r.collected));
   const expenses = rows.map((r) => pick(r.expenses));
-  const labels = rows.map((_, i) => MONTH_ABBR[i] ?? "");
+  const labels = rows.map((_, i) => monthAbbr(i + 1));
   const names = {
     invoiced: t("dashboard.chart.invoiced"),
     collected: t("dashboard.chart.collected"),
     expenses: t("dashboard.chart.expenses"),
   };
+  if (isMobile.value) {
+    // Phones: compact money ticks, slim rounded bars, every month labelled.
+    const bar = { type: "bar", barMaxWidth: 6, barGap: "15%", barCategoryGap: "30%" };
+    const round = { borderRadius: [3, 3, 0, 0] };
+    return {
+      tooltip: { trigger: "axis", valueFormatter: (v: number) => minorToDisplay(v, cur) },
+      legend: { data: [names.invoiced, names.collected, names.expenses], top: 0 },
+      grid: { left: 0, right: 4, bottom: 0, top: 32, containLabel: true },
+      xAxis: { type: "category", data: labels, axisTick: { show: false }, axisLabel: { interval: 1 } },
+      yAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: (v: number) => minorToCompact(v, cur) } },
+      series: [
+        { ...bar, name: names.invoiced, data: invoiced, itemStyle: { color: c.primary, ...round } },
+        { ...bar, name: names.collected, data: collected, itemStyle: { color: c.success, ...round } },
+        { ...bar, name: names.expenses, data: expenses, itemStyle: { color: c.error, ...round } },
+      ],
+    };
+  }
   return {
     tooltip: { trigger: "axis", valueFormatter: (v: number) => minorToDisplay(v, cur) },
     legend: { data: [names.invoiced, names.collected, names.expenses], top: 0 },
@@ -65,8 +85,8 @@ const option = computed(() => {
 </script>
 
 <template>
-  <EChart v-if="hasData" :option="option" height="320px" />
-  <div v-else class="chart-empty">
+  <EChart v-if="hasData" :option="option" :height="isMobile ? '240px' : '320px'" />
+  <div v-else class="chart-empty" :class="{ 'chart-empty--mobile': isMobile }">
     <v-icon icon="mdi-chart-bar" size="36" class="mb-2" />
     <div class="text-body-2">{{ t("dashboard.chart.revenueExpenseEmpty") }}</div>
   </div>
@@ -81,5 +101,8 @@ const option = computed(() => {
   height: 320px;
   text-align: center;
   color: var(--v-billy-text-3);
+}
+.chart-empty--mobile {
+  height: 200px;
 }
 </style>

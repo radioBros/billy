@@ -17,7 +17,8 @@ import type { Project } from "@/types/domain";
 import { useSettingsStore } from "@/stores/settings";
 import { confirm } from "@/composables/useConfirm";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import StatusChip from "@/components/StatusChip.vue";
@@ -40,6 +41,14 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("projects.columns.color"), key: "color", sortable: false },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: name + description, status chip (+ colour swatch). No meta grid. */
+const cardLayout: ServerTableCardLayout = {
+  title: "name",
+  subtitle: "description",
+  status: ["status", "color"],
+  meta: [],
+};
 
 const goToNew = (): void => {
   void router.push({ name: "project-create" });
@@ -147,13 +156,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("projects.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="goToNew">
-        {{ t("projects.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('projects.title')"
+      :primary="{ label: t('projects.new'), icon: 'mdi-plus', onClick: goToNew }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -180,19 +186,28 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
-        <template #[`item.description`]="{ item }">
-          <span class="d-inline-block text-truncate" style="max-width: 320px">
+        <template #[`item.description`]="{ item, card }">
+          <template v-if="card">{{ (item as Project).description ?? "" }}</template>
+          <span v-else class="d-inline-block text-truncate" style="max-width: 320px">
             {{ (item as Project).description || "—" }}
           </span>
         </template>
         <template #[`item.status`]="{ item }">
           <StatusChip :status="(item as Project).status" />
         </template>
-        <template #[`item.color`]="{ item }">
+        <template #[`item.color`]="{ item, card }">
+          <!-- Phone card: just the swatch beside the status chip. -->
           <span
-            v-if="(item as Project).color"
+            v-if="card && (item as Project).color"
+            class="projects-swatch projects-swatch--card"
+            :style="{ backgroundColor: (item as Project).color as string }"
+            :title="(item as Project).color as string"
+          />
+          <span
+            v-else-if="!card && (item as Project).color"
             class="d-inline-flex align-center"
             style="gap: 8px"
           >
@@ -202,7 +217,7 @@ onMounted(() => {
             />
             <span class="text-caption">{{ (item as Project).color }}</span>
           </span>
-          <span v-else>—</span>
+          <span v-else-if="!card">—</span>
         </template>
         <template #[`item.actions`]="{ item }">
           <RowActionMenu :actions="rowActions(item as Project)" />
@@ -225,5 +240,11 @@ onMounted(() => {
   border-radius: 4px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity, 0.24));
   flex: 0 0 auto;
+}
+.projects-swatch--card {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  align-self: center;
 }
 </style>

@@ -20,7 +20,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { useClientNames } from "@/composables/useClientNames";
 import { minorToDisplay } from "@/utils/money";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import StatusChip from "@/components/StatusChip.vue";
 
 const { t } = useI18n();
@@ -41,6 +42,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("recurring.columns.nextRun"), key: "nextRunAt", sortable: true },
   { title: t("recurring.columns.total"), key: "grandTotalMinor", sortable: true, align: "end" },
 ]);
+
+/** Phone card: client + document type, status chip + total, interval and next run. */
+const cardLayout: ServerTableCardLayout = {
+  title: "clientId",
+  subtitle: "documentType",
+  status: ["status"],
+  amount: "grandTotalMinor",
+  meta: ["interval", "nextRunAt"],
+};
 
 const items = ref<RecurringProfile[]>([]);
 const total = ref(0);
@@ -114,9 +124,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="mb-4">
-      <h1 class="text-h5">{{ t("recurring.title") }}</h1>
-    </div>
+    <PageHeader :title="t('recurring.title')" />
 
     <v-alert
       v-if="errorMessage"
@@ -143,6 +151,7 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
         @click:row="openRow"
       >
         <template #[`item.clientId`]="{ item }">

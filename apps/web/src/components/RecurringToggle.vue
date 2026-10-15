@@ -19,10 +19,12 @@ import type { PlaceholderDocType } from "@billy/shared/template";
 import type { RecurrenceConfig, RecurringAutoSend, RecurringInterval } from "@/types/domain";
 import AutoSendConfigModal from "@/components/AutoSendConfigModal.vue";
 import { useEInvoicing } from "@/stores/einvoicing";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t } = useI18n();
 const einvoicing = useEInvoicing();
 void einvoicing.load();
+const isMobile = useIsMobile();
 
 const model = defineModel<RecurrenceConfig | null>({ default: null });
 
@@ -152,7 +154,9 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg" class="mb-4">
+  <!-- Phone: settings-style rows (icon badge · label · switch on the right) and
+       paired half-width fields; desktop markup is unchanged. -->
+  <v-card variant="outlined" rounded="lg" class="mb-4" :class="{ 'recurring-toggle--mobile': isMobile }">
     <v-card-text>
     <v-switch
       v-model="enabled"
@@ -160,13 +164,18 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
       color="primary"
       hide-details
       :disabled="props.disabled"
-    />
-    <div v-if="enabled" class="text-caption mb-3" style="color: var(--v-billy-text-3)">
+    >
+      <template v-if="isMobile" #prepend>
+        <span class="recurring-toggle__badge"><v-icon icon="mdi-repeat" size="20" /></span>
+      </template>
+    </v-switch>
+    <div v-if="enabled" class="text-caption mb-3 recurring-toggle__hint" style="color: var(--v-billy-text-3)">
       {{ t("recurring.toggle.hint") }}
     </div>
 
     <v-row v-if="enabled">
-      <v-col cols="12" md="4">
+      <!-- Phone: count first, so the pair reads "Every [1] [Monthly]". -->
+      <v-col :cols="isMobile ? 6 : 12" md="4">
         <v-select
           v-model="interval"
           :items="intervalOptions"
@@ -175,7 +184,7 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
           density="comfortable"
         />
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col :cols="isMobile ? 6 : 12" md="4" :order="isMobile ? 'first' : undefined">
         <v-text-field
           v-model.number="intervalCount"
           :label="t('recurring.fields.intervalCount')"
@@ -251,8 +260,17 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
         :label="t('recurring.autoSend.enable')"
         :disabled="props.disabled"
         @update:model-value="onAutoSendToggle"
-      />
-      <div v-if="autoSend?.enabled" class="d-flex align-center flex-wrap" style="gap: 8px">
+      >
+        <template v-if="isMobile" #prepend>
+          <span class="recurring-toggle__badge"><v-icon icon="mdi-email-fast-outline" size="20" /></span>
+        </template>
+      </v-switch>
+      <div
+        v-if="autoSend?.enabled"
+        class="d-flex align-center flex-wrap"
+        :class="{ 'recurring-toggle__summary': isMobile }"
+        style="gap: 8px"
+      >
         <span class="text-caption" style="color: var(--v-billy-text-3)">
           {{ t("recurring.autoSend.summary", { to: autoSend.to ?? "", subject: autoSend.subject ?? "" }) }}
         </span>
@@ -277,7 +295,11 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
         :label="t('einvoicing.recurring.switch')"
         :disabled="props.disabled"
         @update:model-value="onAutoSubmit"
-      />
+      >
+        <template v-if="isMobile" #prepend>
+          <span class="recurring-toggle__badge"><v-icon icon="mdi-file-send-outline" size="20" /></span>
+        </template>
+      </v-switch>
     </template>
     </v-card-text>
   </v-card>
@@ -292,3 +314,68 @@ watch([enabled, interval, intervalCount, startDate, endDate, maxOccurrences, day
     @save="onAutoSendSave"
   />
 </template>
+
+<style scoped>
+/* ── Phone ──────────────────────────────────────────────────────────────── */
+.recurring-toggle--mobile {
+  border-radius: 16px !important;
+}
+.recurring-toggle--mobile > :deep(.v-card-text) {
+  padding: 4px 12px 8px;
+}
+/* Switch rows: badge · label (fills) · switch on the right, ≥ 52px tall. */
+.recurring-toggle--mobile :deep(.v-switch) {
+  min-height: 52px;
+}
+.recurring-toggle--mobile :deep(.v-switch > .v-input__prepend) {
+  margin-inline-end: 12px;
+  align-self: center;
+}
+.recurring-toggle--mobile :deep(.v-switch .v-selection-control) {
+  flex-direction: row-reverse;
+  min-height: 52px;
+}
+.recurring-toggle--mobile :deep(.v-switch .v-label) {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline: 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  opacity: 1;
+  white-space: normal;
+}
+.recurring-toggle__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+}
+.recurring-toggle--mobile .recurring-toggle__hint {
+  margin: -6px 0 0 48px;
+  margin-bottom: 24px !important; /* beats the .mb-3 utility */
+  line-height: 1.4;
+}
+.recurring-toggle--mobile :deep(.v-divider) {
+  margin-inline: -12px;
+}
+/* Auto-send summary: a soft box under its switch, text wraps, button full width. */
+.recurring-toggle__summary {
+  margin: 0 0 8px 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+.recurring-toggle__summary > span {
+  flex: 1 1 100%;
+  overflow-wrap: anywhere;
+}
+.recurring-toggle__summary > :deep(.v-btn) {
+  flex: 1 1 100%;
+  height: 40px;
+}
+</style>

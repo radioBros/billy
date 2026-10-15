@@ -33,10 +33,13 @@ import DocumentPreviewDialog from "@/components/DocumentPreviewDialog.vue";
 import AutoSendConfigModal from "@/components/AutoSendConfigModal.vue";
 import { useEInvoicing } from "@/stores/einvoicing";
 import LineItemEditor from "@/components/LineItemEditor.vue";
+import PageHeader from "@/components/PageHeader.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const isMobile = useIsMobile();
 const id = computed<string>(() => route.params.id as string);
 
 const profile = ref<RecurringProfile | null>(null);
@@ -194,6 +197,9 @@ const generatedDate = (d: GeneratedDoc): string => (d.issueDate ?? d.date ?? "")
 /** Grand total for invoice/proforma; `amountMinor` for expenses. */
 const generatedTotal = (d: GeneratedDoc): string =>
   minorToDisplay(d.grandTotalMinor ?? d.amountMinor, d.currency);
+
+/** Detail route of one generated document (phone cards are real links). */
+const generatedTo = (d: GeneratedDoc) => ({ name: generatedConfig.value.routeName, params: { id: d.id } });
 
 const openGenerated = (_e: unknown, ctx: { item: unknown }): void => {
   const row = ctx.item as GeneratedDoc;
@@ -466,10 +472,34 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ t("recurring.detailTitle") }}</h1>
-    </div>
+    <PageHeader :title="t('recurring.detailTitle')" back>
+      <!-- Phone: Edit + the destructive "Cancel profile" live on the title row. -->
+      <template #mobile-actions>
+        <v-btn
+          v-if="profile && canEdit"
+          icon="mdi-pencil"
+          variant="text"
+          :aria-label="t('common.edit')"
+          :disabled="acting"
+          data-test="recurring-edit"
+          @click="openEdit"
+        />
+        <v-menu v-if="profile && canCancel" location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" :aria-label="t('rowActions.menu')" />
+          </template>
+          <v-list density="comfortable" min-width="200">
+            <v-list-item
+              base-color="error"
+              prepend-icon="mdi-cancel"
+              :title="t('recurring.cancel')"
+              :disabled="acting"
+              @click="cancel"
+            />
+          </v-list>
+        </v-menu>
+      </template>
+    </PageHeader>
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -487,6 +517,178 @@ onMounted(() => {
         {{ actionError }}
       </v-alert>
 
+      <!-- Phone: hero summary, client, line cards, settings and generated-doc
+           cards. The desktop markup in the v-else branch is untouched. -->
+      <template v-if="isMobile">
+        <section class="dm-card dm-hero">
+          <div class="dm-hero__head">
+            <div class="dm-hero__title">{{ intervalLabel(profile) }}</div>
+            <div class="dm-hero__chips">
+              <StatusChip :status="profile.status" />
+              <v-chip size="small" variant="tonal">{{ t(`enums.recurringDocType.${profile.documentType ?? "invoice"}`) }}</v-chip>
+            </div>
+          </div>
+          <div class="dm-hero__client">{{ client?.displayName ?? clientNameOf(profile.clientId) ?? "\u2014" }}</div>
+          <div v-if="profile.subject" class="dm-hero__subject">{{ profile.subject }}</div>
+
+          <div class="dm-hero__amount">
+            <div class="dm-label">{{ t("recurring.totals.total") }}</div>
+            <div class="dm-hero__total">{{ minorToDisplay(profile.grandTotalMinor, profile.currency) }}</div>
+          </div>
+
+          <div class="dm-meta">
+            <div>
+              <div class="dm-label">{{ t("recurring.columns.nextRun") }}</div>
+              <div class="dm-meta__value">{{ profile.nextRunAt || "\u2014" }}</div>
+            </div>
+            <div>
+              <div class="dm-label">{{ t("recurring.lastRun") }}</div>
+              <div class="dm-meta__value">{{ profile.lastRunAt ? profile.lastRunAt.replace("T", " ").slice(0, 16) : "\u2014" }}</div>
+            </div>
+            <div>
+              <div class="dm-label">{{ t("recurring.fields.startDate") }}</div>
+              <div class="dm-meta__value">{{ profile.startDate || "\u2014" }}</div>
+            </div>
+            <div>
+              <div class="dm-label">{{ t("recurring.fields.endDate") }}</div>
+              <div class="dm-meta__value">{{ profile.endDate ?? "\u2014" }}</div>
+            </div>
+            <div>
+              <div class="dm-label">{{ t("recurring.occurrences") }}</div>
+              <div class="dm-meta__value">{{ profile.occurrencesGenerated }}</div>
+            </div>
+            <div>
+              <div class="dm-label">{{ t("recurring.fields.maxOccurrences") }}</div>
+              <div class="dm-meta__value">{{ profile.maxOccurrences ?? "\u2014" }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lifecycle: Generate now is the prominent action; pause/resume beside it. -->
+        <div v-if="canGenerate || canPreview" class="dm-actions">
+          <div v-if="canGenerate" class="dm-actions__primary">
+            <v-btn v-if="canGenerate" color="primary" variant="flat" prepend-icon="mdi-play" :loading="acting" @click="generate">
+              {{ t("recurring.generateNow") }}
+            </v-btn>
+            <v-btn v-if="isActive" color="primary" variant="tonal" prepend-icon="mdi-pause" :disabled="acting" @click="pause">
+              {{ t("recurring.pause") }}
+            </v-btn>
+            <v-btn v-if="isPaused" color="primary" variant="tonal" prepend-icon="mdi-play-pause" :disabled="acting" @click="resume">
+              {{ t("recurring.resume") }}
+            </v-btn>
+          </div>
+          <v-btn
+            v-if="canPreview"
+            variant="tonal"
+            color="info"
+            prepend-icon="mdi-eye-outline"
+            class="dm-actions__wide"
+            :loading="previewLoading"
+            @click="preview"
+          >
+            {{ t("documents.preview") }}
+          </v-btn>
+        </div>
+
+        <!-- Recipient — full client details, so the profile reads like the document. -->
+        <section v-if="client" class="dm-card">
+          <div class="dm-label mb-1">{{ t("recurring.fields.client") }}</div>
+          <div class="dm-client__name">{{ client.displayName }}</div>
+          <div class="dm-client__lines">
+            <div v-if="client.legalName && client.legalName !== client.displayName">{{ client.legalName }}</div>
+            <div v-for="(line, i) in clientAddressLines" :key="i">{{ line }}</div>
+            <div v-if="client.email">{{ client.email }}</div>
+            <div v-if="client.vatNumber">{{ t("clients.columns.vatNumber") }}: {{ client.vatNumber }}</div>
+          </div>
+        </section>
+
+        <section class="dm-card">
+          <div class="dm-label">{{ t("recurring.lineItems") }}</div>
+          <div v-for="(li, i) in profile.lineItems" :key="i" class="dm-line">
+            <div class="dm-line__desc">{{ li.description }}</div>
+            <div class="dm-line__row">
+              <span class="dm-line__calc">{{ li.quantity }} &times; {{ minorToDisplay(li.unitPriceMinor, profile.currency) }}</span>
+              <span class="dm-line__total">{{ minorToDisplay(li.lineTotalMinor, profile.currency) }}</span>
+            </div>
+          </div>
+          <div class="dm-totals">
+            <div class="dm-totals__row">
+              <span>{{ t("recurring.totals.subtotal") }}</span><span>{{ minorToDisplay(profile.subtotalMinor, profile.currency) }}</span>
+            </div>
+            <div class="dm-totals__row">
+              <span>{{ t("recurring.totals.tax") }}</span><span>{{ minorToDisplay(profile.taxMinor, profile.currency) }}</span>
+            </div>
+            <div class="dm-totals__row dm-totals__row--grand">
+              <span>{{ t("recurring.totals.total") }}</span><span>{{ minorToDisplay(profile.grandTotalMinor, profile.currency) }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Automatic email (auto-send). Hidden for expense (no PDF to email). -->
+        <section v-if="canAutoSend" class="dm-card">
+          <div class="dm-setting">
+            <v-icon :icon="profile.autoSend?.enabled ? 'mdi-email-check-outline' : 'mdi-email-off-outline'" :color="profile.autoSend?.enabled ? 'success' : undefined" />
+            <div class="dm-setting__text">
+              <div class="dm-setting__title">{{ t("recurring.autoSend.title") }}</div>
+              <div class="dm-setting__hint">
+                {{ profile.autoSend?.enabled ? t("recurring.autoSend.statusOn", { to: profile.autoSend?.to ?? "" }) : t("recurring.autoSend.statusOff") }}
+              </div>
+            </div>
+          </div>
+          <v-btn block variant="tonal" color="primary" prepend-icon="mdi-cog-outline" class="dm-setting__btn" @click="autoSendModalOpen = true">
+            {{ t("recurring.autoSend.configure") }}
+          </v-btn>
+        </section>
+
+        <!-- Send each generated invoice officially via SdI (e-invoicing only). -->
+        <section v-if="showSdi" class="dm-card dm-sdi">
+          <v-switch
+            :model-value="profile.einvoice?.autoSubmit === true"
+            color="primary"
+            hide-details
+            inset
+            :loading="sdiSaving"
+            :disabled="sdiSaving"
+            :label="t('einvoicing.recurring.switch')"
+            data-test="recurring-sdi-switch"
+            @update:model-value="saveAutoSubmit"
+          />
+          <div class="dm-setting__hint">{{ t("einvoicing.recurring.hint") }}</div>
+        </section>
+
+        <!-- Documents already generated from this profile: one card each. -->
+        <div class="dm-section-title">{{ t("recurring.generatedDocs") }}</div>
+        <div v-if="profile.createdInvoiceIds.length === 0 || (!generatedLoading && generatedDocs.length === 0)" class="dm-card dm-empty">
+          {{ profile.createdInvoiceIds.length === 0 ? t("recurring.generatedNone") : t("tables.no_results") }}
+        </div>
+        <div v-else-if="generatedLoading" class="dm-card dm-empty">
+          <v-progress-circular indeterminate size="22" width="2" />
+        </div>
+        <template v-else>
+          <router-link v-for="d in generatedDocs" :key="d.id" :to="generatedTo(d)" class="dm-doc">
+            <div class="dm-doc__head">
+              <div class="dm-doc__number">{{ generatedNumber(d) }}</div>
+              <StatusChip v-if="d.status" :status="d.status" />
+            </div>
+            <div class="dm-doc__row">
+              <div class="dm-doc__dates">
+                <div>{{ generatedDate(d) }}</div>
+                <div v-if="profile.documentType !== 'expense' && d.dueDate">
+                  {{ t("invoices.columns.dueDate") }} {{ d.dueDate.slice(0, 10) }}
+                </div>
+              </div>
+              <div class="dm-doc__amount">
+                <div class="dm-doc__total">{{ generatedTotal(d) }}</div>
+                <div v-if="profile.documentType !== 'expense' && d.amountDueMinor != null" class="dm-doc__due">
+                  {{ t("invoices.columns.due") }} {{ minorToDisplay(d.amountDueMinor, d.currency) }}
+                </div>
+              </div>
+            </div>
+          </router-link>
+        </template>
+      </template>
+
+      <template v-else>
       <AppCard>
         <template #header>
           <div class="text-h6 mr-3">{{ intervalLabel(profile) }}</div>
@@ -688,18 +890,19 @@ onMounted(() => {
           </v-data-table>
         </v-card-text>
       </v-card>
+      </template>
     </template>
 
     <!-- Edit dialog — changes apply to FUTURE occurrences only. -->
-    <v-dialog v-model="editOpen" max-width="1280" width="92vw" scrollable>
-      <v-card variant="outlined" rounded="lg">
+    <v-dialog v-model="editOpen" max-width="1280" :width="isMobile ? undefined : '92vw'" :fullscreen="isMobile" scrollable>
+      <v-card variant="outlined" :rounded="isMobile ? 0 : 'lg'">
         <v-card-title class="d-flex align-center">
           <span>{{ t("recurring.edit.title") }}</span>
           <v-spacer />
           <v-btn icon="mdi-close" variant="text" size="small" :aria-label="t('common.cancel')" @click="editOpen = false" />
         </v-card-title>
         <v-divider />
-        <v-card-text style="max-height: 76vh">
+        <v-card-text :style="isMobile ? undefined : 'max-height: 76vh'">
           <v-alert v-if="editError" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
             {{ editError }}
           </v-alert>
@@ -816,5 +1019,274 @@ onMounted(() => {
 /* Generated-documents table: rows navigate to the document on click. */
 .billy-clickable-rows :deep(tbody tr) {
   cursor: pointer;
+}
+
+/* ── Phone detail layout (isMobile branch only) ───────────────────────── */
+.dm-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.dm-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+}
+.dm-hero__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dm-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.dm-hero__title {
+  min-width: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.dm-hero__client {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.7));
+  overflow-wrap: anywhere;
+}
+.dm-hero__amount {
+  margin-top: 16px;
+}
+.dm-hero__total {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dm-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--v-billy-border, rgba(0, 0, 0, 0.12));
+}
+.dm-meta__value {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+/* Lifecycle actions under the hero: primary row, then Preview/Print/Download. */
+.dm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.dm-actions__primary {
+  display: flex;
+  gap: 8px;
+}
+.dm-actions__primary > .v-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px !important;
+  border-radius: 14px;
+}
+.dm-actions__wide {
+  width: 100%;
+  height: 44px !important;
+  border-radius: 14px;
+}
+.dm-line {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+}
+.dm-line__desc {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.dm-line__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.dm-line__calc {
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+  overflow-wrap: anywhere;
+}
+.dm-line__total {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dm-totals {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.05);
+}
+.dm-totals__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.dm-totals__row--grand {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.dm-hero__subject {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.dm-client__name {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dm-client__lines {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.7));
+  overflow-wrap: anywhere;
+}
+.dm-setting {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dm-setting__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dm-setting__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.dm-setting__hint {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+  overflow-wrap: anywhere;
+}
+.dm-setting__btn {
+  margin-top: 12px;
+  height: 44px !important;
+}
+.dm-sdi :deep(.v-label) {
+  white-space: normal;
+  line-height: 1.35;
+  opacity: 1;
+}
+.dm-section-title {
+  margin: 20px 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+}
+.dm-empty {
+  display: flex;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
+}
+/* Generated documents: one tappable card each (a real link). */
+.dm-doc {
+  display: block;
+  margin-bottom: 10px;
+  padding: 14px 14px 12px 16px;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  border-radius: 16px;
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+.dm-doc:active {
+  background: rgba(var(--v-theme-primary), 0.05);
+  transform: scale(0.99);
+}
+.dm-doc:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
+.dm-doc__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dm-doc__number {
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.dm-doc__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.dm-doc__dates {
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-billy-text-2, rgba(var(--v-theme-on-surface), 0.7));
+}
+.dm-doc__amount {
+  flex: 0 0 auto;
+  text-align: right;
+}
+.dm-doc__total {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dm-doc__due {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.55));
 }
 </style>

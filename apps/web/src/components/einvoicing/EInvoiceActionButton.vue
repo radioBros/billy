@@ -8,12 +8,15 @@
  */
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useIsMobile } from "@/composables/useIsMobile";
 import type { EInvoiceInfo, EInvoiceStatus } from "@/types/domain";
 
 const props = defineProps<{ info: EInvoiceInfo | null; open: boolean }>();
 const emit = defineEmits<{ toggle: [] }>();
 
 const { t } = useI18n();
+// Touch has no hover: a tap would pin the tooltip over the panel it just opened.
+const isMobile = useIsMobile();
 
 const SENT: ReadonlySet<EInvoiceStatus> = new Set<EInvoiceStatus>([
   "awaiting_delivery",
@@ -113,7 +116,7 @@ const tip = computed<string>(() => {
     <template #append>
       <v-icon icon="mdi-chevron-down" size="small" class="einvoice-chevron" :class="{ 'einvoice-chevron--open': open }" />
     </template>
-    <v-tooltip activator="parent" location="bottom" :text="tip" />
+    <v-tooltip activator="parent" location="bottom" :text="tip" :disabled="isMobile" />
   </v-btn>
 </template>
 

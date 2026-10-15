@@ -18,7 +18,8 @@ import { enumLabel } from "@/utils/enums";
 import { useSettingsStore } from "@/stores/settings";
 import StatusChip from "@/components/StatusChip.vue";
 import ServerTable from "@/components/tables/ServerTable.vue";
-import type { ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import type { ServerTableCardLayout, ServerTableHeader } from "@/components/tables/ServerTable.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import RowActionMenu from "@/components/tables/RowActionMenu.vue";
 import type { RowAction } from "@/components/tables/RowActionMenu.vue";
 import { useClonePrefill } from "@/composables/useClonePrefill";
@@ -48,6 +49,15 @@ const headers = computed<ServerTableHeader[]>(() => [
   { title: t("expenses.columns.billable"), key: "billable", sortable: false },
   { title: "", key: "actions", sortable: false, align: "end", forced: true },
 ]);
+
+/** Phone card: vendor + category, status (+ billable) chips + amount, date. */
+const cardLayout: ServerTableCardLayout = {
+  title: "vendor",
+  subtitle: "category",
+  status: ["status", "billable"],
+  amount: "amountMinor",
+  meta: ["date"],
+};
 
 const { cloneRow } = useClonePrefill();
 
@@ -85,6 +95,8 @@ const itemsPerPage = ref(50);
 const sortBy = ref<SortItem[]>([{ key: "date", order: "desc" }]);
 const search = ref("");
 const statusFilter = ref<ExpenseStatus | null>(null);
+/** Filters differing from their default — badges the phone filter button. */
+const activeFilterCount = computed<number>(() => (statusFilter.value != null ? 1 : 0));
 
 const toSortParam = (items_: SortItem[]): string | undefined => {
   if (items_.length === 0) return undefined;
@@ -163,13 +175,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 16px">
-      <h1 class="text-h5">{{ t("expenses.title") }}</h1>
-      <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'expense-create' }">
-        {{ t("expenses.new") }}
-      </v-btn>
-    </div>
+    <PageHeader
+      :title="t('expenses.title')"
+      :primary="{ label: t('expenses.new'), icon: 'mdi-plus', to: { name: 'expense-create' } }"
+    />
 
     <v-alert
       v-if="errorMessage"
@@ -200,6 +209,8 @@ onMounted(() => {
         :items="items"
         :total="total"
         :loading="loading"
+        :card-layout="cardLayout"
+        :active-filters="activeFilterCount"
         @click:row="openRow"
       >
         <template #toolbar>
@@ -223,8 +234,14 @@ onMounted(() => {
         <template #[`item.status`]="{ item }">
           <StatusChip :status="item.status" />
         </template>
-        <template #[`item.billable`]="{ item }">
-          {{ item.billable ? t("common.yes") : t("common.no") }}
+        <template #[`item.billable`]="{ item, card }">
+          <!-- Phone card: a "Billable" chip beside the status, nothing otherwise. -->
+          <template v-if="card">
+            <v-chip v-if="item.billable" size="small" variant="tonal" color="success" label prepend-icon="mdi-cash-check">
+              {{ t("expenses.columns.billable") }}
+            </v-chip>
+          </template>
+          <template v-else>{{ item.billable ? t("common.yes") : t("common.no") }}</template>
         </template>
         <template #[`item.actions`]="{ item }">
           <RowActionMenu :actions="rowActions(item)" />

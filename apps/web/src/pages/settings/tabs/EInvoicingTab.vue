@@ -27,6 +27,8 @@ import { codeItems } from "@/utils/einvoicingCodes";
 import { useEInvoicing } from "@/stores/einvoicing";
 import { useFieldErrors } from "@/pages/settings/useFieldErrors";
 import { SNACKBAR_KEY, NOOP_NOTIFY } from "@/pages/settings/snackbar";
+import FormActions from "@/components/FormActions.vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import SettingsSection from "@/pages/settings/SettingsSection.vue";
 import EInvoicingSetupGuide from "@/pages/settings/einvoicing/EInvoicingSetupGuide.vue";
 import EInvoicingChannelForm from "@/pages/settings/einvoicing/EInvoicingChannelForm.vue";
@@ -35,6 +37,7 @@ import EInvoicingTestResultBox from "@/pages/settings/einvoicing/EInvoicingTestR
 
 const { t, te } = useI18n();
 const notify = inject(SNACKBAR_KEY, NOOP_NOTIFY);
+const isMobile = useIsMobile();
 const einvoicing = useEInvoicing();
 const { fieldErrors, applyError, clear } = useFieldErrors();
 
@@ -264,7 +267,7 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <v-card variant="outlined" rounded="lg" data-test="einvoicing-tab">
+  <v-card variant="outlined" rounded="lg" :class="{ 'settings-bare': isMobile }" data-test="einvoicing-tab">
     <v-card-text>
       <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
         {{ errorMessage }}
@@ -287,7 +290,7 @@ onMounted(() => void load());
 
       <template v-else>
         <!-- 1. Status header: chips, enable, test, reset -->
-        <v-card variant="tonal" rounded="lg" class="pa-4 mb-4" data-test="einvoicing-status-header">
+        <v-card variant="tonal" rounded="lg" class="pa-4 mb-4" :class="{ 'einv-status--m': isMobile }" data-test="einvoicing-status-header">
           <div class="d-flex flex-wrap align-center" style="gap: 8px" data-test="einvoicing-status-chips">
             <v-chip size="small" color="success" variant="tonal" label>{{ t("einvoicing.connection.statusConnected") }}</v-chip>
             <v-chip v-if="view.channel" size="small" variant="tonal" label data-test="chip-channel">
@@ -337,7 +340,7 @@ onMounted(() => void load());
             {{ t("einvoicing.enable.since", { date: fmtDate(view.enabledAt) }) }}
           </div>
 
-          <div class="d-flex flex-wrap mt-3" style="gap: 12px">
+          <div class="d-flex flex-wrap mt-3" :class="{ 'einv-actions--m': isMobile }" style="gap: 12px">
             <v-btn variant="tonal" color="primary" prepend-icon="mdi-heart-pulse" :loading="testing" data-test="einvoicing-test" @click="testConnection">
               {{ t("einvoicing.connection.test") }}
             </v-btn>
@@ -350,7 +353,7 @@ onMounted(() => void load());
         </v-card>
 
         <!-- 2. Setup guide (progress summary + what the statuses mean) -->
-        <div class="my-4">
+        <div :class="isMobile ? 'mb-3' : 'my-4'">
           <EInvoicingSetupGuide :view="view" />
         </div>
 
@@ -412,23 +415,22 @@ onMounted(() => void load());
             </v-col>
           </v-row>
 
-          <div class="d-flex mt-2">
-            <v-spacer />
+          <FormActions class="mt-2">
             <v-btn color="primary" :loading="saving" data-test="einvoicing-save-connection" @click="submitConnection(saveConnection)">
               {{ t("einvoicing.connection.save") }}
             </v-btn>
-          </div>
+          </FormActions>
           </v-form>
         </SettingsSection>
 
         <!-- 4. Channel (managed mode only) -->
-        <SettingsSection v-if="mode === 'managed'" class="mt-4" :title="t('einvoicing.channel.title')" :hint="t('einvoicing.channel.hint')">
+        <SettingsSection v-if="mode === 'managed'" :class="{ 'mt-4': !isMobile }" :title="t('einvoicing.channel.title')" :hint="t('einvoicing.channel.hint')">
           <EInvoicingChannelForm :view="view" :vat-number="business?.vatNumber" @saved="onChannelSaved" />
         </SettingsSection>
 
         <!-- 5 + 6. Fiscal profile and defaults (one form, one validated save) -->
         <v-form ref="defaultsFormRef" @submit.prevent>
-        <SettingsSection class="mt-4" :title="t('einvoicing.fiscal.title')" :hint="t('einvoicing.fiscal.hint')">
+        <SettingsSection :class="{ 'mt-4': !isMobile }" :title="t('einvoicing.fiscal.title')" :hint="t('einvoicing.fiscal.hint')">
           <v-select
             v-model="taxRegime"
             :items="regimeItems"
@@ -439,7 +441,16 @@ onMounted(() => void load());
             data-test="einvoicing-tax-regime"
           />
           <div class="text-caption text-medium-emphasis mb-1">{{ t("einvoicing.fiscal.businessTitle") }}</div>
-          <div data-test="einvoicing-business-summary">
+          <div v-if="isMobile" class="einv-biz--m" data-test="einvoicing-business-summary">
+            <div v-for="row in businessRows" :key="row.key" class="einv-biz--m__row" :data-test="`biz-${row.key}`">
+              <v-icon :icon="row.ok ? 'mdi-check-circle' : 'mdi-close-circle'" :color="row.ok ? 'success' : 'error'" size="18" class="einv-biz--m__icon" />
+              <div class="einv-biz--m__text">
+                <div class="einv-biz--m__label">{{ t(`einvoicing.fiscal.business.${row.key}`) }}</div>
+                <div class="einv-biz--m__value">{{ row.value || "—" }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-else data-test="einvoicing-business-summary">
             <div v-for="row in businessRows" :key="row.key" class="d-flex align-center text-body-2" style="gap: 6px" :data-test="`biz-${row.key}`">
               <v-icon :icon="row.ok ? 'mdi-check-circle' : 'mdi-close-circle'" :color="row.ok ? 'success' : 'error'" size="small" />
               <span class="text-medium-emphasis" style="min-width: 120px">{{ t(`einvoicing.fiscal.business.${row.key}`) }}</span>
@@ -459,7 +470,7 @@ onMounted(() => void load());
           </v-btn>
         </SettingsSection>
 
-        <SettingsSection class="mt-4" :title="t('einvoicing.defaults.title')" :hint="t('einvoicing.defaults.hint')">
+        <SettingsSection :class="{ 'mt-4': !isMobile }" :title="t('einvoicing.defaults.title')" :hint="t('einvoicing.defaults.hint')">
           <v-switch v-model="offerStepAfterFinalize" color="primary" hide-details density="compact" :label="t('einvoicing.defaults.offerStep')" data-test="einvoicing-offer-step" />
           <v-switch v-model="scheduledDefaultSubmit" color="primary" hide-details density="compact" :label="t('einvoicing.defaults.scheduled')" data-test="einvoicing-scheduled-default" />
           <v-switch v-model="recurringDefaultSubmit" color="primary" hide-details density="compact" :label="t('einvoicing.defaults.recurring')" data-test="einvoicing-recurring-default" />
@@ -494,15 +505,73 @@ onMounted(() => void load());
             </v-col>
           </v-row>
 
-          <div class="d-flex mt-2">
-            <v-spacer />
+          <FormActions class="mt-2">
             <v-btn color="primary" :loading="saving" data-test="einvoicing-save-defaults" @click="submitDefaults(saveDefaults)">
               {{ t("einvoicing.defaults.save") }}
             </v-btn>
-          </div>
+          </FormActions>
         </SettingsSection>
         </v-form>
       </template>
     </v-card-text>
   </v-card>
 </template>
+
+<style scoped>
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+.einv-status--m {
+  border-radius: 16px !important;
+  padding: 14px !important;
+}
+.einv-actions--m > .v-spacer {
+  display: none;
+}
+/* Side by side when both labels fit, else one full-width button per row. */
+.einv-actions--m > .v-btn {
+  flex: 1 1 170px;
+  min-width: 0;
+  height: 44px;
+}
+/* Long chips (account / issuer names) wrap instead of being clipped. */
+.einv-status--m :deep(.v-chip) {
+  height: auto;
+  min-height: 24px;
+  max-width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.einv-biz--m {
+  border: 1px solid var(--v-billy-border, #e2e4e9);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.einv-biz--m__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.einv-biz--m__row + .einv-biz--m__row {
+  border-top: 1px solid var(--v-billy-border, #e2e4e9);
+}
+.einv-biz--m__icon {
+  margin-top: 2px;
+}
+.einv-biz--m__text {
+  min-width: 0;
+}
+.einv-biz--m__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v-billy-text-3, rgba(var(--v-theme-on-surface), 0.6));
+}
+.einv-biz--m__value {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+</style>

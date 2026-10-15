@@ -8,7 +8,12 @@
     "configure_columns": "Configure columns",
     "show": "Show",
     "entries": "entries",
-    "showing_items": "Showing {from}–{to} of {total}"
+    "showing_items": "Showing {from}–{to} of {total}",
+    "filters": "Filters & sort",
+    "sortBy": "Sort by",
+    "resultsCount": "No results | {n} result | {n} results",
+    "showResults": "Show results | Show {n} result | Show {n} results",
+    "endOfList": "You're all caught up"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -33,7 +38,14 @@
     "primaryNav": "Primary navigation",
     "mainContent": "Main content",
     "signOut": "Sign out",
-    "theme": "Theme: {mode}. Activate to change."
+    "theme": "Theme: {mode}. Activate to change.",
+    "more": "More",
+    "appearance": "Appearance",
+    "themeModes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
   },
   "account": {
     "label": "Account",
@@ -279,7 +291,8 @@
       "unscheduleTitle": "Cancel schedule?",
       "unscheduleMessage": "This invoice will no longer be sent automatically."
     },
-    "saved": "Invoice saved"
+    "saved": "Invoice saved",
+    "viewInvoice": "View invoice"
   },
   "quotes": {
     "title": "Quotes",
@@ -347,7 +360,9 @@
       "convertTitle": "Convert to invoice?",
       "convertMessage": "A new draft invoice will be created from this quote."
     },
-    "saved": "Quote saved"
+    "saved": "Quote saved",
+    "convertedShort": "Converted to an invoice.",
+    "viewInvoice": "View invoice"
   },
   "contracts": {
     "title": "Contracts",
@@ -722,7 +737,9 @@
       "convertTitle": "Convert to invoice?",
       "convertMessage": "A new draft invoice will be created from this proforma."
     },
-    "saved": "Proforma saved"
+    "saved": "Proforma saved",
+    "convertedShort": "Converted to an invoice.",
+    "openInvoice": "Open invoice"
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -866,7 +883,25 @@
       "generic": {
         "title": "Notification",
         "body": "Update for {entity}"
+      },
+      "recurring": {
+        "occurrence_generated": {
+          "title": "Recurring document generated",
+          "body": "A new document was generated from the recurring profile {entity}"
+        }
+      },
+      "payment": {
+        "received": {
+          "title": "Payment received",
+          "body": "A payment was received for {entity}"
+        }
       }
+    },
+    "entityType": {
+      "project": "Project",
+      "subscription": "Subscription",
+      "timeEntry": "Time entry",
+      "payment": "Payment"
     }
   },
   "enums": {
@@ -891,7 +926,8 @@
       "renewed": "Renewed",
       "terminated": "Terminated",
       "archived": "Archived",
-      "invoiced": "Invoiced"
+      "invoiced": "Invoiced",
+      "suspended": "Suspended"
     },
     "contractType": {
       "development": "Development",
@@ -1110,7 +1146,15 @@
       "language": "Language",
       "languagesWithContent": "Languages with content: {locales}"
     },
-    "einvoicingTab": "E-invoicing (SdI)"
+    "einvoicingTab": "E-invoicing (SdI)",
+    "tabs": {
+      "branding": "Branding",
+      "email": "Email",
+      "localization": "Localization",
+      "documents": "Documents",
+      "company": "Company",
+      "advanced": "Advanced"
+    }
   },
   "documentActions": {
     "preview": "Preview",
@@ -1320,7 +1364,8 @@
     "maxLength": "Maximum {max} characters",
     "dates": {
       "invalid": "Enter a valid date",
-      "maxToday": "Date cannot be in the future"
+      "maxToday": "Date cannot be in the future",
+      "notPast": "Date cannot be in the past"
     },
     "formHasErrors": "Please fix the highlighted errors",
     "quantityPositive": "Quantity must be greater than 0",
@@ -1333,7 +1378,10 @@
     "portInvalid": "Enter a port between 1 and 65535",
     "ibanInvalid": "Enter a valid IBAN (e.g. IT60 X054 2811 1010 0000 0123 456)",
     "decimalInvalid": "Enter an amount with at most 2 decimals (e.g. 77.47)",
-    "intBetween": "Enter a whole number between {min} and {max}"
+    "intBetween": "Enter a whole number between {min} and {max}",
+    "amountPositive": "Enter an amount greater than 0",
+    "slugInvalid": "2–48 lowercase letters, digits or hyphens (no hyphen at the start or end)",
+    "passwordMinLength": "Password must be at least {min} characters"
   },
   "accounts": {
     "title": "Accounts",
@@ -1444,7 +1492,8 @@
     "tooLarge": "{name} is too large — attachment total must stay under {max}",
     "remove": "Remove",
     "previewPdf": "Preview PDF",
-    "uploadError": "Could not upload {name}"
+    "uploadError": "Could not upload {name}",
+    "tapHint": "Tap to attach files"
   },
   "placeholders": {
     "legendButton": "Placeholders",
@@ -2102,5 +2151,29 @@
       "tipExpand": "Show e-invoice (SdI) details",
       "tipCollapse": "Hide e-invoice (SdI) details"
     }
+  },
+  "formSteps": {
+    "next": "Next",
+    "counter": "Step {n} of {total}",
+    "details": "Details",
+    "items": "Line items",
+    "notes": "Notes & options",
+    "review": "Review",
+    "contact": "Contact",
+    "address": "Address",
+    "billing": "Billing",
+    "schedule": "Schedule",
+    "content": "Content",
+    "attachments": "Attachments",
+    "period": "Dates & value"
+  },
+  "lineItems": {
+    "unitPrice": "Unit price ({currency})",
+    "discountPct": "Disc %",
+    "taxPct": "Tax %",
+    "addLine": "Add line",
+    "removeLine": "Remove line",
+    "discount": "Discount",
+    "indicative": "Totals are indicative — the server recalculates on save."
   }
 }

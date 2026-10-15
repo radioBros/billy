@@ -9,6 +9,7 @@
  */
 import { ref, computed } from "vue";
 import { normalizeHex } from "@/stores/branding";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 const model = defineModel<string>({ required: true });
 
@@ -22,6 +23,7 @@ withDefaults(
 );
 
 const menu = ref(false);
+const isMobile = useIsMobile();
 
 /** Full-hex pattern (3- or 6-digit, with `#`). Typed 8-digit is handled on normalize. */
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/u;
@@ -73,6 +75,7 @@ const onPick = (v: string): void => {
           <button
             type="button"
             class="color-input__swatch"
+            :class="{ 'color-input__swatch--m': isMobile }"
             :style="{ backgroundColor: swatchColor }"
             :disabled="disabled"
             :aria-label="label ? `${label}: choose color` : 'Choose color'"
@@ -103,6 +106,18 @@ const onPick = (v: string): void => {
   cursor: pointer;
   flex: 0 0 auto;
   padding: 0;
+}
+/* Phone: a thumb-sized swatch (the visible chip stays compact, the hit area is 44px). */
+.color-input__swatch--m {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.color-input__swatch--m::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }
 .color-input__swatch:disabled {
   cursor: default;

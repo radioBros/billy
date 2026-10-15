@@ -17,12 +17,13 @@
  * awkwardly) on narrow screens, and a single "All year" toggle instead of a
  * separate button column.
  */
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, ApiError } from "@/api/client";
 import { minorToDisplay } from "@/utils/money";
 import { usePeriodStore } from "@/stores/period";
-import { MONTH_ABBR } from "@/components/dashboard/types";
+import { monthAbbr } from "@/components/dashboard/types";
+import { useIsMobile } from "@/composables/useIsMobile";
 
 interface MonthlyTotalsPoint {
   month: string;
@@ -59,6 +60,7 @@ const load = async (): Promise<void> => {
     });
     if (seq !== requestSeq) return;
     rows.value = Array.isArray(data) ? data : [];
+    void nextTick(revealActiveMonth);
   } catch (err) {
     if (seq !== requestSeq) return;
     rows.value = [];
@@ -106,7 +108,11 @@ const endDrag = (): void => {
   window.removeEventListener("pointerup", endDrag);
 };
 
+const isMobile = useIsMobile();
+
 const onCellPointerDown = (n: number): void => {
+  // Phones scroll the strip horizontally — no drag-paint there, a tap toggles.
+  if (isMobile.value) return;
   dragging.value = true;
   if (allSelected.value) {
     // From "all year", start a fresh selection of just this month.
@@ -124,9 +130,46 @@ const onCellPointerEnter = (n: number): void => {
   if (dragging.value) paint(n);
 };
 
+/** Desktop press starts a paint (default prevented so text never selects);
+ *  phones keep the native gesture so the strip can scroll. */
+const onPointerDown = (e: PointerEvent, n: number): void => {
+  if (isMobile.value) return;
+  e.preventDefault();
+  onCellPointerDown(n);
+};
+
+/** Phone tap: toggle one month (from "all year" → just this month). */
+const onCellTap = (n: number): void => {
+  if (!isMobile.value) return;
+  if (allSelected.value) {
+    months.value = [n];
+    return;
+  }
+  paintSelect.value = !months.value.includes(n);
+  paint(n);
+};
+
+// Phone strip: bring the current (or first selected) month into view once data
+// is on screen, so the user lands on "now" instead of January.
+const cellsRef = ref<HTMLElement | null>(null);
+const revealActiveMonth = (): void => {
+  const el = cellsRef.value;
+  if (!el || !isMobile.value) return;
+  const target = months.value[0] ?? (period.year === new Date().getFullYear() ? new Date().getMonth() + 1 : 1);
+  const cell = el.querySelector<HTMLElement>(`[data-month="${target}"]`);
+  if (cell) el.scrollLeft = Math.max(0, cell.offsetLeft - el.clientWidth / 2 + cell.clientWidth / 2);
+};
+
+/**
+ * Whether ANY month carries money totals. Count-only kinds (contracts) and
+ * callers without financial access get none → hide the money line entirely
+ * instead of a meaningless "0.00" under every month.
+ */
+const hasMoney = computed<boolean>(() => rows.value.some((r) => Object.keys(r.totals ?? {}).length > 0));
+
 /** The dominant currency's total for a month + a hint of any extra currencies. */
 const cellMoney = (row: MonthlyTotalsPoint): { text: string; extra: number } => {
-  const entries = Object.entries(row.totals);
+  const entries = Object.entries(row.totals ?? {});
   if (entries.length === 0) return { text: minorToDisplay(0, null), extra: 0 };
   entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const [cur, minor] = entries[0]!;
@@ -145,7 +188,7 @@ const selectionTotal = computed<{ count: string; money: string }>(() => {
   for (const r of rows.value) {
     if (!allSelected.value && !sel.has(r.monthNumber)) continue;
     count += r.count;
-    for (const [cur, minor] of Object.entries(r.totals)) totals[cur] = (totals[cur] ?? 0) + minor;
+    for (const [cur, minor] of Object.entries(r.totals ?? {})) totals[cur] = (totals[cur] ?? 0) + minor;
   }
   const entries = Object.entries(totals).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const countText = t("period.docCount", { count }, count);
@@ -153,15 +196,15 @@ const selectionTotal = computed<{ count: string; money: string }>(() => {
   return { count: countText, money: minorToDisplay(minor, cur) };
 });
 
-const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
+const monthLabel = (n: number): string => monthAbbr(n);
 </script>
 
 <template>
-  <v-card variant="flat" border rounded="lg" class="period-bar mb-4">
+  <v-card variant="flat" border rounded="lg" class="period-bar mb-4" :class="{ 'period-bar--mobile': isMobile }">
     <div v-if="errorMessage" class="pa-3 text-caption text-error">{{ errorMessage }}</div>
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" />
 
-    <div class="period-bar__cells">
+    <div ref="cellsRef" class="period-bar__cells">
       <!-- Month cells: month name above count + € body, coloured rail marks the
            active month(s). Press+drag paints a selection; a click toggles one. -->
       <button
@@ -171,13 +214,15 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
           class="period-cell"
           :class="{ 'period-cell--on': isSelected(row.monthNumber) && !allSelected }"
           :aria-pressed="isSelected(row.monthNumber)"
-          @pointerdown.prevent="onCellPointerDown(row.monthNumber)"
+          :data-month="row.monthNumber"
+          @click="onCellTap(row.monthNumber)"
+          @pointerdown="onPointerDown($event, row.monthNumber)"
           @pointerenter="onCellPointerEnter(row.monthNumber)"
         >
           <span class="period-cell__head">{{ monthLabel(row.monthNumber) }}</span>
           <span class="period-cell__body">
-            <span class="period-cell__count">{{ t("period.docCount", { count: row.count }, row.count) }}</span>
-            <span class="period-cell__money">
+            <span class="period-cell__count" :class="{ 'period-cell__count--solo': !hasMoney }">{{ t("period.docCount", { count: row.count }, row.count) }}</span>
+            <span v-if="hasMoney" class="period-cell__money">
               {{ cellMoney(row).text }}
               <span v-if="cellMoney(row).extra > 0" class="period-cell__extra">+{{ cellMoney(row).extra }}</span>
             </span>
@@ -195,8 +240,8 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
         >
           <span class="period-cell__head">{{ t("period.selectAll") }}</span>
           <span class="period-cell__body">
-            <span class="period-cell__count">{{ selectionTotal.count }}</span>
-            <span class="period-cell__money period-cell__money--all">{{ selectionTotal.money }}</span>
+            <span class="period-cell__count" :class="{ 'period-cell__count--solo': !hasMoney }">{{ selectionTotal.count }}</span>
+            <span v-if="hasMoney" class="period-cell__money period-cell__money--all">{{ selectionTotal.money }}</span>
           </span>
           <span class="period-cell__rail" />
         </button>
@@ -259,6 +304,12 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
   color: var(--v-billy-text-3);
   white-space: nowrap;
 }
+/* Count-only kinds (no money line): the count is the headline figure. */
+.period-cell__count--solo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--v-billy-text-2);
+}
 /* The All-year total uses the same money shape as a month, in success/green to
    set the aggregate apart from the per-month (primary) amounts. */
 .period-cell__money--all {
@@ -299,6 +350,46 @@ const monthLabel = (n: number): string => MONTH_ABBR[n - 1] ?? String(n);
 .period-cell--all.period-cell--on {
   background: rgba(var(--v-theme-success), 0.1);
 }
+/* ── Phone: a horizontally scrollable strip; "All year" pinned on the left. ── */
+.period-bar--mobile .period-bar__cells {
+  overflow-x: auto;
+  /* Snap whole month cells against the pinned "All year" cell (112px) so no
+     half-hidden sliver ever peeks out from under it. */
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 112px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.period-bar--mobile .period-bar__cells::-webkit-scrollbar {
+  display: none;
+}
+.period-bar--mobile .period-cell {
+  flex: 0 0 auto;
+  width: 84px;
+  touch-action: pan-x;
+  scroll-snap-align: start;
+}
+.period-bar--mobile .period-cell__head {
+  font-size: 0.8125rem;
+}
+.period-bar--mobile .period-cell__money {
+  font-size: 0.9375rem;
+}
+.period-bar--mobile .period-cell--all {
+  order: -1;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 112px;
+  border-left: none;
+  border-right: 2px solid var(--v-billy-border, rgba(0, 0, 0, 0.12));
+  background: rgb(var(--v-theme-surface));
+  background-image: linear-gradient(rgba(var(--v-theme-primary), 0.04), rgba(var(--v-theme-primary), 0.04));
+}
+.period-bar--mobile .period-cell--all.period-cell--on {
+  background-image: linear-gradient(rgba(var(--v-theme-success), 0.12), rgba(var(--v-theme-success), 0.12));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .period-cell,
   .period-cell__rail {

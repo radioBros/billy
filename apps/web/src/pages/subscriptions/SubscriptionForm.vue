@@ -23,6 +23,13 @@ import { majorToMinor, minorToMajor } from "@/utils/money";
 import ClientSelector from "@/components/ClientSelector.vue";
 import ProjectSelect from "@/components/ProjectSelect.vue";
 import AppCard from "@/components/AppCard.vue";
+import { useFormSubmit, type VuetifyFormRef } from "@/composables/useFormSubmit";
+import { useIsMobile } from "@/composables/useIsMobile";
+import { createReusableTemplate } from "@/composables/useReusableTemplate";
+import PageHeader from "@/components/PageHeader.vue";
+import FormSteps from "@/components/FormSteps.vue";
+import type { FormStep } from "@/components/FormSteps.vue";
+import FormActions from "@/components/FormActions.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -30,6 +37,17 @@ const router = useRouter();
 
 const id = computed<string | null>(() => (route.params.id as string | undefined) ?? null);
 const isEdit = computed<boolean>(() => id.value !== null);
+const isMobile = useIsMobile();
+
+/** Phone wizard steps. Desktop keeps the single card — both layouts render the
+ *  same field groups via the reusable templates below. */
+const formSteps = computed<FormStep[]>(() => [
+  { key: "details", title: t("formSteps.details"), icon: "mdi-autorenew" },
+  { key: "billing", title: t("formSteps.billing"), icon: "mdi-cash-sync" },
+]);
+const { Define: DefineIdentity, Reuse: ReuseIdentity } = createReusableTemplate();
+const { Define: DefineBilling, Reuse: ReuseBilling } = createReusableTemplate();
+const { Define: DefineExtra, Reuse: ReuseExtra } = createReusableTemplate();
 
 const INTERVAL_VALUES: SubscriptionInterval[] = ["weekly", "monthly", "quarterly", "yearly"];
 // Display each interval via the shared recurring.interval.* labels (translated in
@@ -56,6 +74,10 @@ const saving = ref(false);
 const errorMessage = ref<string | null>(null);
 const fieldErrors = ref<Record<string, string>>({});
 const formValid = ref(false);
+// Submit validates the whole form first (field errors + jump to the first one;
+// on phones FormSteps switches to the step holding it).
+const formRef = ref<VuetifyFormRef | null>(null);
+const { submit } = useFormSubmit(formRef);
 
 const required = (v: unknown): boolean | string =>
   (!!v && String(v).trim().length > 0) || t("common.required");
@@ -171,10 +193,120 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="d-flex align-center mb-4" style="gap: 12px">
-      <v-btn icon="mdi-arrow-left" variant="text" :aria-label="t('common.back')" @click="router.back()" />
-      <h1 class="text-h5">{{ isEdit ? t("subscriptions.editTitle") : t("subscriptions.newTitle") }}</h1>
-    </div>
+    <!-- Field groups, defined once: the desktop card and the phone steps below
+         both render them (see composables/useReusableTemplate). -->
+    <DefineIdentity>
+      <v-col cols="12" md="6">
+        <ClientSelector
+          v-model="clientId"
+          :label="t('subscriptions.fields.client')"
+          :disabled="isEdit"
+          :error-messages="fieldErrors.clientId"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="name"
+          :label="t('subscriptions.fields.name')"
+          :rules="[required]"
+          :error-messages="fieldErrors.name"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="plan"
+          :label="t('subscriptions.fields.plan')"
+          :rules="[required]"
+          :error-messages="fieldErrors.plan"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineIdentity>
+    <DefineBilling>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-text-field
+          v-model.number="amountMajor"
+          :label="t('subscriptions.fields.amount')"
+          type="number"
+          min="0"
+          step="0.01"
+          :rules="[amountRule]"
+          :error-messages="fieldErrors.amountMinor"
+          density="comfortable"
+          :hint="t('subscriptions.amountHint')"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="currency"
+          :label="t('subscriptions.fields.currency')"
+          :rules="[required, currencyRule]"
+          :error-messages="fieldErrors.currency"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-select
+          v-model="interval"
+          :items="INTERVAL_OPTIONS"
+          :label="t('subscriptions.fields.interval')"
+          :rules="[required]"
+          :error-messages="fieldErrors.interval"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="startDate"
+          :label="t('subscriptions.fields.startDate')"
+          type="date"
+          :rules="[required]"
+          :error-messages="fieldErrors.startDate"
+          density="comfortable"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="nextBillingDate"
+          :label="t('subscriptions.fields.nextBillingDate')"
+          type="date"
+          :rules="[required, nextBillingRule]"
+          :error-messages="fieldErrors.nextBillingDate"
+          density="comfortable"
+        />
+      </v-col>
+    </DefineBilling>
+    <DefineExtra>
+      <v-col cols="12" md="6" :class="{ 'pb-3': isMobile }">
+        <v-text-field
+          v-model="url"
+          :label="t('subscriptions.fields.url')"
+          type="url"
+          :rules="[urlRule]"
+          :error-messages="fieldErrors.url"
+          density="comfortable"
+          :hint="t('subscriptions.urlHint')"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12">
+        <v-textarea
+          v-model="note"
+          :label="t('subscriptions.fields.note')"
+          :error-messages="fieldErrors.note"
+          density="comfortable"
+          rows="3"
+          auto-grow
+        />
+      </v-col>
+    </DefineExtra>
+
+    <PageHeader back :title="isEdit ? t('subscriptions.editTitle') : t('subscriptions.newTitle')" />
 
     <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4" role="alert">
       {{ errorMessage }}
@@ -184,113 +316,38 @@ onMounted(() => {
       <v-progress-circular indeterminate />
     </v-card>
 
-    <v-form v-else v-model="formValid" @submit.prevent="save">
-      <AppCard>
+    <v-form v-else ref="formRef" v-model="formValid" @submit.prevent="submit(save)">
+      <!-- Phone: details → billing (amount / interval / dates) wizard. -->
+      <FormSteps v-if="isMobile" :steps="formSteps">
+        <template #details>
+          <AppCard>
+            <v-row>
+              <ReuseIdentity />
+              <ReuseExtra />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #billing>
+          <AppCard>
+            <v-row>
+              <ReuseBilling />
+            </v-row>
+          </AppCard>
+        </template>
+        <template #actions>
+          <FormActions>
+            <v-btn color="primary" variant="flat" type="submit" :loading="saving">
+              {{ isEdit ? t("common.saveChanges") : t("subscriptions.create") }}
+            </v-btn>
+          </FormActions>
+        </template>
+      </FormSteps>
+
+      <AppCard v-else>
         <v-row>
-          <v-col cols="12" md="6">
-            <ClientSelector
-              v-model="clientId"
-              :label="t('subscriptions.fields.client')"
-              :disabled="isEdit"
-              :error-messages="fieldErrors.clientId"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <ProjectSelect v-model="projectId" :error-messages="fieldErrors.projectId" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="name"
-              :label="t('subscriptions.fields.name')"
-              :rules="[required]"
-              :error-messages="fieldErrors.name"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="plan"
-              :label="t('subscriptions.fields.plan')"
-              :rules="[required]"
-              :error-messages="fieldErrors.plan"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model.number="amountMajor"
-              :label="t('subscriptions.fields.amount')"
-              type="number"
-              min="0"
-              step="0.01"
-              :rules="[amountRule]"
-              :error-messages="fieldErrors.amountMinor"
-              density="comfortable"
-              :hint="t('subscriptions.amountHint')"
-              persistent-hint
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="currency"
-              :label="t('subscriptions.fields.currency')"
-              :rules="[required, currencyRule]"
-              :error-messages="fieldErrors.currency"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="interval"
-              :items="INTERVAL_OPTIONS"
-              :label="t('subscriptions.fields.interval')"
-              :rules="[required]"
-              :error-messages="fieldErrors.interval"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="startDate"
-              :label="t('subscriptions.fields.startDate')"
-              type="date"
-              :rules="[required]"
-              :error-messages="fieldErrors.startDate"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="nextBillingDate"
-              :label="t('subscriptions.fields.nextBillingDate')"
-              type="date"
-              :rules="[required, nextBillingRule]"
-              :error-messages="fieldErrors.nextBillingDate"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="url"
-              :label="t('subscriptions.fields.url')"
-              type="url"
-              :rules="[urlRule]"
-              :error-messages="fieldErrors.url"
-              density="comfortable"
-              :hint="t('subscriptions.urlHint')"
-              persistent-hint
-            />
-          </v-col>
-          <v-col cols="12">
-            <v-textarea
-              v-model="note"
-              :label="t('subscriptions.fields.note')"
-              :error-messages="fieldErrors.note"
-              density="comfortable"
-              rows="3"
-              auto-grow
-            />
-          </v-col>
+          <ReuseIdentity />
+          <ReuseBilling />
+          <ReuseExtra />
         </v-row>
         <template #actions>
           <v-btn variant="text" @click="router.back()">{{ t("common.cancel") }}</v-btn>
