@@ -13,7 +13,7 @@
 #
 # The bundle does `require("@node-rs/argon2")`; Node resolves it from
 # /app/node_modules here.
-FROM node:24-slim
+FROM node:26.12.1-slim
 
 WORKDIR /app
 
@@ -21,6 +21,6 @@ ENV NODE_ENV=production
 
 # Install ONLY the native external into /app/node_modules (a flat, real dir —
 # not a pnpm symlink). Pin to the version in apps/api/package.json.
-RUN npm install --omit=dev --no-package-lock @node-rs/argon2@2.0.2
+RUN npm install --omit=dev --no-package-lock @node-rs/argon2@2.2.2
 
 CMD ["node", "apps/api/dist/index.js"]

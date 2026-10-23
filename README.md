@@ -68,7 +68,7 @@ addon is supplied by a read-only bind mount of `apps/api/node_modules`.
 ## Quick start (development)
 
 ```sh
-# 1. Prerequisites: Node >= 22, pnpm 11, Docker (with Compose v2).
+# 1. Prerequisites: Node >= 26.12.1, pnpm 11, Docker (with Compose v2).
 corepack enable
 
 # 2. Install + configure.
@@ -279,8 +279,8 @@ standard ports), or forward 80/443 → 3480/3481 at your edge.
 | :--- | :--- | :--- | :--- |
 | **proxy** | `traefik:v3.1` | Sole public entry; routes `/`→web, `/api`+`/public`+`/socket.io`→api; TLS in prod (Let's Encrypt). No dashboard exposed. | — |
 | **web** | `nginx:1.27-alpine` | Serves the built Vue SPA/PWA + runtime `config.js`. No app code baked in (bind-mounts `apps/web/dist`). | — |
-| **api** | `node:24-slim` (+ argon2) | REST + WebSocket + health + metrics. Runs the bundled `apps/api/dist`. **Self-provisions the MinIO bucket on boot.** | — (app users only) |
-| **worker** | Playwright base (+ Chromium) | BullMQ consumers: email, **PDF render**, notifications, backup, cleanup, recurring. | — |
+| **api** | `node:26.12.1-slim` (+ argon2) | REST + WebSocket + health + metrics. Runs the bundled `apps/api/dist`. **Self-provisions the MinIO bucket on boot.** | — (app users only) |
+| **worker** | `node:26.12.1-bookworm` (+ Playwright/Chromium) | BullMQ consumers: email, **PDF render**, notifications, backup, cleanup, recurring. | — |
 | **scheduler** | same as worker | Optional dedicated repeatable-job runner. Off by default; enable with `--profile scale`. | — |
 | **mongodb** | `mongo:7` | Primary datastore (all business data). | no auth in dev; set creds/`MONGO_URI` for prod |
 | **redis** | `redis:7` | Sessions + BullMQ queues + idempotency. | no pass in dev; **prod uses `REDIS_PASSWORD`** |

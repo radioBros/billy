@@ -15,18 +15,18 @@
     "@billy/einvoice": "workspace:*",
     "@billy/shared": "workspace:*",
     "@billy/types": "workspace:*",
-    "bullmq": "^5.80.4",
-    "ioredis": "^5.4.1",
+    "bullmq": "^5.81.5",
+    "ioredis": "^5.11.1",
     "minio": "^8.0.7",
-    "mongodb": "^6.10.0",
-    "nodemailer": "^9.0.3",
-    "playwright": "^1.61.1",
+    "mongodb": "^6.21.0",
+    "nodemailer": "^9.1.1",
+    "playwright": "^1.64.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
-    "@types/nodemailer": "^8.0.1",
+    "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
     "@types/web-push": "^3.6.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }

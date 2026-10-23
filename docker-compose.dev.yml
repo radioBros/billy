@@ -25,7 +25,7 @@ services:
   # Dev doesn't need the baked-argon2 image — `pnpm install` in the container
   # gets the correct Linux binary into the anonymous node_modules volume.
   api:
-    image: node:24-slim
+    image: node:26.12.1-slim
     build: !reset null
     working_dir: /app
     command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/api dev"]
@@ -44,7 +44,7 @@ services:
   # Worker: run from SOURCE via tsx watch in dev (no Chromium image build needed
   # unless testing PDF render — then use the base image build).
   worker:
-    image: node:24-slim
+    image: node:26.12.1-slim
     build: !reset null
     working_dir: /app
     command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/worker exec tsx watch src/index.ts"]
@@ -58,7 +58,7 @@ services:
 
   # Web: vite dev server (hot-reload) instead of the nginx static build.
   web:
-    image: node:24-slim
+    image: node:26.12.1-slim
     working_dir: /app
     command: ["sh", "-c", "corepack enable && pnpm install && pnpm --filter @billy/web exec vite --host 0.0.0.0 --port 80"]
     volumes:

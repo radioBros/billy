@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@billy/types": "workspace:*",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }
