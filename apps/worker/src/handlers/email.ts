@@ -5,6 +5,7 @@ import { Client as MinioClient } from "minio";
 import { MongoClient } from "mongodb";
 import nodemailer, { type Transporter } from "nodemailer";
 import type { ProcessorContext } from "@/processors.js";
+import { normalizeEmailContent, safeAttachmentFilename } from "@/handlers/email-content.js";
 
 /**
  * Email send handler.
@@ -236,7 +237,7 @@ const resolveAttachment = async (ref: { fileId: string; filename: string }, mong
   }
   const obj = await getMinio().getObject(FILES_BUCKET, file.objectKey);
   const content = await streamToBuffer(obj as unknown as NodeJS.ReadableStream);
-  return { filename: ref.filename, content };
+  return { filename: safeAttachmentFilename(ref.filename), content };
 };
 
 const resolveAttachments = async (refs: EmailJob["attachments"]): Promise<{ filename: string; content: Buffer }[]> => {
@@ -263,7 +264,9 @@ export const emailHandler = async (payload: EmailJob, ctx: ProcessorContext): Pr
   const cfg = mergeSmtpConfig(dbData, process.env, decryptedPassword);
   const { transport, usingJson } = buildTransport(cfg);
 
-  const rendered = readRendered(payload.data);
+  const raw = readRendered(payload.data);
+  // Deliverability hygiene: real text/plain alternative + full HTML document.
+  const rendered = { subject: raw.subject, ...normalizeEmailContent(raw) };
   const from = `${cfg.fromName} <${cfg.fromEmail}>`;
 
   // Resolve attachment REFS → bytes BEFORE sending. A missing / not-yet-clean
